@@ -9,7 +9,7 @@
  
 <Sidebar.Provider>
  <AppSidebar />
- <main>
+ <main class="flex-1 w-full h-screen overflow-hidden">
   <Sidebar.Trigger />
   <ModeWatcher />
   {@render children?.()}

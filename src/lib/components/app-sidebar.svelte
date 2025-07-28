@@ -25,17 +25,17 @@
 	const items = [
 		{
 			name: "Topologies",
-			url: "#",
+			url: "/topologies",
 			icon: MapIcon,
 		},
 		{
 			name: "Scenarios",
-			url: "#",
+			url: "/scenarios",
 			icon: LayersIcon,
 		},
 		{
 			name: "Roles",
-			url: "#",
+			url: "/roles",
 			icon: BookIcon,
 		},
 		{
@@ -63,7 +63,7 @@
 	<Sidebar.Header>
 		<div class="flex items-center gap-2 p-4">
 			<div class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-				<a href= "/"><img src="/logo.svg" alt=""></a>
+				<a href= "/"><img src="/favicon.svg" alt=""></a>
 			</div>
 			<div class="grid flex-1 text-left text-sm leading-tight">
 				<span class="truncate font-semibold">Ludus</span>
