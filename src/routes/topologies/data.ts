@@ -6,6 +6,22 @@ export interface Topology {
     Created: string;
 }
 
+// Format date from ISO string to mm/dd/yyyy hh:mm format in UTC+2 timezone
+export function formatDate(dateString: string): string {
+    const date = new Date(dateString);
+    
+    // Convert to UTC+2 timezone
+    const utcPlus2 = new Date(date.getTime() + (2 * 60 * 60 * 1000));
+    
+    const month = (utcPlus2.getUTCMonth() + 1).toString().padStart(2, '0');
+    const day = utcPlus2.getUTCDate().toString().padStart(2, '0');
+    const year = utcPlus2.getUTCFullYear();
+    const hours = utcPlus2.getUTCHours().toString().padStart(2, '0');
+    const minutes = utcPlus2.getUTCMinutes().toString().padStart(2, '0');
+    
+    return `${month}/${day}/${year} ${hours}:${minutes}`;
+}
+
 // Load topologies from API
 export async function loadTopologies(): Promise<Topology[]> {
     try {
@@ -16,13 +32,13 @@ export async function loadTopologies(): Promise<Topology[]> {
             return response.map(item => ({
                 ID: item.topologyId,
                 Name: item.topologyName,
-                Created: item.createdAt
+                Created: formatDate(item.createdAt)
             }));
         } else if (response.topologyId) {
             return [{
                 ID: response.topologyId,
                 Name: response.topologyName,
-                Created: response.createdAt
+                Created: formatDate(response.createdAt)
             }];
         }
         

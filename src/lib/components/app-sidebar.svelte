@@ -9,7 +9,10 @@
 	import * as Sidebar from "$lib/components/ui/sidebar/index.js";
     import SunIcon from "@lucide/svelte/icons/sun";
     import MoonIcon from "@lucide/svelte/icons/moon";
- 
+	import UsersIcon from "@lucide/svelte/icons/users";
+	import CalendarIcon from "@lucide/svelte/icons/calendar";
+	import ServerIcon from "@lucide/svelte/icons/server";
+
     import { toggleMode } from "mode-watcher";
     import { Button } from "$lib/components/ui/button/index.js";
 
@@ -34,6 +37,11 @@
 			icon: LayersIcon,
 		},
 		{
+			name: "Users",
+			url: "/users",
+			icon: UsersIcon,
+		},
+		{
 			name: "Roles",
 			url: "/roles",
 			icon: BookIcon,
@@ -47,15 +55,20 @@
 
 	const games = [
 		{
-			name: "Create Game",
-			url: "#",
+			name: "Create Range",
+			url: "/range",
 			icon: SwordsIcon,
 		},
-        		{
+		{
 			name: "Active Games",
-			url: "#",
+			url: "/games",
 			icon: GamepadIcon,
 		},
+		{
+			name: "Live CTFd",
+			url: "/ctfd",
+			icon: CalendarIcon,
+		}
 	];
 </script>
 
@@ -66,7 +79,7 @@
 				<a href= "/"><img src="/favicon.svg" alt=""></a>
 			</div>
 			<div class="grid flex-1 text-left text-sm leading-tight">
-				<span class="truncate font-semibold">Ludus</span>
+				<a href= "/" class="truncate font-semibold">Ludus</a>
 			</div>
 		</div>
 	</Sidebar.Header>

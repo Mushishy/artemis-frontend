@@ -6,10 +6,10 @@
 	let { data }: { data: PageData } = $props();
 
 	const headers: { key: keyof Role; label: string; sortable?: boolean }[] = [
-		{ key: 'Name', label: 'Role Name', sortable: true },
-		{ key: 'Version', label: 'Role Version', sortable: true },
-		{ key: 'Type', label: 'Role Type', sortable: true },
-		{ key: 'Global', label: 'Global Role', sortable: true }
+		{ key: 'name', label: 'Role Name', sortable: true },
+		{ key: 'version', label: 'Role Version', sortable: true },
+		{ key: 'type', label: 'Role Type', sortable: true },
+		{ key: 'global', label: 'Global Role', sortable: true }
 ];
 </script>
 
@@ -23,7 +23,7 @@
 		</div>
 	</div>
 
-	<div class="flex-1 min-h-0 w-full overflow-hidden pb-12">
+	<div class="flex-1 min-h-0 w-full overflow-hidden pb-4">
 		<DataTable data={data.roles} {headers} maxHeight="calc(100% - 2rem)" />
 	</div>
 </div>

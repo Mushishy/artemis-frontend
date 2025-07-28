@@ -6,6 +6,22 @@ export interface Scenario {
     Created: string;
 }
 
+// Format date from ISO string to mm/dd/yyyy hh:mm format in UTC+2 timezone
+export function formatDate(dateString: string): string {
+    const date = new Date(dateString);
+    
+    // Convert to UTC+2 timezone
+    const utcPlus2 = new Date(date.getTime() + (2 * 60 * 60 * 1000));
+    
+    const month = (utcPlus2.getUTCMonth() + 1).toString().padStart(2, '0');
+    const day = utcPlus2.getUTCDate().toString().padStart(2, '0');
+    const year = utcPlus2.getUTCFullYear();
+    const hours = utcPlus2.getUTCHours().toString().padStart(2, '0');
+    const minutes = utcPlus2.getUTCMinutes().toString().padStart(2, '0');
+    
+    return `${month}/${day}/${year} ${hours}:${minutes}`;
+}
+
 // Load scenarios from API
 export async function loadScenarios(): Promise<Scenario[]> {
     try {
@@ -16,13 +32,13 @@ export async function loadScenarios(): Promise<Scenario[]> {
             return response.map(item => ({
                 ID: item.scenarioID,
                 Name: item.scenarioName,
-                Created: item.createdAt
+                Created: formatDate(item.createdAt)
             }));
         } else if (response.scenarioID) {
             return [{
                 ID: response.scenarioID,
                 Name: response.scenarioName,
-                Created: response.createdAt
+                Created: formatDate(response.createdAt)
             }];
         }
         

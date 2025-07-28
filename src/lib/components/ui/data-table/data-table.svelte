@@ -20,7 +20,7 @@
 	let sortDirection: 'asc' | 'desc' = $state('asc');
 	let currentItemsPerPage = $state(itemsPerPage);
 
-	const itemsPerPageOptions = [13, 16, 32, 64];
+	const itemsPerPageOptions = [13, 18, 27, 63];
 
 	// Use getter functions instead of $derived for better Svelte 5 compatibility
 	function getSortedData(): T[] {
@@ -129,6 +129,18 @@
 		return '';
 	}
 
+	// Calculate column widths based on number of columns and whether actions are shown
+	function getColumnWidth(index: number, totalHeaders: number, showActions: boolean): string {
+		// Keep consistent widths regardless of actions - just reserve space for actions column
+		if (index === 0) {
+			// First column (Name) always gets the most space
+			return totalHeaders === 2 ? 'w-1/2' : totalHeaders === 3 ? 'w-2/5' : 'w-1/3';
+		} else {
+			// Other columns share remaining space equally
+			return totalHeaders === 2 ? 'w-1/4' : totalHeaders === 3 ? 'w-1/5' : 'w-1/6';
+		}
+	}
+
 	function shouldHighlight(value: any): boolean {
 		return typeof value === 'boolean' || 
 			   value === 'Built' || value === 'Not Built' ||
@@ -151,7 +163,7 @@
 				<tr class="border-b border-gray-200 dark:border-zinc-700">
 					{#each headers as header, index}
 						<th
-							class="px-6 py-3 text-center text-xs font-medium text-gray-700 dark:text-zinc-300 uppercase tracking-wider {index === 0 ? 'w-2/5' : showActions && index === headers.length - 1 ? 'w-1/5' : 'w-1/5'} {header.sortable !== false ? 'cursor-pointer hover:bg-gray-300 dark:hover:bg-zinc-700 select-none' : ''}"
+							class="px-6 py-3 text-center text-xs font-medium text-gray-700 dark:text-zinc-300 uppercase tracking-wider {getColumnWidth(index, headers.length, showActions)} {header.sortable !== false ? 'cursor-pointer hover:bg-gray-300 dark:hover:bg-zinc-700 select-none' : ''}"
 							onclick={() => handleSort(header.key, header.sortable !== false)}
 						>
 							<div class="flex items-center justify-center gap-1">
@@ -170,7 +182,7 @@
 						</th>
 					{/each}
 					{#if showActions}
-						<th class="px-6 py-3 text-center text-xs font-medium text-gray-700 dark:text-zinc-300 uppercase tracking-wider w-1/5">
+						<th class="px-6 py-3 text-center text-xs font-medium text-gray-700 dark:text-zinc-300 uppercase tracking-wider w-1/4">
 							Actions
 						</th>
 					{/if}
@@ -180,7 +192,7 @@
 				{#each getPaginatedData() as row, index}
 					<tr
 						class="border-b border-gray-200 dark:border-zinc-600 hover:bg-gray-100 dark:hover:bg-zinc-700"
-						style="height: 3.25rem;"
+						style="height: 3.25rem; max-height: 3.25rem;"
 					>
 						{#each headers as header, headerIndex}
 							{@const value = row[header.key]}
@@ -189,7 +201,7 @@
 									{renderValue(value)}
 								</th>
 							{:else}
-								<td class="px-6 py-4 {shouldHighlight(value) ? 'text-center' : 'text-left'}">
+								<td class="px-6 py-4 text-center">
 									{#if shouldHighlight(value)}
 										<span class={getTagClass(value) || getBooleanClass(value)}>
 											{renderValue(value)}
@@ -203,16 +215,16 @@
 							{/if}
 						{/each}
 						{#if showActions}
-							<td class="px-6 py-4 text-center">
-								<div class="flex items-center justify-center gap-2">
+							<td class="px-6 py-4 text-center" style="height: 3.25rem; max-height: 3.25rem;">
+								<div class="flex items-center justify-center gap-1 h-full">
 									{#if onDownload}
 										<Button
 											variant="outline"
 											size="sm"
 											onclick={() => onDownload?.(row)}
-											class="p-2 h-8 w-8 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:border-blue-700 dark:hover:text-blue-300"
+											class="p-1.5 h-7 w-7 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:border-blue-700 dark:hover:text-blue-300"
 										>
-											<Download class="h-4 w-4" />
+											<Download class="h-3.5 w-3.5" />
 										</Button>
 									{/if}
 									{#if onEdit}
@@ -220,9 +232,9 @@
 											variant="outline"
 											size="sm"
 											onclick={() => onEdit?.(row)}
-											class="p-2 h-8 w-8"
+											class="p-1.5 h-7 w-7 hover:bg-green-50 hover:border-green-300 hover:text-green-700 dark:hover:bg-green-950 dark:hover:border-green-700 dark:hover:text-green-300"
 										>
-											<Edit class="h-4 w-4" />
+											<Edit class="h-3.5 w-3.5" />
 										</Button>
 									{/if}
 									{#if onDelete}
@@ -230,9 +242,9 @@
 											variant="outline"
 											size="sm"
 											onclick={() => onDelete?.(row)}
-											class="p-2 h-8 w-8 hover:bg-red-50 hover:border-red-300 hover:text-red-700 dark:hover:bg-red-950 dark:hover:border-red-700 dark:hover:text-red-300"
+											class="p-1.5 h-7 w-7 hover:bg-red-50 hover:border-red-300 hover:text-red-700 dark:hover:bg-red-950 dark:hover:border-red-700 dark:hover:text-red-300"
 										>
-											<Trash2 class="h-4 w-4" />
+											<Trash2 class="h-3.5 w-3.5" />
 										</Button>
 									{/if}
 								</div>

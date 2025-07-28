@@ -146,7 +146,7 @@
 		</div>
 	{/if}
 
-	<div class="flex-1 min-h-0 w-full overflow-hidden pb-12">
+	<div class="flex-1 min-h-0 w-full overflow-hidden pb-4">
 		<DataTable 
 			data={scenarios} 
 			{headers} 
