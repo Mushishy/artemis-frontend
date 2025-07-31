@@ -37,11 +37,6 @@
 			icon: LayersIcon,
 		},
 		{
-			name: "Users",
-			url: "/users",
-			icon: UsersIcon,
-		},
-		{
 			name: "Roles",
 			url: "/roles",
 			icon: BookIcon,
@@ -55,20 +50,25 @@
 
 	const games = [
 		{
-			name: "Create Range",
-			url: "/range",
+			name: "Create Pool",
+			url: "/create",
 			icon: SwordsIcon,
 		},
 		{
-			name: "Active Games",
-			url: "/games",
+			name: "Pools",
+			url: "/pools",
 			icon: GamepadIcon,
+		},
+		{
+			name: "Users",
+			url: "/users",
+			icon: UsersIcon,
 		},
 		{
 			name: "Live CTFd",
 			url: "/ctfd",
 			icon: CalendarIcon,
-		}
+		},
 	];
 </script>
 

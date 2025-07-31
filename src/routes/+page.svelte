@@ -16,6 +16,26 @@
 					<h3 class="font-semibold">Recent Activity</h3>
 					<p class="text-sm text-muted-foreground mt-1">Latest updates and changes</p>
 				</div>
+				<div class="rounded-lg border p-4">
+					<h3 class="font-semibold">Recent Activity</h3>
+					<p class="text-sm text-muted-foreground mt-1">Latest updates and changes</p>
+				</div>
+				<div class="rounded-lg border p-4">
+					<h3 class="font-semibold">Recent Activity</h3>
+					<p class="text-sm text-muted-foreground mt-1">Latest updates and changes</p>
+				</div>
+				<div class="rounded-lg border p-4">
+					<h3 class="font-semibold">Recent Activity</h3>
+					<p class="text-sm text-muted-foreground mt-1">Latest updates and changes</p>
+				</div>
+				<div class="rounded-lg border p-4">
+					<h3 class="font-semibold">Recent Activity</h3>
+					<p class="text-sm text-muted-foreground mt-1">Latest updates and changes</p>
+				</div>
+				<div class="rounded-lg border p-4">
+					<h3 class="font-semibold">Recent Activity</h3>
+					<p class="text-sm text-muted-foreground mt-1">Latest updates and changes</p>
+				</div>
 			</div>
 		</div>
 	</div>

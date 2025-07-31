@@ -76,7 +76,7 @@
             {headers} 
             maxHeight="calc(100% - 2rem)"
             showActions={true}
-            onDownload={handleDownload}
+            onDownloadWireguard={handleDownload}
         />
     </div>
 </div>

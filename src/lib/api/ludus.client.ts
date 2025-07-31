@@ -41,8 +41,6 @@ export async function getTemplates(): Promise<LudusTemplate[]> {
 export async function getAnsibleRoles(): Promise<LudusRole[]> {
     try {
         const response = await ludusClient.get('/ansible');
-        console.log(response.data);
-        console.log("AAAAAAAAaa")
         return response.data;
     } catch (error) {
         console.error('Error fetching ansible roles:', error);

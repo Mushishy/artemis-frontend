@@ -1,6 +1,6 @@
 <script lang="ts" generics="T">
 	import { Button } from '$lib/components/ui/button';
-	import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ChevronsLeft, ChevronsRight, Edit, Trash2, Download } from 'lucide-svelte';
+	import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ChevronsLeft, ChevronsRight, Edit, Trash2, Download, FlagTriangleRight, KeyRound, GlobeLock } from 'lucide-svelte';
 
 	interface Props {
 		data: T[];
@@ -12,9 +12,12 @@
 		onEdit?: (item: T) => void;
 		onDelete?: (item: T) => void;
 		onDownload?: (item: T) => void;
+		onDownloadCtfdData?: (item: T) => void;
+		onDownloadLogins?: (item: T) => void;
+		onDownloadWireguard?: (item: T) => void;
 	}
 
-	let { data, headers, itemsPerPage = 13, currentPage = 1, maxHeight = '400px', showActions = false, onEdit, onDelete, onDownload }: Props = $props();
+	let { data, headers, itemsPerPage = 13, currentPage = 1, maxHeight = '400px', showActions = false, onEdit, onDelete, onDownload, onDownloadCtfdData, onDownloadLogins, onDownloadWireguard }: Props = $props();
 
 	let sortColumn: keyof T | null = $state(null);
 	let sortDirection: 'asc' | 'desc' = $state('asc');
@@ -223,8 +226,42 @@
 											size="sm"
 											onclick={() => onDownload?.(row)}
 											class="p-1.5 h-7 w-7 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:border-blue-700 dark:hover:text-blue-300"
+											title="Download"
 										>
 											<Download class="h-3.5 w-3.5" />
+										</Button>
+									{/if}
+									{#if onDownloadCtfdData}
+										<Button
+											variant="outline"
+											size="sm"
+											onclick={() => onDownloadCtfdData?.(row)}
+											class="p-1.5 h-7 w-7 hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 dark:hover:bg-purple-950 dark:hover:border-purple-700 dark:hover:text-purple-300"
+											title="Download CTFd Data"
+										>
+											<FlagTriangleRight class="h-3.5 w-3.5" />
+										</Button>
+									{/if}
+									{#if onDownloadLogins}
+										<Button
+											variant="outline"
+											size="sm"
+											onclick={() => onDownloadLogins?.(row)}
+											class="p-1.5 h-7 w-7 hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 dark:hover:bg-orange-950 dark:hover:border-orange-700 dark:hover:text-orange-300"
+											title="Download Innitial CTFd Logins"
+										>
+											<KeyRound class="h-3.5 w-3.5" />
+										</Button>
+									{/if}
+									{#if onDownloadWireguard}
+										<Button
+											variant="outline"
+											size="sm"
+											onclick={() => onDownloadWireguard?.(row)}
+											class="p-1.5 h-7 w-7 hover:bg-cyan-50 hover:border-cyan-300 hover:text-cyan-700 dark:hover:bg-cyan-950 dark:hover:border-cyan-700 dark:hover:text-cyan-300"
+											title="Download Wireguard Configs"
+										>
+											<GlobeLock class="h-3.5 w-3.5" />
 										</Button>
 									{/if}
 									{#if onEdit}
@@ -233,6 +270,7 @@
 											size="sm"
 											onclick={() => onEdit?.(row)}
 											class="p-1.5 h-7 w-7 hover:bg-green-50 hover:border-green-300 hover:text-green-700 dark:hover:bg-green-950 dark:hover:border-green-700 dark:hover:text-green-300"
+											title="Edit"
 										>
 											<Edit class="h-3.5 w-3.5" />
 										</Button>
@@ -243,6 +281,7 @@
 											size="sm"
 											onclick={() => onDelete?.(row)}
 											class="p-1.5 h-7 w-7 hover:bg-red-50 hover:border-red-300 hover:text-red-700 dark:hover:bg-red-950 dark:hover:border-red-700 dark:hover:text-red-300"
+											title="Delete"
 										>
 											<Trash2 class="h-3.5 w-3.5" />
 										</Button>
