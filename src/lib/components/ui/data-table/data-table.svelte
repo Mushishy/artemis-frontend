@@ -15,9 +15,10 @@
 		onDownloadCtfdData?: (item: T) => void;
 		onDownloadLogins?: (item: T) => void;
 		onDownloadWireguard?: (item: T) => void;
+		showDeleteFor?: (item: T) => boolean;
 	}
 
-	let { data, headers, itemsPerPage = 13, currentPage = 1, maxHeight = '400px', showActions = false, onEdit, onDelete, onDownload, onDownloadCtfdData, onDownloadLogins, onDownloadWireguard }: Props = $props();
+	let { data, headers, itemsPerPage = 13, currentPage = 1, maxHeight = '400px', showActions = false, onEdit, onDelete, onDownload, onDownloadCtfdData, onDownloadLogins, onDownloadWireguard, showDeleteFor }: Props = $props();
 
 	let sortColumn: keyof T | null = $state(null);
 	let sortDirection: 'asc' | 'desc' = $state('asc');
@@ -259,7 +260,7 @@
 											size="sm"
 											onclick={() => onDownloadWireguard?.(row)}
 											class="p-1.5 h-7 w-7 hover:bg-cyan-50 hover:border-cyan-300 hover:text-cyan-700 dark:hover:bg-cyan-950 dark:hover:border-cyan-700 dark:hover:text-cyan-300"
-											title="Download Wireguard Configs"
+											title="Download Wireguard Access"
 										>
 											<GlobeLock class="h-3.5 w-3.5" />
 										</Button>
@@ -275,7 +276,7 @@
 											<Edit class="h-3.5 w-3.5" />
 										</Button>
 									{/if}
-									{#if onDelete}
+									{#if onDelete && (!showDeleteFor || showDeleteFor(row))}
 										<Button
 											variant="outline"
 											size="sm"

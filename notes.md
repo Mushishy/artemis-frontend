@@ -218,7 +218,7 @@ does user have active range ? allow destroy only if it is destroyed
 NOT SHARED
 
 
-- ACTIONS: change note | changeTopologyId |  add user | deploy all | remove all ranges | delete all users
+- ACTIONS: change note | changeTopologyId |  add user | deploy all | remove all ranges | delete all users (check if user has an existing pool for him) | you will be able to see if they have all the same topology or not
 pre kazdeho usera tam budes mat 
 
 name | topology state | ACTIONS: redeploy | logs (viem si rozkliknut ten idividualny a vidim logy) | remove
@@ -258,3 +258,26 @@ Nadia
 Patty
 Alice
 Bob
+
+##### USERID FUCKUP
+--
+/poll create
+ what I can do is provide user and save it on backend as userId
+
+ /pool get should be changed
+
+ /pool/users same as /pool/create
+
+
+and then I should remove the existing userId generating logic on the fornetend -> 
+
+parse logs to retreive ctfd data!
+--
+
+
+
+
+### CREATE CTFD USER ? ADMIN USER ? - not really baby but user menu would be nice
+
+\- get proxmox creds for yourself - this would be best in a user menu
+\- reset apikey for yourself - this would be best in a user menu
