@@ -59,7 +59,7 @@ export async function createOrUpdateScenario(file: File, scenarioID?: string) {
 export async function deleteScenario(scenarioID: string) {
   try {
     const response = await apiClient.delete('/ctfd/scenario', {
-      params: { scenarioID },
+      params: { scenarioId: scenarioID },
     });
     return response.data;
   } catch (error) {

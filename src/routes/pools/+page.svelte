@@ -3,6 +3,8 @@
     import { Button } from '$lib/components/ui/button';
     import * as Alert from '$lib/components/ui/alert';
     import * as AlertDialog from '$lib/components/ui/alert-dialog';
+    import * as Dialog from '$lib/components/ui/dialog';
+    import { Input } from '$lib/components/ui/input';
     import { 
         Shield, 
         AlertCircle, 
@@ -11,17 +13,18 @@
     } from 'lucide-svelte';
     import type { Pool } from './data.js';
     import { 
-        downloadCtfdData, 
-        downloadLogins, 
-        downloadWireguardConfigs, 
-        deletePool 
+        deletePool,
+        updatePoolNote 
     } from './data.js';
     import type { PageData } from './$types';
 
     let { data }: { data: PageData } = $props();
     let pools = $state(data?.pools || []);
     let deleteDialogOpen = $state(false);
+    let noteDialogOpen = $state(false);
     let deletingPool: Pool | null = $state(null);
+    let editingPool: Pool | null = $state(null);
+    let noteInputValue = $state('');
     let alertMessage = $state<{ message: string; type: 'success' | 'error' } | null>(null);
 
     const headers: { key: keyof Pool; label: string; sortable?: boolean }[] = [
@@ -29,7 +32,7 @@
         { key: 'createdBy', label: 'Created By', sortable: true },
         { key: 'type', label: 'Type', sortable: true },
         { key: 'topologyId', label: 'Topology ID', sortable: true },
-        { key: 'ctfdDataId', label: 'CTFD Data ID', sortable: true }
+        { key: 'ctfdData', label: 'CTFD Data', sortable: true }
     ];
 
     function showAlert(message: string, type: 'success' | 'error') {
@@ -43,17 +46,15 @@
         alertMessage = null;
     }
 
-    function handlePoolDetail(pool: Pool) {
-        // TODO: Navigate to pool detail page
-        showAlert('Pool detail functionality coming soon', 'success');
+    function handleNote(pool: Pool) {
+        editingPool = pool;
+        noteInputValue = pool.note || '';
+        noteDialogOpen = true;
     }
 
     function handleEdit(pool: Pool) {
-        handlePoolDetail(pool);
-    }
-
-    function handleDownload(pool: Pool) {
-        handleDownloadCtfdData(pool);
+        // Navigate to pool detail page
+        window.location.href = `/pool/${pool.poolId}`;
     }
 
     function handleDelete(pool: Pool) {
@@ -76,34 +77,31 @@
         }
     }
 
-    async function handleDownloadCtfdData(pool: Pool) {
+    async function saveNote() {
+        if (!editingPool) return;
+
         try {
-            await downloadCtfdData(pool.poolId);
-            showAlert('CTFD data download started', 'success');
+            await updatePoolNote(editingPool.poolId, noteInputValue);
+            // Update the local pools array
+            pools = pools.map(p => 
+                p.poolId === editingPool!.poolId 
+                    ? { ...p, note: noteInputValue }
+                    : p
+            );
+            showAlert('Pool note updated successfully', 'success');
+            noteDialogOpen = false;
+            editingPool = null;
+            noteInputValue = '';
         } catch (error) {
-            console.error('Error downloading CTFD data:', error);
-            showAlert('Failed to download CTFD data', 'error');
+            console.error('Error updating pool note:', error);
+            showAlert('Failed to update pool note', 'error');
         }
     }
 
-    async function handleDownloadLogins(pool: Pool) {
-        try {
-            await downloadLogins(pool.poolId);
-            showAlert('Logins CSV download started', 'success');
-        } catch (error) {
-            console.error('Error downloading logins:', error);
-            showAlert('Failed to download logins', 'error');
-        }
-    }
-
-    async function handleDownloadWireguard(pool: Pool) {
-        try {
-            await downloadWireguardConfigs(pool.poolId);
-            showAlert('Wireguard configs download started', 'success');
-        } catch (error) {
-            console.error('Error downloading Wireguard configs:', error);
-            showAlert('Failed to download Wireguard configs', 'error');
-        }
+    function closeNoteDialog() {
+        noteDialogOpen = false;
+        editingPool = null;
+        noteInputValue = '';
     }
 </script>
 
@@ -151,11 +149,9 @@
             {headers}
             maxHeight="calc(100% - 2rem)"
             showActions={true}
+            onNote={handleNote}
             onEdit={handleEdit}
             onDelete={handleDelete}
-            onDownloadCtfdData={handleDownloadCtfdData}
-            onDownloadLogins={handleDownloadLogins}
-            onDownloadWireguard={handleDownloadWireguard}
         />
     </div>
 </div>
@@ -182,3 +178,40 @@
         </AlertDialog.Footer>
     </AlertDialog.Content>
 </AlertDialog.Root>
+
+<!-- Note Edit Dialog -->
+<Dialog.Root bind:open={noteDialogOpen}>
+    <Dialog.Content class="sm:max-w-md">
+        <Dialog.Header>
+            <Dialog.Title>Edit Pool Note</Dialog.Title>
+            <Dialog.Description>
+                {#if editingPool}
+                    Update the note for pool "{editingPool.poolId}".
+                {/if}
+            </Dialog.Description>
+        </Dialog.Header>
+        
+        <div class="space-y-4">
+            <div>
+                <label for="note-input" class="block text-sm font-medium mb-2">
+                    Note:
+                </label>
+                <Input
+                    id="note-input"
+                    bind:value={noteInputValue}
+                    placeholder="Enter a note for this pool..."
+                    class="w-full"
+                />
+            </div>
+        </div>
+
+        <Dialog.Footer class="flex gap-2">
+            <Button variant="outline" onclick={closeNoteDialog}>
+                Cancel
+            </Button>
+            <Button onclick={saveNote}>
+                Save Note
+            </Button>
+        </Dialog.Footer>
+    </Dialog.Content>
+</Dialog.Root>

@@ -3,15 +3,13 @@
     import { Input } from '$lib/components/ui/input';
     import * as Card from '$lib/components/ui/card';
     import * as Alert from '$lib/components/ui/alert';
-    import * as AlertDialog from '$lib/components/ui/alert-dialog';
     import { Badge } from '$lib/components/ui/badge';
     import * as Command from '$lib/components/ui/command';
     import * as Popover from '$lib/components/ui/popover';
-    import { AlertCircle, CheckCircle2, X, RotateCcw, Check, ChevronsUpDown, Save, Loader2 } from 'lucide-svelte';
+    import { AlertCircle, CheckCircle2, X, RotateCcw, Check, ChevronsUpDown, Save } from 'lucide-svelte';
     import { tick } from 'svelte';
-    import type { PageData } from '../pool/$types';
+    import type { PageData } from './$types';
     import { createPool, type PoolRequest, type PoolUserAndTeam } from '$lib/api/pools.client';
-    import { checkUsers, importUsers, transformUsernamesToBatch } from '$lib/api/users.client';
     import { dulusApiKey } from '$lib/api/settings';
 
     let { data }: { data: PageData } = $props();
@@ -43,12 +41,6 @@
         bulkUserInput: "",
         note: ""
     });    let alertMessage = $state<{ type: 'success' | 'error'; message: string } | null>(null);
-    
-    // User checking and creation state
-    let isCheckingUsers = $state(false);
-    let isCreatingUsers = $state(false);
-    let showCreateUsersDialog = $state(false);
-    let nonExistentUsers: string[] = $state([]);
 
     // Combobox state
     let topologyOpen = $state(false);
@@ -171,108 +163,6 @@
         alertMessage = null;
     }
 
-    // Check users function
-    async function handleCheckUsers() {
-        if (!formData.type) {
-            showAlert('error', 'Please select a pool type first');
-            return;
-        }
-
-        let usernames: string[] = [];
-
-        // Collect usernames based on pool type
-        if (formData.type === 'INDIVIDUAL' && formData.bulkUserInput.trim()) {
-            const users = parseBulkUsers(formData.bulkUserInput);
-            usernames = users.map(u => u.user);
-            
-            // Validate team assignment rule for INDIVIDUAL pools
-            const hasAnyTeam = users.some((user: PoolUserAndTeam) => user.team);
-            const hasAllTeams = users.every((user: PoolUserAndTeam) => user.team);
-            
-            if (hasAnyTeam && !hasAllTeams) {
-                showAlert('error', 'If one user has a team, all users must have teams assigned');
-                return;
-            }
-        } else if (formData.type === 'SHARED') {
-            const additionalUsers = parseBulkUsers(formData.bulkUserInput);
-            usernames = additionalUsers.map(u => u.user);
-            if (formData.mainUser) {
-                const mainUserData = data.users.find(u => u.userID === formData.mainUser);
-                if (mainUserData) {
-                    usernames.unshift(mainUserData.name);
-                }
-            }
-            
-            // Validate team assignment rule for SHARED pools (only for additional users)
-            if (additionalUsers.length > 0) {
-                const hasAnyTeam = additionalUsers.some((user: PoolUserAndTeam) => user.team);
-                const hasAllTeams = additionalUsers.every((user: PoolUserAndTeam) => user.team);
-                
-                if (hasAnyTeam && !hasAllTeams) {
-                    showAlert('error', 'If one user has a team, all users must have teams assigned');
-                    return;
-                }
-            }
-        } else if (formData.type === 'CTFD' && formData.ctfdMainUser) {
-            const ctfdUserData = data.users.find(u => u.userID === formData.ctfdMainUser);
-            if (ctfdUserData) {
-                usernames = [ctfdUserData.name];
-            }
-        }
-
-        if (usernames.length === 0) {
-            showAlert('error', 'No users to check');
-            return;
-        }
-
-        try {
-            isCheckingUsers = true;
-            
-            // Transform usernames to BATCH format
-            const batchUsernames = transformUsernamesToBatch(usernames);
-            
-            // Check if users exist
-            const response = await checkUsers(batchUsernames);
-            
-            // Find non-existent users
-            const missingUsers = response.results
-                .filter(result => !result.exists)
-                .map(result => result.userId);
-
-            if (missingUsers.length === 0) {
-                showAlert('success', 'All users exist and are ready');
-            } else {
-                nonExistentUsers = missingUsers;
-                showCreateUsersDialog = true;
-            }
-        } catch (error) {
-            console.error('Error checking users:', error);
-            showAlert('error', 'Failed to check users');
-        } finally {
-            isCheckingUsers = false;
-        }
-    }
-
-    // Create missing users
-    async function handleCreateUsers() {
-        try {
-            isCreatingUsers = true;
-            showCreateUsersDialog = false;
-            
-            showAlert('success', `Creating ${nonExistentUsers.length} users...`);
-            
-            await importUsers(nonExistentUsers);
-            
-            showAlert('success', `Successfully created ${nonExistentUsers.length} users`);
-            nonExistentUsers = [];
-        } catch (error) {
-            console.error('Error creating users:', error);
-            showAlert('error', 'Failed to create users');
-        } finally {
-            isCreatingUsers = false;
-        }
-    }
-
     // Parse bulk user input - team is optional
     function parseBulkUsers(input: string): PoolUserAndTeam[] {
         if (!input.trim()) return [];
@@ -288,7 +178,7 @@
             if (parts.length >= 1) {
                 users.push({
                     user: parts[0],
-                    team: parts.length >= 2 ? parts[1] : undefined
+                    team: parts.length >= 2 ? parts[1] : ""
                 });
             }
         }
@@ -297,110 +187,24 @@
     }
 
     function handleSubmit() {
-        // Validate required fields
-        if (!formData.type || !formData.topologyId) {
-            showAlert('error', 'Please select a pool type and topology');
-            return;
-        }
-
-        if (!formData.note.trim()) {
-            showAlert('error', 'Note is required');
-            return;
-        }
-
-        if (formData.note.length > 15) {
-            showAlert('error', 'Note must be 15 characters or less');
-            return;
-        }
-
-        if (formData.type === 'INDIVIDUAL' && !formData.bulkUserInput.trim()) {
-            showAlert('error', 'Please enter users for individual pool');
-            return;
-        }
-
-        if (formData.type === 'SHARED' && !formData.mainUser) {
-            showAlert('error', 'Please enter a main user for shared pool');
-            return;
-        }
-
-        if (formData.type === 'CTFD' && !formData.ctfdMainUser) {
-            showAlert('error', 'Please enter a main user for CTFD pool');
-            return;
-        }
-
-        // Validate team assignment rule - if one user has a team, all must have teams
-        const users = parseBulkUsers(formData.bulkUserInput);
-        const hasAnyTeam = users.some((user: PoolUserAndTeam) => user.team);
-        const hasAllTeams = users.every((user: PoolUserAndTeam) => user.team);
-        
-        if (hasAnyTeam && !hasAllTeams) {
-            showAlert('error', 'If one user has a team, all users must have teams assigned');
-            return;
-        }
-
-        // Check users exist before creating pool
-        checkUsersBeforeSubmit();
-    }
-
-    // Check users before submitting the pool
-    async function checkUsersBeforeSubmit() {
-        let usernames: string[] = [];
-
-        // Collect usernames based on pool type
-        if (formData.type === 'INDIVIDUAL' && formData.bulkUserInput.trim()) {
+        // Only validate team assignment rule (specific business logic not in isFormValid)
+        if (formData.type === 'INDIVIDUAL' || formData.type === 'SHARED') {
             const users = parseBulkUsers(formData.bulkUserInput);
-            usernames = users.map(u => u.user);
-        } else if (formData.type === 'SHARED') {
-            const additionalUsers = parseBulkUsers(formData.bulkUserInput);
-            usernames = additionalUsers.map(u => u.user);
-            if (formData.mainUser) {
-                const mainUserData = data.users.find(u => u.userID === formData.mainUser);
-                if (mainUserData) {
-                    usernames.unshift(mainUserData.name);
-                }
-            }
-        } else if (formData.type === 'CTFD' && formData.ctfdMainUser) {
-            const ctfdUserData = data.users.find(u => u.userID === formData.ctfdMainUser);
-            if (ctfdUserData) {
-                usernames = [ctfdUserData.name];
-            }
-        }
-
-        if (usernames.length === 0) {
-            // No users to check, proceed with submission
-            submitPool();
-            return;
-        }
-
-        try {
-            // Transform usernames to BATCH format
-            const batchUsernames = transformUsernamesToBatch(usernames);
+            const hasAnyTeam = users.some((user: PoolUserAndTeam) => user.team);
+            const hasAllTeams = users.every((user: PoolUserAndTeam) => user.team);
             
-            // Check if users exist
-            const response = await checkUsers(batchUsernames);
-            
-            // Find non-existent users
-            const missingUsers = response.results
-                .filter(result => !result.exists)
-                .map(result => result.userId);
-
-            if (missingUsers.length === 0) {
-                // All users exist, proceed with submission
-                submitPool();
-            } else {
-                // Some users don't exist
-                showAlert('error', `Cannot create pool: ${missingUsers.length} user(s) do not exist. Please check users first and create missing users.`);
+            if (hasAnyTeam && !hasAllTeams) {
+                showAlert('error', 'If one user has a team, all users must have teams assigned');
+                return;
             }
-        } catch (error) {
-            console.error('Error checking users before submit:', error);
-            showAlert('error', 'Failed to verify users. Please try again.');
         }
+
+        submitPool();
     }
 
     async function submitPool() {
         try {
             let poolData: PoolRequest = {
-                createdBy,
                 type: formData.type!,
                 topologyId: formData.topologyId,
                 note: formData.note.trim() // Note is now required, no undefined
@@ -699,25 +503,6 @@ Dave Smith, smurfs"
                                 </Popover.Root>
                             </div>
                         {/if}
-
-                        <!-- Check Users Button (always at the bottom of step 2) -->
-                        <Button 
-                            variant="outline" 
-                            size="lg" 
-                            class="w-full h-12"
-                            onclick={handleCheckUsers}
-                            disabled={isCheckingUsers || isCreatingUsers}
-                        >
-                            {#if isCheckingUsers}
-                                <Loader2 class="h-4 w-4 mr-2 animate-spin" />
-                                Checking Users...
-                            {:else if isCreatingUsers}
-                                <Loader2 class="h-4 w-4 mr-2 animate-spin" />
-                                Creating Users...
-                            {:else}
-                                Check Users
-                            {/if}
-                        </Button>
                     </Card.Content>
                 </Card.Root>
 
@@ -820,29 +605,3 @@ Dave Smith, smurfs"
         </Button>
     </div>
 </div>
-
-<!-- Create Users Confirmation Dialog -->
-<AlertDialog.Root bind:open={showCreateUsersDialog}>
-    <AlertDialog.Content>
-        <AlertDialog.Header>
-            <AlertDialog.Title>Create Missing Users</AlertDialog.Title>
-            <AlertDialog.Description>
-                The following users do not exist and need to be created:
-                <div class="mt-3 p-3 bg-muted rounded-md">
-                    {#each nonExistentUsers as user}
-                        <div class="text-sm font-mono">{user}</div>
-                    {/each}
-                </div>
-                Do you want to create these {nonExistentUsers.length} user(s)?
-            </AlertDialog.Description>
-        </AlertDialog.Header>
-        <AlertDialog.Footer>
-            <AlertDialog.Cancel onclick={() => { showCreateUsersDialog = false; nonExistentUsers = []; }}>
-                Cancel
-            </AlertDialog.Cancel>
-            <AlertDialog.Action onclick={handleCreateUsers} class="bg-primary text-primary-foreground hover:bg-primary/90">
-                Create Users
-            </AlertDialog.Action>
-        </AlertDialog.Footer>
-    </AlertDialog.Content>
-</AlertDialog.Root>

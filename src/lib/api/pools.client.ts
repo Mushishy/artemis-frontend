@@ -16,7 +16,6 @@ export interface PoolUserAndTeam {
 }
 
 export interface PoolRequest {
-    createdBy: string;
     type: 'CTFD' | 'SHARED' | 'INDIVIDUAL';
     mainUser?: string;
     usersAndTeams?: PoolUserAndTeam[];
@@ -33,13 +32,12 @@ export async function createPool(poolData: PoolRequest) {
     try {
         // Clean the pool data to remove undefined/empty values
         const cleanedData: any = {
-            createdBy: poolData.createdBy,
             type: poolData.type,
             topologyId: poolData.topologyId
         };
 
         // Only add optional fields if they have actual values
-        if (poolData.mainUser) {
+        if ((poolData.type == 'CTFD' || poolData.type == 'SHARED') && poolData.mainUser) {
             cleanedData.mainUser = poolData.mainUser;
         }
 

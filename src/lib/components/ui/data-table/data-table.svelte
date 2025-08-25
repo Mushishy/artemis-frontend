@@ -1,6 +1,6 @@
 <script lang="ts" generics="T">
 	import { Button } from '$lib/components/ui/button';
-	import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ChevronsLeft, ChevronsRight, Edit, Trash2, Download, FlagTriangleRight, KeyRound, GlobeLock } from 'lucide-svelte';
+	import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ChevronsLeft, ChevronsRight, Edit, Trash2, Download, FlagTriangleRight, KeyRound, GlobeLock, FileText } from 'lucide-svelte';
 
 	interface Props {
 		data: T[];
@@ -15,10 +15,11 @@
 		onDownloadCtfdData?: (item: T) => void;
 		onDownloadLogins?: (item: T) => void;
 		onDownloadWireguard?: (item: T) => void;
+		onNote?: (item: T) => void;
 		showDeleteFor?: (item: T) => boolean;
 	}
 
-	let { data, headers, itemsPerPage = 13, currentPage = 1, maxHeight = '400px', showActions = false, onEdit, onDelete, onDownload, onDownloadCtfdData, onDownloadLogins, onDownloadWireguard, showDeleteFor }: Props = $props();
+	let { data, headers, itemsPerPage = 13, currentPage = 1, maxHeight = '400px', showActions = false, onEdit, onDelete, onDownload, onDownloadCtfdData, onDownloadLogins, onDownloadWireguard, onNote, showDeleteFor }: Props = $props();
 
 	let sortColumn: keyof T | null = $state(null);
 	let sortDirection: 'asc' | 'desc' = $state('asc');
@@ -263,6 +264,17 @@
 											title="Download Wireguard Access"
 										>
 											<GlobeLock class="h-3.5 w-3.5" />
+										</Button>
+									{/if}
+									{#if onNote}
+										<Button
+											variant="outline"
+											size="sm"
+											onclick={() => onNote?.(row)}
+											class="p-1.5 h-7 w-7 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 dark:hover:bg-amber-950 dark:hover:border-amber-700 dark:hover:text-amber-300"
+											title="Edit Note"
+										>
+											<FileText class="h-3.5 w-3.5" />
 										</Button>
 									{/if}
 									{#if onEdit}

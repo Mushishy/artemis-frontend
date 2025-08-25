@@ -1,6 +1,6 @@
 import { loadTopologies } from '../topologies/data.js';
 import { getUsers } from '$lib/api/users.server';
-import type { PageServerLoad } from './create/$types.js';
+import type { PageServerLoad } from './$types.js';
 
 export const load: PageServerLoad = async () => {
     try {
