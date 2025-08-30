@@ -1,41 +1,43 @@
-<script lang="ts" generics="T">
+<script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ChevronsLeft, ChevronsRight, Edit, Trash2, Download, FlagTriangleRight, KeyRound, GlobeLock, FileText } from 'lucide-svelte';
+	import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ChevronsLeft, ChevronsRight, Edit, Trash2, Download, FlagTriangleRight, KeyRound, GlobeLock, FileText, Search } from 'lucide-svelte';
 
 	interface Props {
-		data: T[];
-		headers: { key: keyof T; label: string; sortable?: boolean }[];
+		data: any[];
+		headers?: { key: string; label: string; sortable?: boolean }[];
 		itemsPerPage?: number;
 		currentPage?: number;
 		maxHeight?: string;
 		showActions?: boolean;
-		onEdit?: (item: T) => void;
-		onDelete?: (item: T) => void;
-		onDownload?: (item: T) => void;
-		onDownloadCtfdData?: (item: T) => void;
-		onDownloadLogins?: (item: T) => void;
-		onDownloadWireguard?: (item: T) => void;
-		onNote?: (item: T) => void;
-		showDeleteFor?: (item: T) => boolean;
+		onRowClick?: (item: any) => void;
+		onEdit?: (item: any) => void;
+		onDelete?: (item: any) => void;
+		onDownload?: (item: any) => void;
+		onDownloadCtfdData?: (item: any) => void;
+		onDownloadLogins?: (item: any) => void;
+		onDownloadWireguard?: (item: any) => void;
+		onNote?: (item: any) => void;
+		onInspect?: (item: any) => void;
+		showDeleteFor?: (item: any) => boolean;
 	}
 
-	let { data, headers, itemsPerPage = 13, currentPage = 1, maxHeight = '400px', showActions = false, onEdit, onDelete, onDownload, onDownloadCtfdData, onDownloadLogins, onDownloadWireguard, onNote, showDeleteFor }: Props = $props();
+	let { data, headers = [], itemsPerPage = 13, currentPage = 1, maxHeight = '400px', showActions = false, onRowClick, onEdit, onDelete, onDownload, onDownloadCtfdData, onDownloadLogins, onDownloadWireguard, onNote, onInspect, showDeleteFor }: Props = $props();
 
-	let sortColumn: keyof T | null = $state(null);
+	let sortColumn: string | null = $state(null);
 	let sortDirection: 'asc' | 'desc' = $state('asc');
 	let currentItemsPerPage = $state(itemsPerPage);
 
 	const itemsPerPageOptions = [13, 18, 27, 63];
 
 	// Use getter functions instead of $derived for better Svelte 5 compatibility
-	function getSortedData(): T[] {
+	function getSortedData(): any[] {
 		if (!sortColumn || !data || !Array.isArray(data)) {
 			return data || [];
 		}
 		
 		return [...data].sort((a, b) => {
-			const aVal = a[sortColumn as keyof T];
-			const bVal = b[sortColumn as keyof T];
+			const aVal = a[sortColumn as string];
+			const bVal = b[sortColumn as string];
 			
 			// Handle different data types
 			if (typeof aVal === 'string' && typeof bVal === 'string') {
@@ -60,7 +62,7 @@
 		return Math.ceil(sortedData.length / currentItemsPerPage);
 	}
 
-	function getPaginatedData(): T[] {
+	function getPaginatedData(): any[] {
 		const sortedData = getSortedData();
 		const startIndex = (currentPage - 1) * currentItemsPerPage;
 		const endIndex = startIndex + currentItemsPerPage;
@@ -94,7 +96,7 @@
 		currentPage = 1; // Reset to first page when changing items per page
 	}
 
-	function handleSort(column: keyof T, sortable: boolean = true) {
+	function handleSort(column: string, sortable: boolean = true) {
 		if (!sortable) return;
 		
 		if (sortColumn === column) {
@@ -123,11 +125,11 @@
 	function getTagClass(value: any): string {
 		if (typeof value === 'string') {
 			// Role type tags (blue)
-			if (value === 'role') {
+			if (value === 'role' || value == 'regular') {
 				return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
 			}
 			// Collection type tags (yellow)
-			else if (value === 'collection') {
+			else if (value === 'collection' || value == 'main') {
 				return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
 			}
 		}
@@ -150,7 +152,8 @@
 		return typeof value === 'boolean' || 
 			   value === 'Built' || value === 'Not Built' ||
 			   value === 'True' || value === 'False' ||
-			   value === 'role' || value === 'collection';
+			   value === 'role' || value === 'collection' ||
+			   value === 'regular' || value === 'main';;
 	}
 
 	function getDisplayValue(value: any): string {
@@ -196,8 +199,9 @@
 			<tbody class="bg-white dark:bg-zinc-800">
 				{#each getPaginatedData() as row, index}
 					<tr
-						class="border-b border-gray-200 dark:border-zinc-600 hover:bg-gray-100 dark:hover:bg-zinc-700"
+						class="border-b border-gray-200 dark:border-zinc-600 hover:bg-gray-100 dark:hover:bg-zinc-700 {onRowClick ? 'cursor-pointer' : ''}"
 						style="height: 3.25rem; max-height: 3.25rem;"
+						onclick={() => onRowClick?.(row)}
 					>
 						{#each headers as header, headerIndex}
 							{@const value = row[header.key]}
@@ -222,6 +226,17 @@
 						{#if showActions}
 							<td class="px-6 py-4 text-center" style="height: 3.25rem; max-height: 3.25rem;">
 								<div class="flex items-center justify-center gap-1 h-full">
+									{#if onInspect}
+										<Button
+											variant="outline"
+											size="sm"
+											onclick={() => onInspect?.(row)}
+											class="p-1.5 h-7 w-7 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 dark:hover:bg-gray-950 dark:hover:border-gray-700 dark:hover:text-gray-300"
+											title="Inspect"
+										>
+											<Search class="h-3.5 w-3.5" />
+										</Button>
+									{/if}
 									{#if onDownload}
 										<Button
 											variant="outline"

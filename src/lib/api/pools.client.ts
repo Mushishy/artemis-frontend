@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { dulusBaseUrl, dulusPort, dulusApiKey } from './settings';
 
-// Browser-compatible axios instance (no https agent)
 const apiClient = axios.create({
     baseURL: `${dulusBaseUrl}:${dulusPort}`,
     headers: {
@@ -23,11 +22,6 @@ export interface PoolRequest {
     note?: string;
 }
 
-/**
- * Create a new pool
- * @param poolData - The pool configuration data
- * @returns Promise with pool creation result
- */
 export async function createPool(poolData: PoolRequest) {
     try {
         // Clean the pool data to remove undefined/empty values

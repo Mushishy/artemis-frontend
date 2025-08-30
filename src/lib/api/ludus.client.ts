@@ -2,7 +2,6 @@ import axios from 'axios';
 import https from 'https';
 import { ludusBaseUrl, ludusPort, ludusApiKey } from './settings';
 
-// Configure axios with SSL certificate handling for self-signed certificates
 const ludusClient = axios.create({
     baseURL: `${ludusBaseUrl}:${ludusPort}`,
     headers: {
@@ -26,7 +25,6 @@ export interface LudusRole {
     global: boolean;
 }
 
-// Get all templates
 export async function getTemplates(): Promise<LudusTemplate[]> {
     try {
         const response = await ludusClient.get('/templates');
@@ -37,7 +35,6 @@ export async function getTemplates(): Promise<LudusTemplate[]> {
     }
 }
 
-// Get all ansible roles
 export async function getAnsibleRoles(): Promise<LudusRole[]> {
     try {
         const response = await ludusClient.get('/ansible');

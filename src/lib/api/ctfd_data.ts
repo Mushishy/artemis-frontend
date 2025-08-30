@@ -2,12 +2,10 @@ import axios from 'axios';
 import https from 'https';
 import { dulusBaseUrl, dulusPort, dulusApiKey } from './settings';
 
-// Create HTTPS agent that allows self-signed certificates
 const httpsAgent = new https.Agent({
-  rejectUnauthorized: false, // Disable SSL verification for self-signed certificates
+  rejectUnauthorized: false,
 });
 
-// Configure axios instance
 const apiClient = axios.create({
   baseURL: `${dulusBaseUrl}:${dulusPort}`,
   httpsAgent,
@@ -17,7 +15,6 @@ const apiClient = axios.create({
   },
 });
 
-// Types for CTFd data
 interface Flag {
   variable: string;
   contents: string;
@@ -34,11 +31,6 @@ interface CtfdDataPayload {
   ctfd_data: CtfdDataItem[];
 }
 
-/**
- * Get CTFd data - fetch specific data by ID or list all data
- * @param ctfdDataId - Optional data ID to fetch specific data
- * @returns Promise with CTFd data
- */
 export async function getCtfdData(ctfdDataId?: string) {
   try {
     const params = ctfdDataId ? { ctfdDataId } : {};
@@ -50,12 +42,6 @@ export async function getCtfdData(ctfdDataId?: string) {
   }
 }
 
-/**
- * Create or update CTFd data
- * @param ctfdData - Array of CTFd data items
- * @param ctfdDataId - Optional data ID for updating existing data
- * @returns Promise with upload result
- */
 export async function createOrUpdateCtfdData(ctfdData: CtfdDataItem[], ctfdDataId?: string) {
   try {
     const payload: CtfdDataPayload = { ctfd_data: ctfdData };
@@ -69,11 +55,6 @@ export async function createOrUpdateCtfdData(ctfdData: CtfdDataItem[], ctfdDataI
   }
 }
 
-/**
- * Delete CTFd data by ID
- * @param ctfdDataId - The data ID to delete
- * @returns Promise with deletion result
- */
 export async function deleteCtfdData(ctfdDataId: string) {
   try {
     const response = await apiClient.delete('/ctfd/data', {

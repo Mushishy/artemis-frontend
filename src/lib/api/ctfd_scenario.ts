@@ -2,9 +2,8 @@ import axios from 'axios';
 import https from 'https';
 import { dulusBaseUrl, dulusPort, dulusApiKey } from './settings'; 
 
-// Create HTTPS agent that allows self-signed certificates
 const httpsAgent = new https.Agent({
-  rejectUnauthorized: false, // Disable SSL verification for self-signed certificates
+  rejectUnauthorized: false, 
 });
 
 // Configure axios instance
@@ -17,11 +16,6 @@ const apiClient = axios.create({
   },
 });
 
-/**
- * Get scenario(s) - fetch a specific scenario by ID or list all scenarios
- * @param scenarioID - Optional scenario ID to fetch specific scenario
- * @returns Promise with scenario data
- */
 export async function getScenario(scenarioID?: string) {
   try {
     const params = scenarioID ? { scenarioID } : {};
@@ -33,12 +27,6 @@ export async function getScenario(scenarioID?: string) {
   }
 }
 
-/**
- * Create or update a scenario by uploading a .zip file
- * @param file - The .zip file to upload
- * @param scenarioID - Optional scenario ID for updating existing scenario
- * @returns Promise with upload result
- */
 export async function createOrUpdateScenario(file: File, scenarioID?: string) {
   try {
     const formData = new FormData();
@@ -58,11 +46,6 @@ export async function createOrUpdateScenario(file: File, scenarioID?: string) {
   }
 }
 
-/**
- * Delete a scenario by ID
- * @param scenarioID - The scenario ID to delete
- * @returns Promise with deletion result
- */
 export async function deleteScenario(scenarioID: string) {
   try {
     const response = await apiClient.delete('/ctfd/scenario', {

@@ -174,9 +174,7 @@
 				{editingTopology ? 'Update Topology' : 'Create New Topology'}
 			</Dialog.Title>
 			<Dialog.Description>
-				{#if editingTopology}
-					Upload a new file to update "{editingTopology.Name}".
-				{:else}
+				{#if !editingTopology}
 					Upload a file to create a new topology.
 				{/if}
 			</Dialog.Description>

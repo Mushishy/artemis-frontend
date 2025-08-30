@@ -52,7 +52,7 @@
         noteDialogOpen = true;
     }
 
-    function handleEdit(pool: Pool) {
+    function handleRowClick(pool: Pool) {
         // Navigate to pool detail page
         window.location.href = `/pool/${pool.poolId}`;
     }
@@ -149,8 +149,8 @@
             {headers}
             maxHeight="calc(100% - 2rem)"
             showActions={true}
+            onRowClick={handleRowClick}
             onNote={handleNote}
-            onEdit={handleEdit}
             onDelete={handleDelete}
         />
     </div>

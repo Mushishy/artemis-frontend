@@ -199,6 +199,10 @@
 			<div class="space-y-3">
 				<div class="text-sm font-medium">Installation Type</div>
 				<div class="grid grid-cols-3 gap-4">
+					<label class="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer {installType === 'file' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}">
+						<input type="radio" bind:group={installType} value="file" class="text-primary" />
+						<span class="text-sm font-medium">From File</span>
+					</label>
 					<label class="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer {installType === 'role' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}">
 						<input type="radio" bind:group={installType} value="role" class="text-primary" />
 						<span class="text-sm font-medium">Role</span>
@@ -207,13 +211,11 @@
 						<input type="radio" bind:group={installType} value="collection" class="text-primary" />
 						<span class="text-sm font-medium">Collection</span>
 					</label>
-					<label class="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer {installType === 'file' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}">
-						<input type="radio" bind:group={installType} value="file" class="text-primary" />
-						<span class="text-sm font-medium">From File</span>
-					</label>
 				</div>
 			</div>
 
+			<!-- Content Area with Fixed Height -->
+			<div class="min-h-[12rem]">
 			{#if installType === 'role'}
 				<!-- Role Installation -->
 				<div class="space-y-4">
@@ -306,6 +308,7 @@
 					</div>
 				</div>
 			{/if}
+			</div>
 		</div>
 
 		<Dialog.Footer class="flex gap-2">

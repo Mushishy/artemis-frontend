@@ -38,10 +38,12 @@
 	async function confirmDelete() {
 		if (!deletingScenario) return;
 		
+		const scenarioToDelete = deletingScenario;
+		
 		try {
-			await removeScenario(deletingScenario.ID);
-			scenarios = scenarios.filter(s => s.ID !== deletingScenario.ID);
-			showAlert('success', `Scenario "${deletingScenario.Name}" deleted successfully`);
+			await removeScenario(scenarioToDelete.ID);
+			scenarios = scenarios.filter(s => s.ID !== scenarioToDelete.ID);
+			showAlert('success', `Scenario "${scenarioToDelete.Name}" deleted successfully`);
 		} catch (error) {
 			showAlert('error', 'Failed to delete scenario');
 		} finally {
@@ -167,9 +169,7 @@
 				{editingScenario ? 'Update Scenario' : 'Create New Scenario'}
 			</Dialog.Title>
 			<Dialog.Description>
-				{#if editingScenario}
-					Upload a new .zip file to update "{editingScenario.Name}".
-				{:else}
+				{#if !editingScenario}
 					Upload a .zip file to create a new scenario.
 				{/if}
 			</Dialog.Description>

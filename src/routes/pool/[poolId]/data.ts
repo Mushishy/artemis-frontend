@@ -4,6 +4,7 @@ export interface PoolUser {
     team: string;
     user: string;
     userId: string;
+    status?: string;
 }
 
 export interface PoolDetail {
