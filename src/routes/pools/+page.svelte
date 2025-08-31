@@ -30,9 +30,8 @@
     const headers: { key: keyof Pool; label: string; sortable?: boolean }[] = [
         { key: 'note', label: 'Note', sortable: true },
         { key: 'createdBy', label: 'Created By', sortable: true },
-        { key: 'type', label: 'Type', sortable: true },
         { key: 'topologyId', label: 'Topology ID', sortable: true },
-        { key: 'ctfdData', label: 'CTFD Data', sortable: true }
+        { key: 'createdAt', label: 'Created', sortable: true }
     ];
 
     function showAlert(message: string, type: 'success' | 'error') {

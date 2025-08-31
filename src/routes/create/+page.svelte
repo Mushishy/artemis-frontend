@@ -235,10 +235,36 @@
             
             // Clear form after successful submission
             resetForm();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating pool:', error);
-            const errorMessage = error instanceof Error ? error.message : 'Failed to create pool';
-            showAlert('error', `Error creating pool: ${errorMessage}`);
+            
+            // Try to extract detailed error message from API response
+            let errorMessage = 'Failed to create pool';
+            if (error.response?.data) {
+                const responseData = error.response.data;
+                
+                // Handle structured error response with results array
+                if (responseData.results && Array.isArray(responseData.results)) {
+                    const errors = responseData.results
+                        .filter((result: any) => result.response?.error)
+                        .map((result: any) => `${result.userId}: ${result.response.error}`)
+                        .join('\n');
+                    
+                    if (errors) {
+                        errorMessage = `Pool creation errors:\n${errors}`;
+                    }
+                } else if (responseData.error) {
+                    // Handle simple error response
+                    errorMessage = responseData.error;
+                } else if (typeof responseData === 'string') {
+                    // Handle plain text error
+                    errorMessage = responseData;
+                }
+            } else if (error instanceof Error) {
+                errorMessage = error.message;
+            }
+            
+            showAlert('error', errorMessage);
         }
     }
 
@@ -287,7 +313,7 @@
 
     <!-- Floating Alert Messages -->
     {#if alertMessage}
-        <div class="fixed top-12 left-1/2 transform -translate-x-1/2 z-50 max-w-md animate-in slide-in-from-top-2">
+        <div class="fixed top-12 left-1/2 transform -translate-x-1/2 z-50 max-w-2xl animate-in slide-in-from-top-2">
             <Alert.Root variant={alertMessage.type === 'error' ? 'destructive' : 'default'} class="shadow-lg border">
                 {#if alertMessage.type === 'error'}
                     <AlertCircle class="h-4 w-4" />
@@ -297,8 +323,8 @@
                 <Alert.Title class="text-sm font-medium">
                     {alertMessage.type === 'error' ? 'Error' : 'Success'}
                 </Alert.Title>
-                <Alert.Description class="text-sm flex items-center justify-between pr-2">
-                    {alertMessage.message}
+                <Alert.Description class="text-sm flex items-start justify-between pr-2">
+                    <pre class="whitespace-pre-wrap text-wrap break-words text-sm font-mono max-w-full">{alertMessage.message}</pre>
                     <Button variant="ghost" size="sm" onclick={hideAlert} class="h-6 w-6 p-0 ml-2 flex-shrink-0">
                         <X class="h-3 w-3" />
                     </Button>

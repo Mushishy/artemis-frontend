@@ -25,6 +25,27 @@ export interface LudusRole {
     global: boolean;
 }
 
+export interface LudusLogResponse {
+    result: string;
+    cursor: number;
+}
+
+export async function getUserLogs(userId: string, tail: number = 100, resumeline: number = 0): Promise<LudusLogResponse> {
+    try {
+        const response = await ludusClient.get('/range/logs', {
+            params: {
+                userID: userId,
+                tail: tail,
+                resumeline: resumeline
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching user logs:', error);
+        throw error;
+    }
+}
+
 export async function getTemplates(): Promise<LudusTemplate[]> {
     try {
         const response = await ludusClient.get('/templates');

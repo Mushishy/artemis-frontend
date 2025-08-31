@@ -66,9 +66,7 @@ export async function createUser(name: string, isAdmin: boolean): Promise<User> 
 // Delete a user (server-side only)
 export async function deleteUser(userID: string): Promise<void> {
     try {
-        await usersServerClient.delete('/user', {
-            params: { userID }
-        });
+        await usersServerClient.delete(`/user/${userID}`);
     } catch (error) {
         console.error('Error deleting user:', error);
         throw error;

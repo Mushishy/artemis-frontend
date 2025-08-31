@@ -7,6 +7,23 @@ export interface Pool {
     type: 'INDIVIDUAL' | 'SHARED' | 'CTFD';
     topologyId: string;
     ctfdData: boolean;
+    createdAt: string;
+}
+
+// Format date from ISO string to mm/dd/yyyy hh:mm format in UTC+2 timezone
+export function formatDate(dateString: string): string {
+    const date = new Date(dateString);
+    
+    // Convert to UTC+2 timezone
+    const utcPlus2 = new Date(date.getTime() + (2 * 60 * 60 * 1000));
+    
+    const month = (utcPlus2.getUTCMonth() + 1).toString().padStart(2, '0');
+    const day = utcPlus2.getUTCDate().toString().padStart(2, '0');
+    const year = utcPlus2.getUTCFullYear();
+    const hours = utcPlus2.getUTCHours().toString().padStart(2, '0');
+    const minutes = utcPlus2.getUTCMinutes().toString().padStart(2, '0');
+    
+    return `${month}/${day}/${year} ${hours}:${minutes}`;
 }
 
 // Load pools from API
@@ -31,7 +48,8 @@ export async function loadPools(): Promise<Pool[]> {
         return poolsArray.map(pool => ({
             ...pool,
             note: pool.note || "",
-            ctfdData: Boolean(pool.ctfdData)
+            ctfdData: Boolean(pool.ctfdData),
+            createdAt: pool.createdAt ? formatDate(pool.createdAt) : ""
         }));
     } catch (error) {
         console.error('Error loading pools:', error);

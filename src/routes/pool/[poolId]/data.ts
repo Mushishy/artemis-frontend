@@ -26,6 +26,24 @@ export interface PoolDetailData {
     isLoading: boolean;
 }
 
+export interface PoolHealthCheck {
+    users: {
+        allExist: boolean;
+        missingUserIds: string[];
+    } | null;
+    topology: {
+        matchPoolTopology: boolean;
+    } | null;
+    status: {
+        allDeployed: boolean;
+        results: Array<{
+            state: string;
+            userId: string;
+        }>;
+    } | null;
+    isLoading: boolean;
+}
+
 // Get pool details with users
 export async function getPoolDetail(poolId: string): Promise<PoolDetail> {
     try {
@@ -152,6 +170,305 @@ export async function downloadUserWireguard(poolId: string, userId: string): Pro
         window.URL.revokeObjectURL(url);
     } catch (error) {
         console.error('Error downloading user Wireguard config:', error);
+        throw error;
+    }
+}
+
+// Check pool health (users, topology, status)
+export async function checkPoolHealth(poolId: string): Promise<PoolHealthCheck> {
+    try {
+        const response = await fetch(`/api/pool/health?poolId=${encodeURIComponent(poolId)}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        return {
+            users: data.users.error ? null : data.users,
+            topology: data.topology.error ? null : data.topology,
+            status: data.status.error ? null : data.status,
+            isLoading: false
+        };
+    } catch (error) {
+        console.error('Error checking pool health:', error);
+        return {
+            users: null,
+            topology: null,
+            status: null,
+            isLoading: false
+        };
+    }
+}
+
+// Import missing users
+export async function importMissingUsers(poolId: string): Promise<any> {
+    try {
+        const response = await fetch(`/api/pool/import-users`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ poolId })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('Error importing missing users:', error);
+        throw error;
+    }
+}
+
+// Set pool topology
+export async function setPoolTopology(poolId: string): Promise<any> {
+    try {
+        const response = await fetch(`/api/pool/set-topology`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ poolId })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('Error setting pool topology:', error);
+        throw error;
+    }
+}
+
+// Get available topologies
+export async function getTopologies(): Promise<any[]> {
+    try {
+        const response = await fetch(`/api/topologies`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('Error getting topologies:', error);
+        throw error;
+    }
+}
+
+// Change pool topology
+export async function changePoolTopology(poolId: string, topologyId: string): Promise<void> {
+    try {
+        const response = await fetch(`/api/pool/change-topology`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ poolId, topologyId })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+    } catch (error) {
+        console.error('Error changing pool topology:', error);
+        throw error;
+    }
+}
+
+// Fetch CTFd data for pool
+export async function fetchCtfdData(poolId: string): Promise<void> {
+    try {
+        const response = await fetch(`/api/pool/fetch-ctfd`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ poolId })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+    } catch (error) {
+        console.error('Error fetching CTFd data:', error);
+        throw error;
+    }
+}
+
+// Download CTFd logins
+export async function downloadCtfdLogins(poolId: string): Promise<void> {
+    try {
+        const response = await fetch(`/api/pool/download-ctfd-logins`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ poolId })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to download CTFd logins');
+        }
+
+        // Create and download the file
+        const blob = new Blob([result.data], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ctfd_logins_${poolId}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error downloading CTFd logins:', error);
+        throw error;
+    }
+}
+
+// Download Wireguard configurations
+export async function downloadWireguardConfigs(poolId: string): Promise<void> {
+    try {
+        const response = await fetch(`/api/pool/download-wireguard`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ poolId })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `wireguard_configs_${poolId}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error downloading Wireguard configs:', error);
+        throw error;
+    }
+}
+
+// Deploy pool
+export async function deployPool(poolId: string): Promise<any> {
+    try {
+        const response = await fetch(`/api/pool/deploy`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ poolId })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('Error deploying pool:', error);
+        throw error;
+    }
+}
+
+// Redeploy pool
+export async function redeployPool(poolId: string): Promise<any> {
+    try {
+        const response = await fetch(`/api/pool/redeploy`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ poolId })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('Error redeploying pool:', error);
+        throw error;
+    }
+}
+
+// Abort pool operations
+export async function abortPool(poolId: string): Promise<any> {
+    try {
+        const response = await fetch(`/api/pool/abort`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ poolId })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('Error aborting pool operations:', error);
+        throw error;
+    }
+}
+
+// Remove/destroy pool
+export async function destroyPool(poolId: string): Promise<any> {
+    try {
+        const response = await fetch(`/api/pool/remove`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ poolId })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('Error removing pool:', error);
+        throw error;
+    }
+}
+
+// Fetch user logs
+export async function fetchUserLogs(userId: string, tail: number = 100, resumeline: number = 0): Promise<{ result: string; cursor: number }> {
+    try {
+        const response = await fetch(`/api/logs/${userId}?tail=${tail}&resumeline=${resumeline}`);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching user logs:', error);
         throw error;
     }
 }

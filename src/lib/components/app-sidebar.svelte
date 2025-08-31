@@ -11,7 +11,7 @@
     import MoonIcon from "@lucide/svelte/icons/moon";
 	import UsersIcon from "@lucide/svelte/icons/users";
 	import CalendarIcon from "@lucide/svelte/icons/calendar";
-	import ServerIcon from "@lucide/svelte/icons/server";
+	import AlarmIcon from "@lucide/svelte/icons/alarm-clock";
 
     import { toggleMode } from "mode-watcher";
     import { Button } from "$lib/components/ui/button/index.js";
@@ -26,6 +26,11 @@
     ]
 
 	const items = [
+		{
+			name: "Users",
+			url: "/users",
+			icon: UsersIcon,
+		},
 		{
 			name: "Topologies",
 			url: "/topologies",
@@ -60,14 +65,14 @@
 			icon: GamepadIcon,
 		},
 		{
-			name: "Users",
-			url: "/users",
-			icon: UsersIcon,
+			name: "Create CTFd",
+			url: "/ctfd",
+			icon: CalendarIcon,
 		},
 		{
 			name: "Live CTFd",
 			url: "/ctfd",
-			icon: CalendarIcon,
+			icon: AlarmIcon,
 		},
 	];
 </script>

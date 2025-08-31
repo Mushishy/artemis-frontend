@@ -58,3 +58,45 @@ export async function createPool(poolData: PoolRequest) {
         throw error;
     }
 }
+
+// Function to download topology file
+export async function downloadTopologyFile(topologyId: string): Promise<void> {
+    try {
+        const response = await fetch('/api/topology/download', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ topologyId })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to download topology');
+        }
+
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to download topology');
+        }
+
+        const { content, filename } = result.data;
+
+        // Create a blob and download the file
+        const blob = new Blob([content], { type: 'text/yaml' });
+        const url = window.URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        
+        // Clean up
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error downloading topology file:', error);
+        throw error;
+    }
+}

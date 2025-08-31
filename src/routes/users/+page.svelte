@@ -45,15 +45,30 @@
     async function confirmDeleteUser() {
         if (!userToDelete) return;
         
+        // Store user info before clearing
+        const userName = userToDelete.name;
+        const userId = userToDelete.userID;
+        
+        // Close dialog immediately
+        deleteDialogOpen = false;
+        userToDelete = null;
+        
+        // Show initial deleting notification
+        showAlert('success', `Deleting user "${userName}"`);
+        
         try {
-            await deleteUser(userToDelete.userID);
-            showAlert('success', `User "${userToDelete.name}" deleted successfully`);
-            deleteDialogOpen = false;
-            userToDelete = null;
-            // Refresh the page data (you might want to implement a proper refresh mechanism)
-            window.location.reload();
+            await deleteUser(userId);
+            showAlert('success', `User "${userName}" deleted successfully`);
+            // Wait a moment for user to see the success message before refreshing
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
         } catch (error) {
-            showAlert('error', `Failed to delete user "${userToDelete?.name || 'Unknown'}"`);
+            showAlert('error', `User "${userName}" deleted with errors (may still be processing)`);
+            // Still refresh after a delay in case the deletion actually worked
+            setTimeout(() => {
+                window.location.reload();
+            }, 3000);
         }
     }
 
@@ -106,15 +121,30 @@
     async function confirmMassDelete() {
         if (selectedUsersForDelete.length === 0) return;
         
+        // Store values before clearing
+        const userCount = selectedUsersForDelete.length;
+        const userIds = [...selectedUsersForDelete];
+        
+        // Close dialog immediately
+        massDeleteDialogOpen = false;
+        selectedUsersForDelete = [];
+        
+        // Show initial deleting notification
+        showAlert('success', `Deleting ${userCount} user${userCount !== 1 ? 's' : ''}`);
+        
         try {
-            await deleteMultipleUsers(selectedUsersForDelete);
-            showAlert('success', `${selectedUsersForDelete.length} user${selectedUsersForDelete.length !== 1 ? 's' : ''} deleted successfully`);
-            massDeleteDialogOpen = false;
-            selectedUsersForDelete = [];
-            // Refresh the page data (you might want to implement a proper refresh mechanism)
-            window.location.reload();
+            await deleteMultipleUsers(userIds);
+            showAlert('success', `${userCount} user${userCount !== 1 ? 's' : ''} deleted successfully`);
+            // Wait a moment for user to see the success message before refreshing
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
         } catch (error) {
-            showAlert('error', 'Failed to delete selected users');
+            showAlert('error', `${userCount} user${userCount !== 1 ? 's' : ''} deleted with errors (may still be processing)`);
+            // Still refresh after a delay in case the deletion actually worked
+            setTimeout(() => {
+                window.location.reload();
+            }, 3000);
         }
     }
 
@@ -188,6 +218,7 @@
             showActions={true}
             onDownloadWireguard={handleDownload}
             onDelete={handleDeleteUser}
+            showDeleteFor={(user) => !user.isAdmin}
         />
     </div>
 
