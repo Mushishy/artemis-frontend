@@ -18,7 +18,8 @@
         checkPoolStatus,
         unsharePool,
         deletePoolUsers,
-        checkUsersExist
+        checkUsersExist,
+        getPoolDetails
     } from './data.js';
     import type { PageData } from './$types';
 
@@ -37,7 +38,7 @@
         { key: 'note', label: 'Note', sortable: true },
         { key: 'createdBy', label: 'Created By', sortable: true },
         { key: 'topologyId', label: 'Topology ID', sortable: true },
-        { key: 'createdAt', label: 'Created', sortable: true }
+        { key: 'type', label: 'Type', sortable: true }
     ];
 
     function showAlert(message: string, type: 'success' | 'error') {
@@ -115,9 +116,13 @@
 
             // Step 3: If SHARED type, unshare the pool first
             if (deletingPool.type === 'SHARED') {
+                showAlert('Getting pool details for unsharing...', 'success');
+                const poolDetails = await getPoolDetails(deletingPool.poolId);
+                if (!poolDetails.mainUser) {
+                    throw new Error('Cannot unshare pool: mainUser not found');
+                }
                 showAlert('Unsharing pool...', 'success');
-                await unsharePool(deletingPool.poolId);
-                showAlert('Pool unshared successfully', 'success');
+                await unsharePool(deletingPool.poolId, poolDetails.mainUser);
             }
 
             // Step 4: Delete users in the pool
@@ -177,8 +182,13 @@
 
             // Step 3: If SHARED type, unshare the pool first
             if (deletingPool.type === 'SHARED') {
+                showAlert('Getting pool details for unsharing...', 'success');
+                const poolDetails = await getPoolDetails(deletingPool.poolId);
+                if (!poolDetails.mainUser) {
+                    throw new Error('Cannot unshare pool: mainUser not found');
+                }
                 showAlert('Unsharing pool...', 'success');
-                await unsharePool(deletingPool.poolId);
+                await unsharePool(deletingPool.poolId, poolDetails.mainUser);
                 showAlert('Pool unshared successfully', 'success');
             }
 
@@ -231,7 +241,7 @@
         <div>
             <h1 class="text-3xl font-bold">Pools</h1>
             <p class="text-sm text-muted-foreground">
-                Manage and monitor your training pools
+                {data.pools.length} pool{data.pools.length !== 1 ? 's' : ''} available
             </p>
         </div>
         
@@ -284,7 +294,7 @@
             <AlertDialog.Description>
                 {#if deletingPool}
                     {#if isDeletingProcess}
-                        Checking pool status for <strong>"{deletingPool.poolId}"</strong>...
+                        Checking pool status for <strong>"{deletingPool.poolId}"</strong>
                     {:else}
                         This will check the pool status and guide you through the deletion process for 
                         <strong>"{deletingPool.poolId}"</strong>.
@@ -357,7 +367,7 @@
                 <Input
                     id="note-input"
                     bind:value={noteInputValue}
-                    placeholder="Enter a note for this pool..."
+                    placeholder="Enter a note for this pool"
                     class="w-full"
                 />
             </div>

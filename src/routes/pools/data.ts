@@ -8,6 +8,7 @@ export interface Pool {
     topologyId: string;
     ctfdData: boolean;
     createdAt: string;
+    mainUser?: string;
 }
 
 export interface PoolStatusResult {
@@ -140,9 +141,10 @@ export async function checkPoolStatus(poolId: string): Promise<PoolStatusRespons
 }
 
 // Unshare a shared pool
-export async function unsharePool(poolId: string): Promise<void> {
+export async function unsharePool(poolId: string, mainUser: string): Promise<void> {
     try {
-        const response = await fetch(`${dulusBaseUrl}:${dulusPort}/range/unshare?poolId=${poolId}`, {
+        // Step 1: Send unshare request
+        const response = await fetch(`${dulusBaseUrl}:${dulusPort}/range/unshare?poolId=${poolId}&targetId=${mainUser}`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -153,6 +155,25 @@ export async function unsharePool(poolId: string): Promise<void> {
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        // Step 2: Verify unshare was successful
+        const checkResponse = await fetch(`${dulusBaseUrl}:${dulusPort}/range/shared?poolId=${poolId}&targetId=${mainUser}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-API-Key': dulusApiKey
+            }
+        });
+
+        if (!checkResponse.ok) {
+            throw new Error(`HTTP error! status: ${checkResponse.status}`);
+        }
+
+        const checkData = await checkResponse.json();
+        
+        if (checkData.unshared !== true) {
+            throw new Error('Unshare verification failed - pool is still shared');
         }
     } catch (error) {
         console.error('Error unsharing pool:', error);
@@ -200,6 +221,28 @@ export async function checkUsersExist(poolId: string): Promise<UserCheckResponse
         return await response.json();
     } catch (error) {
         console.error('Error checking users exist:', error);
+        throw error;
+    }
+}
+
+// Get pool details (including mainUser)
+export async function getPoolDetails(poolId: string): Promise<any> {
+    try {
+        const response = await fetch(`${dulusBaseUrl}:${dulusPort}/pool?poolId=${poolId}&userIds=false`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-API-Key': dulusApiKey
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error getting pool details:', error);
         throw error;
     }
 }

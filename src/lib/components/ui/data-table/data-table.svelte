@@ -125,11 +125,11 @@
 	function getTagClass(value: any): string {
 		if (typeof value === 'string') {
 			// Role type tags (blue)
-			if (value === 'role' || value == 'regular') {
+			if (value === 'role' || value === 'regular' || value === 'DEPLOYING' || value === 'DESTROYING' || value == 'CTFD') {
 				return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
 			}
 			// Collection type tags (yellow)
-			else if (value === 'collection' || value == 'main') {
+			else if (value === 'collection' || value === 'main' || value === 'SHARED') {
 				return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
 			}
 			// Status tags - Red (error/failed states)
@@ -137,12 +137,8 @@
 				return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
 			}
 			// Status tags - Green (success states)
-			else if (value === 'DEPLOYED') {
+			else if (value === 'DEPLOYED' || value === 'INDIVIDUAL') {
 				return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-			}
-			// Status tags - Blue (in-progress states)
-			else if (value === 'DEPLOYING' || value === 'DESTROYING') {
-				return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
 			}
 		}
 		return '';
@@ -168,7 +164,8 @@
 			   value === 'regular' || value === 'main' ||
 			   value === 'UNKNOWN' || value === 'NEVER DEPLOYED' || value === 'ERROR' || value === 'DESTROYED' || value === 'ABORTED' ||
 			   value === 'DEPLOYED' ||
-			   value === 'DEPLOYING' || value === 'DESTROYING';
+			   value === 'DEPLOYING' || value === 'DESTROYING' ||
+			   value === 'INDIVIDUAL' || value === 'SHARED' || value === 'CTFD';
 	}
 
 	function getDisplayValue(value: any): string {

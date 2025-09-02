@@ -69,11 +69,6 @@
 			url: "/ctfd",
 			icon: CalendarIcon,
 		},
-		{
-			name: "Live CTFd",
-			url: "/ctfd",
-			icon: AlarmIcon,
-		},
 	];
 </script>
 

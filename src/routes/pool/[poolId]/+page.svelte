@@ -23,7 +23,8 @@
         ChevronsUpDown,
         Map,
         FileText,
-        Search
+        Search,
+        Share2
     } from 'lucide-svelte';
     import type { PoolDetail, PoolUser, PoolDetailData, PoolHealthCheck, UserExistsCheck } from './data.js';
     import { 
@@ -49,6 +50,7 @@
     } from './data.js';
     import { downloadTopologyFile } from '$lib/api/pools.client.js';
     import { getTopology } from '$lib/api/topology.client.js';
+    import { dulusBaseUrl, dulusPort, dulusApiKey } from '$lib/api/settings.js';
     import type { PageData } from './$types';
 
     // Cleanup streaming when component is destroyed
@@ -78,16 +80,21 @@
     let isRefreshing = $state(false);
     let alertMessage = $state<{ message: string; type: 'success' | 'error' } | null>(null);
     
+    // Sharing state
+    let sharingStatus = $state<{ shared: boolean; isLoading: boolean }>({ shared: false, isLoading: false });
+    
     // Dialog state
     let usersDialogOpen = $state(false);
     let topologyDialogOpen = $state(false);
     let statusDialogOpen = $state(false);
+    let sharingDialogOpen = $state(false);
     let accessDialogOpen = $state(false);
     let logViewerOpen = $state(false);
     let selectedUserId = $state<string | null>(null);
     let userActionType: 'import' | 'patch' = $state('import');
     let topologyActionType: 'set' | 'download' | 'change' = $state('set');
     let statusActionType: 'deploy' | 'redeploy' | 'abort' | 'destroy' = $state('deploy');
+    let sharingActionType: 'share' | 'unshare' = $state('share');
     let accessActionType: 'ctfd' | 'logins' | 'wireguard' = $state('ctfd');
     let missingUsers = $derived(healthCheck.users?.missingUserIds || []); // Use actual data from health check
     let patchUserInput = $state('');
@@ -166,6 +173,17 @@
                     isLoading: false
                 };
             }
+
+            // Load sharing status for SHARED pools
+            if (poolDetail?.type === 'SHARED') {
+                try {
+                    await checkSharingStatus();
+                    console.log('🔗 Sharing status checked:', sharingStatus);
+                } catch (error) {
+                    console.error('❌ Error checking sharing status:', error);
+                    console.log('⚠️ Sharing status unavailable...');
+                }
+            }
         } catch (error) {
             console.error('❌ Critical error loading pool data:', error);
             showAlert('Critical error loading pool data', 'error');
@@ -186,6 +204,12 @@
             
             poolData = poolDataResult;
             healthCheck = healthCheckResult;
+
+            // Also refresh sharing status for SHARED pools
+            if (poolDetail?.type === 'SHARED') {
+                await checkSharingStatus();
+            }
+
             showAlert('Pool data refreshed successfully', 'success');
         } catch (error) {
             console.error('Error refreshing pool data:', error);
@@ -884,10 +908,154 @@
         accessDialogOpen = true;
     }
 
+    // Sharing functions
+    async function checkSharingStatus() {
+        if (!poolDetail?.mainUser) return;
+        
+        sharingStatus.isLoading = true;
+        try {
+            const url = `${dulusBaseUrl}:${dulusPort}/range/shared?poolId=${data.poolId}&targetId=${poolDetail.mainUser}`;
+            console.log('🔗 Checking sharing status:', url);
+            
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'accept': 'application/json',
+                    'X-API-Key': dulusApiKey
+                }
+            });
+            
+            console.log('🔗 Sharing response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const responseData = await response.json();
+            console.log('🔗 Sharing response data:', responseData);
+            console.log('🔗 Sharing response data.shared:', responseData.shared);
+            console.log('🔗 Sharing response data.shared type:', typeof responseData.shared);
+            
+            sharingStatus.shared = responseData.shared === true;
+            console.log('🔗 Final sharing status:', sharingStatus.shared);
+        } catch (error) {
+            console.error('❌ Error checking sharing status:', error);
+            sharingStatus.shared = false;
+        } finally {
+            sharingStatus.isLoading = false;
+        }
+    }
+
+    function handleSharingClick() {
+        sharingDialogOpen = true;
+    }
+
+    async function handleSharePool() {
+        if (!poolDetail?.mainUser) return;
+        
+        try {
+            showAlert('Sending sharing request', 'success');
+            const response = await fetch(`${dulusBaseUrl}:${dulusPort}/range/share?poolId=${data.poolId}&targetId=${poolDetail.mainUser}`, {
+                method: 'POST',
+                headers: {
+                    'accept': 'application/json',
+                    'X-API-Key': dulusApiKey
+                },
+                body: ''
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            showAlert('Sharing request sent', 'success');
+            // Refresh sharing status
+            await checkSharingStatus();
+        } catch (error: any) {
+            console.error('Error sharing pool:', error);
+            
+            let errorMessage = 'Failed to share pool';
+            if (error.response?.data) {
+                const responseData = error.response.data;
+                if (responseData.error) {
+                    errorMessage = responseData.error;
+                } else if (typeof responseData === 'string') {
+                    errorMessage = responseData;
+                }
+            }
+            
+            showAlert(errorMessage, 'error');
+        }
+        sharingDialogOpen = false;
+    }
+
+    async function handleUnsharePool() {
+        if (!poolDetail?.mainUser) return;
+        
+        try {
+            showAlert('Sending unsharing request...', 'success');
+            const response = await fetch(`${dulusBaseUrl}:${dulusPort}/range/unshare?poolId=${data.poolId}&targetId=${poolDetail.mainUser}`, {
+                method: 'POST',
+                headers: {
+                    'accept': 'application/json',
+                    'X-API-Key': dulusApiKey
+                },
+                body: ''
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            // Check if unsharing was successful by verifying shared status
+            showAlert('Verifying unshare status...', 'success');
+            const checkUrl = `${dulusBaseUrl}:${dulusPort}/range/shared?poolId=${data.poolId}&targetId=${poolDetail.mainUser}`;
+            const checkResponse = await fetch(checkUrl, {
+                method: 'GET',
+                headers: {
+                    'accept': 'application/json',
+                    'X-API-Key': dulusApiKey
+                }
+            });
+            
+            if (!checkResponse.ok) {
+                throw new Error(`HTTP error! status: ${checkResponse.status}`);
+            }
+            
+            const checkData = await checkResponse.json();
+            console.log('🔗 Unshare verification response:', checkData);
+            
+            if (checkData.shared === false) {
+                showAlert('Pool unshared successfully', 'success');
+                // Update our local status
+                sharingStatus.shared = false;
+            } else {
+                showAlert('Unshare failed - pool is still shared', 'error');
+                // Refresh to get actual status
+                await checkSharingStatus();
+            }
+        } catch (error: any) {
+            console.error('Error unsharing pool:', error);
+            
+            let errorMessage = 'Failed to unshare pool';
+            if (error.response?.data) {
+                const responseData = error.response.data;
+                if (responseData.error) {
+                    errorMessage = responseData.error;
+                } else if (typeof responseData === 'string') {
+                    errorMessage = responseData;
+                }
+            }
+            
+            showAlert(errorMessage, 'error');
+        }
+        sharingDialogOpen = false;
+    }
+
     // Status dialog handlers
     async function handleDeployPool() {
         try {
-            showAlert('Deploying pool...', 'success');
+            showAlert('Deploying pool', 'success');
             await deployPool(data.poolId);
             showAlert('Pool deployment requested', 'success');
             // Refresh status to update the deployment status
@@ -912,7 +1080,7 @@
 
     async function handleRedeployPool() {
         try {
-            showAlert('Redeploying pool...', 'success');
+            showAlert('Redeploying pool', 'success');
             await redeployPool(data.poolId);
             showAlert('Pool redeployment requested', 'success');
             // Refresh status to update the deployment status
@@ -937,7 +1105,7 @@
 
     async function handleAbortPool() {
         try {
-            showAlert('Aborting pool operations...', 'success');
+            showAlert('Aborting pool operations', 'success');
             await abortPool(data.poolId);
             showAlert('Pool abort requested', 'success');
             // Refresh status to update the deployment status
@@ -962,7 +1130,7 @@
 
     async function handleDestroyPool() {
         try {
-            showAlert('Destroying pool...', 'success');
+            showAlert('Destroying pool', 'success');
             await destroyPool(data.poolId);
             showAlert('Pool destruction requested', 'success');
             // Refresh status to update the deployment status
@@ -1000,7 +1168,8 @@
 
     $effect(() => {
         if (poolDetail?.usersAndTeams) {
-            processedUserData = poolDetail.usersAndTeams.map((user: any) => {
+            // First, process all regular users
+            let userData = poolDetail.usersAndTeams.map((user: any) => {
                 // Find the status for this user from health check data
                 const userStatus = healthCheck.status?.results?.find(result => result.userId === user.userId || result.userId === user.user);
                 
@@ -1010,6 +1179,25 @@
                     status: userStatus?.state ? userStatus.state.toUpperCase() : 'UNKNOWN'
                 };
             });
+
+            // If pool is shared, add the main user to the processed data
+            if (poolDetail.type === 'SHARED' && poolDetail.mainUser) {
+                // Find the status for the main user from health check data
+                const mainUserStatus = healthCheck.status?.results?.find(result => result.userId === poolDetail?.mainUser);
+                
+                const mainUserEntry = {
+                    user: poolDetail.mainUser,
+                    userId: poolDetail.mainUser,
+                    userType: 'main',
+                    status: mainUserStatus?.state ? mainUserStatus.state.toUpperCase() : 'UNKNOWN'
+                };
+                
+                // Add main user at the beginning of the array
+                userData = [mainUserEntry, ...userData];
+            }
+
+            // Set the processed data once
+            processedUserData = userData;
 
             const baseHeaders = [
                 { key: 'user', label: 'User' },
@@ -1043,6 +1231,22 @@
         );
         return user?.user || selectedUserId;
     });
+
+    // Format date from ISO string to mm/dd/yyyy hh:mm format in UTC+2 timezone
+    function formatDate(dateString: string): string {
+        const date = new Date(dateString);
+        
+        // Convert to UTC+2 timezone
+        const utcPlus2 = new Date(date.getTime() + (2 * 60 * 60 * 1000));
+        
+        const month = (utcPlus2.getUTCMonth() + 1).toString().padStart(2, '0');
+        const day = utcPlus2.getUTCDate().toString().padStart(2, '0');
+        const year = utcPlus2.getUTCFullYear();
+        const hours = utcPlus2.getUTCHours().toString().padStart(2, '0');
+        const minutes = utcPlus2.getUTCMinutes().toString().padStart(2, '0');
+        
+        return `${month}/${day}/${year} ${hours}:${minutes}`;
+    }
 
     // Simple variable to hold the display name
     let displayUserName = $state('');
@@ -1100,7 +1304,7 @@
                         {#if poolDetail.note}
                             {poolDetail.note} • 
                         {/if}
-                        {poolDetail.type} • Created by {poolDetail.createdBy}
+                        {poolDetail.type} • Created by {poolDetail.createdBy} • {formatDate(poolDetail.createdAt)}
                     </p>
                 {/if}
             </div>
@@ -1122,6 +1326,12 @@
                 <span class="text-base font-medium">status</span>
                 <div class="w-3 h-3 rounded-full {healthCheck.status?.allDeployed === true ? 'bg-green-500' : healthCheck.status?.allDeployed === false ? 'bg-red-500' : 'bg-gray-400'}"></div>
             </Button>
+            {#if poolDetail?.type === 'SHARED'}
+                <Button variant="outline" onclick={handleSharingClick} class="rounded-lg px-4 py-2 flex items-center gap-2 shadow-sm">
+                    <span class="text-base font-medium">sharing</span>
+                    <div class="w-3 h-3 rounded-full {sharingStatus.isLoading ? 'bg-gray-400' : sharingStatus.shared ? 'bg-green-500' : 'bg-red-500'}"></div>
+                </Button>
+            {/if}
             <Button variant="outline" onclick={handleAccessClick} class="rounded-lg px-4 py-2 flex items-center gap-2 shadow-sm">
                 <span class="text-base font-medium">access</span>
                 <div class="w-3 h-3 rounded-full {poolDetail?.ctfdData === true ? 'bg-green-500' : poolDetail?.ctfdData === false ? 'bg-red-500' : 'bg-gray-400'}"></div>
@@ -1726,6 +1936,51 @@
 
             <Dialog.Footer class="gap-2">
                 <Button variant="outline" onclick={() => accessDialogOpen = false}>Close</Button>
+            </Dialog.Footer>
+        </Dialog.Content>
+    </Dialog.Root>
+
+    <!-- Sharing Dialog -->
+    <Dialog.Root bind:open={sharingDialogOpen}>
+        <Dialog.Content class="max-w-lg">
+            <Dialog.Header>
+                <Dialog.Title class="flex items-center gap-2">
+                    <Share2 class="h-5 w-5" />
+                    Manage Sharing
+                </Dialog.Title>
+                <Dialog.Description>
+                    Share or unshare this pool with the main user.
+                </Dialog.Description>
+            </Dialog.Header>
+            
+            <div class="space-y-4">
+                <Button 
+                    onclick={handleSharePool}
+                    class="w-full justify-start gap-3 h-12"
+                    variant="outline"
+                >
+                    <Share2 class="h-4 w-4" />
+                    <div class="flex flex-col items-start">
+                        <span>Share</span>
+                        <span class="text-xs text-muted-foreground">Enable sharing for this pool</span>
+                    </div>
+                </Button>
+
+                <Button 
+                    onclick={handleUnsharePool}
+                    class="w-full justify-start gap-3 h-12"
+                    variant="outline"
+                >
+                    <X class="h-4 w-4" />
+                    <div class="flex flex-col items-start">
+                        <span>Unshare</span>
+                        <span class="text-xs text-muted-foreground">Disable sharing for this pool</span>
+                    </div>
+                </Button>
+            </div>
+
+            <Dialog.Footer class="gap-2">
+                <Button variant="outline" onclick={() => sharingDialogOpen = false}>Close</Button>
             </Dialog.Footer>
         </Dialog.Content>
     </Dialog.Root>

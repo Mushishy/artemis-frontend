@@ -353,11 +353,7 @@
                     class="flex items-center gap-2"
                 >
                     <Search class="h-4 w-4" />
-                    {#if isCheckingUsers}
-                        Checking...
-                    {:else}
                         Check Users in Pools
-                    {/if}
                 </Button>
                 <div class="flex-1"></div>
                 <Button variant="outline" onclick={() => massDeleteDialogOpen = false}>

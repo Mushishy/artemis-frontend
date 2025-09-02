@@ -16,6 +16,7 @@ export interface PoolDetail {
     topologyId: string;
     type: string;
     usersAndTeams: PoolUser[];
+    createdAt: string;
 }
 
 export interface PoolDetailData {
@@ -60,6 +61,7 @@ export async function getPoolDetail(poolId: string): Promise<PoolDetail> {
         }
 
         const data = await response.json();
+        console.log(data)
         return data;
     } catch (error) {
         console.error('Error loading pool detail:', error);
