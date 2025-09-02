@@ -472,3 +472,57 @@ export async function fetchUserLogs(userId: string, tail: number = 100, resumeli
         throw error;
     }
 }
+
+// Interface for user existence check
+export interface UserExistsCheck {
+    exists: boolean;
+    userId: string;
+}
+
+// Check if users exist in pools
+export async function checkUsersInPools(userIds: string[]): Promise<UserExistsCheck[]> {
+    try {
+        const response = await fetch(`${dulusBaseUrl}:${dulusPort}/pool/users`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-API-Key': dulusApiKey,
+            },
+            body: JSON.stringify({ userIds: userIds }),
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('Error checking users in pools:', error);
+        throw error;
+    }
+}
+
+// Patch pool users
+export async function patchPoolUsers(poolId: string, usersAndTeams: Array<{user: string; team?: string}>): Promise<any> {
+    try {
+        const response = await fetch(`${dulusBaseUrl}:${dulusPort}/pool/users?poolId=${poolId}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-API-Key': dulusApiKey,
+            },
+            body: JSON.stringify({ usersAndTeams }),
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('Error patching pool users:', error);
+        throw error;
+    }
+}

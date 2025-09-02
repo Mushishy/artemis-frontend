@@ -49,15 +49,32 @@
 	async function confirmDelete() {
 		if (!deletingTopology) return;
 		
+		// Store topology info before clearing
+		const topologyName = deletingTopology.Name;
+		const topologyId = deletingTopology.ID;
+		
+		// Close dialog immediately
+		deleteDialogOpen = false;
+		deletingTopology = null;
+		
+		// Show initial deleting notification
+		showAlert(`Deleting topology "${topologyName}"`, 'success');
+		
 		try {
-			await removeTopology(deletingTopology.ID);
-			topologies = topologies.filter(t => t.ID !== deletingTopology.ID);
-			showAlert(`Topology "${deletingTopology.Name}" deleted successfully`, 'success');
-			deleteDialogOpen = false;
-			deletingTopology = null;
-		} catch (error) {
+			await removeTopology(topologyId);
+			topologies = topologies.filter(t => t.ID !== topologyId);
+			showAlert(`Topology "${topologyName}" deleted successfully`, 'success');
+		} catch (error: any) {
 			console.error('Failed to delete topology:', error);
-			showAlert('Failed to delete topology', 'error');
+			
+			let errorMessage = `Failed to delete topology "${topologyName}"`;
+			if (error.response?.data?.error) {
+				errorMessage = error.response.data.error;
+			} else if (error.message) {
+				errorMessage = error.message;
+			}
+			
+			showAlert(errorMessage, 'error');
 		}
 	}
 
@@ -65,9 +82,17 @@
 		try {
 			await downloadTopology(topology.ID);
 			showAlert(`Topology "${topology.Name}" downloaded successfully`, 'success');
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Failed to download topology:', error);
-			showAlert('Failed to download topology', 'error');
+			
+			let errorMessage = `Failed to download topology "${topology.Name}"`;
+			if (error.response?.data?.error) {
+				errorMessage = error.response.data.error;
+			} else if (error.message) {
+				errorMessage = error.message;
+			}
+			
+			showAlert(errorMessage, 'error');
 		}
 	}
 
@@ -101,9 +126,17 @@
 			closeDialog();
 			// Refresh the topologies list
 			location.reload();
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Failed to upload topology:', error);
-			showAlert('Failed to upload topology', 'error');
+			
+			let errorMessage = 'Failed to upload topology';
+			if (error.response?.data?.error) {
+				errorMessage = error.response.data.error;
+			} else if (error.message) {
+				errorMessage = error.message;
+			}
+			
+			showAlert(errorMessage, 'error');
 		}
 	}
 

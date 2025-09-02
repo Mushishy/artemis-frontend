@@ -22,9 +22,10 @@
         Check,
         ChevronsUpDown,
         Map,
-        FileText
+        FileText,
+        Search
     } from 'lucide-svelte';
-    import type { PoolDetail, PoolUser, PoolDetailData, PoolHealthCheck } from './data.js';
+    import type { PoolDetail, PoolUser, PoolDetailData, PoolHealthCheck, UserExistsCheck } from './data.js';
     import { 
         getPoolDetail, 
         refreshPoolData, 
@@ -42,7 +43,9 @@
         redeployPool,
         abortPool,
         destroyPool,
-        fetchUserLogs
+        fetchUserLogs,
+        checkUsersInPools,
+        patchPoolUsers
     } from './data.js';
     import { downloadTopologyFile } from '$lib/api/pools.client.js';
     import { getTopology } from '$lib/api/topology.client.js';
@@ -335,6 +338,10 @@
 
     // User dialog handlers
     async function handleImportUsers() {
+        // Close dialog immediately and show notification since this is a long-running process
+        usersDialogOpen = false;
+        showAlert(`Creating ${missingUsers.length} users...`, 'success');
+        
         try {
             const response: any = await importMissingUsers(data.poolId);
             
@@ -347,12 +354,11 @@
                 
                 if (errors) {
                     showAlert(`Import errors:\n${errors}`, 'error');
-                    usersDialogOpen = false;
                     return;
                 }
             }
             
-            showAlert(`Import of ${missingUsers.length} users requested`, 'success');
+            showAlert(`Successfully imported ${missingUsers.length} users`, 'success');
             // Refresh health check to update the status
             healthCheck = await checkPoolHealth(data.poolId);
         } catch (error: any) {
@@ -384,15 +390,81 @@
             
             showAlert(errorMessage, 'error');
         }
-        usersDialogOpen = false;
     }
 
-    function handlePatchUsers() {
+    async function handlePatchUsers() {
         const users = parseBulkUsers(patchUserInput);
-        showAlert(`Patching ${users.length} users`, 'success');
+        if (users.length === 0) {
+            showAlert('Please enter users to patch', 'error');
+            return;
+        }
+
+        try {
+            showAlert(`Patching ${users.length} users...`, 'success');
+            await patchPoolUsers(data.poolId, users);
+            showAlert(`Successfully patched ${users.length} users`, 'success');
+            
+            // Refresh pool data to show updated users
+            await Promise.all([
+                loadPoolDetail(),
+                refreshHealthCheck()
+            ]);
+        } catch (error: any) {
+            console.error('Error patching users:', error);
+            
+            let errorMessage = 'Failed to patch users';
+            if (error.response?.data) {
+                const responseData = error.response.data;
+                if (responseData.error) {
+                    errorMessage = responseData.error;
+                } else if (typeof responseData === 'string') {
+                    errorMessage = responseData;
+                }
+            }
+            
+            showAlert(errorMessage, 'error');
+        }
+        
         usersDialogOpen = false;
         patchUserInput = '';
-        // TODO: Implement actual patch
+    }
+
+    async function handleCheckPatchUsers() {
+        const users = parseBulkUsers(patchUserInput);
+        if (users.length === 0) {
+            showAlert('Please enter users to check', 'error');
+            return;
+        }
+
+        // Check for duplicates within the input
+        const usernames = users.map(u => u.user);
+        const duplicates = usernames.filter((user, index) => usernames.indexOf(user) !== index);
+        if (duplicates.length > 0) {
+            const uniqueDuplicates = [...new Set(duplicates)];
+            showAlert(`Duplicate users found in input: ${uniqueDuplicates.join(', ')}`, 'error');
+            return;
+        }
+
+        try {
+            // Transform usernames to user IDs with BATCH prefix (like in create pool)
+            const transformToUserId = (username: string): string => {
+                return 'BATCH' + username.replace(/\s+/g, '').toLowerCase();
+            };
+
+            const userIds = users.map(u => transformToUserId(u.user));
+            const results = await checkUsersInPools(userIds);
+            
+            const usersInPools = results.filter(result => result.exists);
+
+            if (usersInPools.length > 0) {
+                const userNames = usersInPools.map(result => result.userId).join(', ');
+                showAlert(`User IDs already in pools: ${userNames}`, 'error');
+            } else {
+                showAlert('All users are available for patching', 'success');
+            }
+        } catch (error) {
+            showAlert(`Failed to check users: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+        }
     }
 
     // Parse bulk user input from create page
@@ -1329,6 +1401,18 @@
             </div>
 
             <Dialog.Footer class="flex justify-end gap-2">
+                {#if userActionType === 'patch'}
+                    <Button 
+                        onclick={handleCheckPatchUsers}
+                        variant="outline"
+                        disabled={!patchUserInput.trim()}
+                        class="flex items-center gap-2"
+                    >
+                        <Search class="h-4 w-4" />
+                        Check Users in Pools
+                    </Button>
+                    <div class="flex-1"></div>
+                {/if}
                 <Button variant="outline" onclick={() => usersDialogOpen = false}>
                     Cancel
                 </Button>

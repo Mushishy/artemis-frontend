@@ -5,6 +5,11 @@ export interface User {
     userID: string;
 }
 
+export interface UserExistsCheck {
+    exists: boolean;
+    userId: string;
+}
+
 // Format date from ISO string to mm/dd/yyyy hh:mm format in UTC+2 timezone
 export function formatDate(dateString: string): string {
     const date = new Date(dateString);
@@ -48,14 +53,21 @@ export async function deleteUser(userID: string): Promise<void> {
     }
 }
 
-// Delete multiple users
+// Delete multiple users using direct API
 export async function deleteMultipleUsers(userIDs: string[]): Promise<void> {
-    const response = await fetch('/api/users/bulk-delete', {
+    // Import settings here to avoid circular dependencies
+    const dulusBaseUrl = 'http://127.0.0.1';
+    const dulusPort = 5000;
+    const dulusApiKey = 'JSLIZIK._1Czjvt+xRkFPVzWR7uS7ZdiCZvwZ+IFM%1lLvrU';
+    
+    const response = await fetch(`${dulusBaseUrl}:${dulusPort}/users/delete`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-API-Key': dulusApiKey,
         },
-        body: JSON.stringify({ userIDs }),
+        body: JSON.stringify({ userIds: userIDs }),
     });
     
     if (!response.ok) {
@@ -101,4 +113,28 @@ export async function addAdmin(username: string): Promise<void> {
     if (!response.ok) {
         throw new Error(`Failed to add admin user: ${response.statusText}`);
     }
+}
+
+// Check if users exist in pools (similar to the function in pools.client.ts)
+export async function checkUsersInPools(userIds: string[]): Promise<UserExistsCheck[]> {
+    // Import settings here to avoid circular dependencies
+    const dulusBaseUrl = 'http://127.0.0.1';
+    const dulusPort = 5000;
+    const dulusApiKey = 'JSLIZIK._1Czjvt+xRkFPVzWR7uS7ZdiCZvwZ+IFM%1lLvrU';
+    
+    const response = await fetch(`${dulusBaseUrl}:${dulusPort}/pool/users`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-API-Key': dulusApiKey,
+        },
+        body: JSON.stringify({ userIds: userIds }),
+    });
+    
+    if (!response.ok) {
+        throw new Error(`Failed to check users in pools: ${response.statusText}`);
+    }
+    
+    return response.json();
 }

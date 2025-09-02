@@ -5,9 +5,9 @@
     import * as Dialog from '$lib/components/ui/dialog';
     import * as Select from '$lib/components/ui/select';
     import { Input } from '$lib/components/ui/input';
-    import { AlertCircle, CheckCircle2, X, Trash2, Users, Plus, UserPlus } from 'lucide-svelte';
-    import type { User } from './data.js';
-    import { downloadWireGuardConfig, deleteUser, deleteMultipleUsers, createUser } from './data.js';
+    import { AlertCircle, CheckCircle2, X, Trash2, Users, Plus, UserPlus, Search } from 'lucide-svelte';
+    import type { User, UserExistsCheck } from './data.js';
+    import { downloadWireGuardConfig, deleteUser, deleteMultipleUsers, createUser, checkUsersInPools } from './data.js';
     import type { PageData } from './$types';
 
     let { data }: { data: PageData } = $props();
@@ -18,9 +18,15 @@
     let userToDelete = $state<User | null>(null);
     let selectedUsersForDelete = $state<string[]>([]);
     let newUserName = $state('');
+    let isCheckingUsers = $state(false);
 
-    // Filter out root users
-    const filteredUsers = $derived(data.users.filter(user => user.name.toLowerCase() !== 'root'));
+    // Filter out only root users (keep admin users visible in main table)
+    const filteredUsers = $derived(data.users.filter(user => 
+        user.name.toLowerCase() !== 'root'
+    ));
+
+    // Filter out admin users for mass delete selection only
+    const nonAdminUsers = $derived(filteredUsers.filter(user => !user.isAdmin));
 
     const headers: { key: keyof User; label: string; sortable?: boolean }[] = [
         { key: 'name', label: 'Name', sortable: true },
@@ -88,6 +94,41 @@
     function handleAddUser() {
         newUserName = '';
         addUserDialogOpen = true;
+    }
+
+    async function handleCheckUsersInPools() {
+        if (selectedUsersForDelete.length === 0) {
+            showAlert('error', 'Please select users to check');
+            return;
+        }
+
+        isCheckingUsers = true;
+        
+        try {
+            const results = await checkUsersInPools(selectedUsersForDelete);
+            const usersInPools = results.filter(result => result.exists);
+            const usersAvailable = results.filter(result => !result.exists);
+
+            if (usersInPools.length > 0) {
+                const userNames = usersInPools.map(result => {
+                    const user = nonAdminUsers.find(u => u.userID === result.userId);
+                    return user?.name || result.userId;
+                }).join(', ');
+                showAlert('error', `Users in pools: ${userNames}`);
+            }
+
+            if (usersAvailable.length > 0) {
+                const userNames = usersAvailable.map(result => {
+                    const user = nonAdminUsers.find(u => u.userID === result.userId);
+                    return user?.name || result.userId;
+                }).join(', ');
+                showAlert('success', `Users available for deletion: ${userNames}`);
+            }
+        } catch (error) {
+            showAlert('error', `Failed to check users: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        } finally {
+            isCheckingUsers = false;
+        }
     }
 
     async function confirmAddUser() {
@@ -273,7 +314,7 @@
             </Dialog.Header>
             
             <div class="max-h-64 overflow-y-auto border rounded-lg">
-                {#each filteredUsers as user}
+                {#each nonAdminUsers as user}
                     <div class="flex items-center gap-3 p-3 border-b last:border-b-0 hover:bg-muted/50">
                         <input
                             type="checkbox"
@@ -286,11 +327,6 @@
                             <div class="font-medium">{user.name}</div>
                             <div class="text-xs text-muted-foreground">ID: {user.userID}</div>
                         </label>
-                        {#if user.isAdmin}
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">
-                                Admin
-                            </span>
-                        {/if}
                     </div>
                 {/each}
             </div>
@@ -310,6 +346,20 @@
             {/if}
 
             <Dialog.Footer class="gap-2">
+                <Button 
+                    onclick={handleCheckUsersInPools}
+                    variant="outline"
+                    disabled={isCheckingUsers || selectedUsersForDelete.length === 0}
+                    class="flex items-center gap-2"
+                >
+                    <Search class="h-4 w-4" />
+                    {#if isCheckingUsers}
+                        Checking...
+                    {:else}
+                        Check Users in Pools
+                    {/if}
+                </Button>
+                <div class="flex-1"></div>
                 <Button variant="outline" onclick={() => massDeleteDialogOpen = false}>
                     Cancel
                 </Button>

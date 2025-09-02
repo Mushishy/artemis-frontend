@@ -15,7 +15,7 @@ export interface PoolUserAndTeam {
 }
 
 export interface PoolRequest {
-    type: 'CTFD' | 'SHARED' | 'INDIVIDUAL';
+    type: 'SHARED' | 'INDIVIDUAL';
     mainUser?: string;
     usersAndTeams?: PoolUserAndTeam[];
     topologyId: string;
@@ -31,7 +31,7 @@ export async function createPool(poolData: PoolRequest) {
         };
 
         // Only add optional fields if they have actual values
-        if ((poolData.type == 'CTFD' || poolData.type == 'SHARED') && poolData.mainUser) {
+        if (poolData.type == 'SHARED' && poolData.mainUser) {
             cleanedData.mainUser = poolData.mainUser;
         }
 
@@ -60,6 +60,23 @@ export async function createPool(poolData: PoolRequest) {
 }
 
 // Function to download topology file
+export interface UserExistsCheck {
+    exists: boolean;
+    userId: string;
+}
+
+export async function checkUsersInTopologies(userIds: string[]): Promise<UserExistsCheck[]> {
+    try {
+        const response = await apiClient.post('/pool/users', {
+            userIds: userIds
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error checking users in topologies:', error);
+        throw error;
+    }
+}
+
 export async function downloadTopologyFile(topologyId: string): Promise<void> {
     try {
         const response = await fetch('/api/topology/download', {

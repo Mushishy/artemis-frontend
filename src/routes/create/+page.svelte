@@ -6,16 +6,17 @@
     import { Badge } from '$lib/components/ui/badge';
     import * as Command from '$lib/components/ui/command';
     import * as Popover from '$lib/components/ui/popover';
-    import { AlertCircle, CheckCircle2, X, RotateCcw, Check, ChevronsUpDown, Save } from 'lucide-svelte';
+    import { AlertCircle, CheckCircle2, X, RotateCcw, Check, ChevronsUpDown, Save, Users, Search } from 'lucide-svelte';
     import { tick } from 'svelte';
     import type { PageData } from './$types';
-    import { createPool, type PoolRequest, type PoolUserAndTeam } from '$lib/api/pools.client';
+    import { createPool, type PoolRequest, type PoolUserAndTeam, checkUsersInTopologies } from '$lib/api/pools.client';
     import { dulusApiKey } from '$lib/api/settings';
+    import { goto } from '$app/navigation';
 
     let { data }: { data: PageData } = $props();
 
     // Pool type options
-    type PoolType = 'INDIVIDUAL' | 'SHARED' | 'CTFD';
+    type PoolType = 'INDIVIDUAL' | 'SHARED';
 
     // Form state
     interface PoolFormData {
@@ -24,8 +25,6 @@
         topologyName: string;
         mainUser: string;
         mainUserName: string;
-        ctfdMainUser: string;
-        ctfdMainUserName: string;
         bulkUserInput: string; // For pasting multiple users
         note: string;
     }
@@ -36,8 +35,6 @@
         topologyName: "",
         mainUser: "",
         mainUserName: "",
-        ctfdMainUser: "",
-        ctfdMainUserName: "",
         bulkUserInput: "",
         note: ""
     });    let alertMessage = $state<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -45,10 +42,8 @@
     // Combobox state
     let topologyOpen = $state(false);
     let mainUserOpen = $state(false);
-    let ctfdMainUserOpen = $state(false);
     let topologyTriggerRef = $state<HTMLButtonElement>(null!);
     let mainUserTriggerRef = $state<HTMLButtonElement>(null!);
-    let ctfdMainUserTriggerRef = $state<HTMLButtonElement>(null!);
 
     // Transform data for combobox format
     const topologyOptions = $derived(
@@ -76,10 +71,6 @@
         userOptions.find((u) => u.value === formData.mainUser)?.label
     );
 
-    const selectedCtfdMainUser = $derived(
-        userOptions.find((u) => u.value === formData.ctfdMainUser)?.label
-    );
-
     // Extract createdBy from dulusApiKey (first part until dot)
     const createdBy = dulusApiKey.split('.')[0];
 
@@ -93,8 +84,6 @@
         // Reset dependent fields when type changes
         formData.mainUser = '';
         formData.mainUserName = '';
-        formData.ctfdMainUser = '';
-        formData.ctfdMainUserName = '';
         formData.bulkUserInput = '';
     }
 
@@ -119,23 +108,10 @@
         });
     }
 
-    function closeAndFocusCtfdMainUserTrigger() {
-        ctfdMainUserOpen = false;
-        tick().then(() => {
-            ctfdMainUserTriggerRef?.focus();
-        });
-    }
-
     function handleMainUserChange(value: string) {
         formData.mainUser = value || '';
         const user = data.users.find(u => u.userID === value);
         formData.mainUserName = user?.name || '';
-    }
-
-    function handleCtfdMainUserChange(value: string) {
-        formData.ctfdMainUser = value || '';
-        const user = data.users.find(u => u.userID === value);
-        formData.ctfdMainUserName = user?.name || '';
     }
 
     function resetForm() {
@@ -145,22 +121,97 @@
             topologyName: '',
             mainUser: '',
             mainUserName: '',
-            ctfdMainUser: '',
-            ctfdMainUserName: '',
             bulkUserInput: '',
             note: ''
         };
     }
 
     function showAlert(type: 'success' | 'error', message: string) {
+        console.log('Showing alert:', type, message); // Debug log
         alertMessage = { type, message };
         setTimeout(() => {
             alertMessage = null;
-        }, 5000);
+        }, 10000); // Increased from 5000 to 10000 (10 seconds)
     }
 
     function hideAlert() {
         alertMessage = null;
+    }
+
+    function navigateToUsers() {
+        goto('/users');
+    }
+
+    // Transform user name to userId format (BATCH + lowercase no spaces)
+    function transformToUserId(userName: string): string {
+        return 'BATCH' + userName.toLowerCase().replace(/\s+/g, '');
+    }
+
+    async function checkUsersInOtherPools() {
+        console.log('checkUsersInOtherPools called'); // Debug log
+        
+        if (!formData.bulkUserInput.trim()) {
+            console.log('No bulk user input'); // Debug log
+            showAlert('error', 'Please enter users first');
+            return;
+        }
+
+        const users = parseBulkUsers(formData.bulkUserInput);
+        console.log('Parsed users:', users); // Debug log
+        
+        if (users.length === 0) {
+            console.log('No users parsed'); // Debug log
+            showAlert('error', 'No valid users found in input');
+            return;
+        }
+
+        // Validate before sending request
+        // Check for duplicate users in the bulk input
+        const userNames = users.map(u => u.user.toLowerCase().trim());
+        const uniqueUserNames = new Set(userNames);
+        if (userNames.length !== uniqueUserNames.size) {
+            showAlert('error', 'Duplicate users found in the user list. Please remove duplicates before checking.');
+            return;
+        }
+
+        // For SHARED pools, ensure main user is not in the additional users list
+        if (formData.type === 'SHARED' && formData.mainUser) {
+            // Convert user names to IDs for proper comparison
+            const additionalUserIds = users.map(u => transformToUserId(u.user));
+            if (additionalUserIds.includes(formData.mainUser)) {
+                showAlert('error', 'Main user cannot be included in the additional users list');
+                return;
+            }
+        }
+
+        try {
+            // Transform user names to userId format
+            let userIds = users.map(u => transformToUserId(u.user));
+            console.log('User IDs to check:', userIds); // Debug log
+            
+            // For SHARED pools, also include the main user ID
+            if (formData.type === 'SHARED' && formData.mainUser) {
+                userIds.push(formData.mainUser);
+                console.log('Added main user, final userIds:', userIds); // Debug log
+            }
+            
+            console.log('Making API call...'); // Debug log
+            const results = await checkUsersInTopologies(userIds);
+            console.log('API results:', results); // Debug log
+            
+            const existingUsers = results.filter(r => r.exists);
+            if (existingUsers.length > 0) {
+                const userList = existingUsers.map(u => u.userId).join(', ');
+                console.log('Found existing users:', userList); // Debug log
+                showAlert('error', `Users already in other pools:\n${userList}`);
+            } else {
+                console.log('All users available'); // Debug log
+                showAlert('success', 'All users are available for use');
+            }
+        } catch (error: any) {
+            console.error('Error checking users:', error);
+            showAlert('error', 'Failed to check users in pools');
+        }
     }
 
     // Parse bulk user input - team is optional
@@ -197,6 +248,24 @@
                 showAlert('error', 'If one user has a team, all users must have teams assigned');
                 return;
             }
+
+            // Check for duplicate users in the bulk input
+            const userNames = users.map(u => u.user.toLowerCase().trim());
+            const uniqueUserNames = new Set(userNames);
+            if (userNames.length !== uniqueUserNames.size) {
+                showAlert('error', 'Duplicate users found in the user list. Each user should only appear once.');
+                return;
+            }
+
+            // For SHARED pools, ensure main user is not in the additional users list
+            if (formData.type === 'SHARED' && formData.mainUser) {
+                // Convert user names to IDs for proper comparison
+                const additionalUserIds = users.map(u => transformToUserId(u.user));
+                if (additionalUserIds.includes(formData.mainUser)) {
+                    showAlert('error', 'Main user cannot be included in the additional users list');
+                    return;
+                }
+            }
         }
 
         submitPool();
@@ -224,10 +293,16 @@
                 poolData.mainUser = formData.mainUser;
                 const additionalUsers = parseBulkUsers(formData.bulkUserInput);
                 if (additionalUsers.length > 0) {
+                    // Double-check: ensure main user is not in the additional users list
+                    const additionalUserIds = additionalUsers.map(u => transformToUserId(u.user));
+                    
+                    if (additionalUserIds.includes(formData.mainUser)) {
+                        showAlert('error', 'Main user cannot be included in the additional users list');
+                        return;
+                    }
+                    
                     poolData.usersAndTeams = additionalUsers;
                 }
-            } else if (formData.type === 'CTFD') {
-                poolData.mainUser = formData.ctfdMainUser;
             }
 
             await createPool(poolData);
@@ -287,10 +362,6 @@
         
         if (formData.type === 'SHARED') {
             return formData.mainUser.length > 0;
-        }
-        
-        if (formData.type === 'CTFD') {
-            return formData.ctfdMainUser.length > 0;
         }
         
         return false;
@@ -370,18 +441,17 @@
                             </div>
                         </button>
 
-                        <button
-                            class="w-full p-6 border-2 rounded-lg transition-all {formData.type === 'CTFD' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}"
-                            onclick={() => handleTypeChange('CTFD')}
-                        >
-                            <div class="text-center">
-                                <h3 class="font-semibold mb-2 text-lg">CTFD</h3>
-                                <p class="text-sm text-muted-foreground">Competition-style pool</p>
-                                {#if formData.type === 'CTFD'}
-                                    <Badge class="mt-3">Selected</Badge>
-                                {/if}
-                            </div>
-                        </button>
+                        <!-- Manage Users Button - always shown -->
+                        <div class="mt-6">
+                            <Button 
+                                variant="outline" 
+                                onclick={navigateToUsers}
+                                class="w-full flex items-center gap-2"
+                            >
+                                <Users class="h-4 w-4" />
+                                Manage Users
+                            </Button>
+                        </div>
                     </Card.Content>
                 </Card.Root>
 
@@ -394,8 +464,6 @@
                                 Enter users and teams for individual pools
                             {:else if formData.type === 'SHARED'}
                                 Select main user and additional users
-                            {:else if formData.type === 'CTFD'}
-                                Select main user for CTFD competition
                             {:else}
                                 Select a pool type first
                             {/if}
@@ -478,55 +546,18 @@ Dave Smith, smurfs"
                             </div>
                         {/if}
 
-                        <!-- CTFD Main User Selection -->
-                        {#if formData.type === 'CTFD'}
-                            <div class="space-y-3">
-                                <div class="text-sm font-medium">Main User *</div>
-                                <Popover.Root bind:open={ctfdMainUserOpen}>
-                                    <Popover.Trigger bind:ref={ctfdMainUserTriggerRef}>
-                                        {#snippet child({ props })}
-                                            <Button
-                                                {...props}
-                                                variant="outline"
-                                                class="w-full justify-between"
-                                                role="combobox"
-                                                aria-expanded={ctfdMainUserOpen}
-                                            >
-                                                {selectedCtfdMainUser || "Select main user..."}
-                                                <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                            </Button>
-                                        {/snippet}
-                                    </Popover.Trigger>
-                                    <Popover.Content class="w-full p-0">
-                                        <Command.Root>
-                                            <Command.Input placeholder="Search users..." />
-                                            <Command.List>
-                                                <Command.Empty>No user found.</Command.Empty>
-                                                <Command.Group>
-                                                    {#each userOptions as user (user.value)}
-                                                        <Command.Item
-                                                            value={user.value}
-                                                            onSelect={() => {
-                                                                handleCtfdMainUserChange(user.value);
-                                                                closeAndFocusCtfdMainUserTrigger();
-                                                            }}
-                                                        >
-                                                            <Check
-                                                                class="mr-2 h-4 w-4 {formData.ctfdMainUser !== user.value && 'text-transparent'}"
-                                                            />
-                                                            <div class="flex flex-col">
-                                                                <span>{user.label}</span>
-                                                                {#if user.description}
-                                                                    <span class="text-xs text-muted-foreground">{user.description}</span>
-                                                                {/if}
-                                                            </div>
-                                                        </Command.Item>
-                                                    {/each}
-                                                </Command.Group>
-                                            </Command.List>
-                                        </Command.Root>
-                                    </Popover.Content>
-                                </Popover.Root>
+                        <!-- Check Users in Pools Button -->
+                        {#if formData.type === 'INDIVIDUAL' || formData.type === 'SHARED'}
+                            <div class="mt-6 pt-6 border-t">
+                                <Button 
+                                    variant="outline" 
+                                    onclick={checkUsersInOtherPools}
+                                    disabled={!formData.bulkUserInput.trim() || (formData.type === 'SHARED' && !formData.mainUser)}
+                                    class="w-full flex items-center gap-2"
+                                >
+                                    <Search class="h-4 w-4" />
+                                    Check Users in Pools
+                                </Button>
                             </div>
                         {/if}
                     </Card.Content>

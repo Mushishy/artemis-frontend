@@ -245,7 +245,7 @@
 										<Button
 											variant="outline"
 											size="sm"
-											onclick={() => onInspect?.(row)}
+											onclick={(e) => { e.stopPropagation(); onInspect?.(row); }}
 											class="p-1.5 h-7 w-7 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 dark:hover:bg-gray-950 dark:hover:border-gray-700 dark:hover:text-gray-300"
 											title="Inspect"
 										>
@@ -256,7 +256,7 @@
 										<Button
 											variant="outline"
 											size="sm"
-											onclick={() => onDownload?.(row)}
+											onclick={(e) => { e.stopPropagation(); onDownload?.(row); }}
 											class="p-1.5 h-7 w-7 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:border-blue-700 dark:hover:text-blue-300"
 											title="Download"
 										>
@@ -267,7 +267,7 @@
 										<Button
 											variant="outline"
 											size="sm"
-											onclick={() => onDownloadCtfdData?.(row)}
+											onclick={(e) => { e.stopPropagation(); onDownloadCtfdData?.(row); }}
 											class="p-1.5 h-7 w-7 hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 dark:hover:bg-purple-950 dark:hover:border-purple-700 dark:hover:text-purple-300"
 											title="Download CTFd Data"
 										>
@@ -278,7 +278,7 @@
 										<Button
 											variant="outline"
 											size="sm"
-											onclick={() => onDownloadLogins?.(row)}
+											onclick={(e) => { e.stopPropagation(); onDownloadLogins?.(row); }}
 											class="p-1.5 h-7 w-7 hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 dark:hover:bg-orange-950 dark:hover:border-orange-700 dark:hover:text-orange-300"
 											title="Download Innitial CTFd Logins"
 										>
@@ -289,7 +289,7 @@
 										<Button
 											variant="outline"
 											size="sm"
-											onclick={() => onDownloadWireguard?.(row)}
+											onclick={(e) => { e.stopPropagation(); onDownloadWireguard?.(row); }}
 											class="p-1.5 h-7 w-7 hover:bg-cyan-50 hover:border-cyan-300 hover:text-cyan-700 dark:hover:bg-cyan-950 dark:hover:border-cyan-700 dark:hover:text-cyan-300"
 											title="Download Wireguard Access"
 										>
@@ -300,7 +300,7 @@
 										<Button
 											variant="outline"
 											size="sm"
-											onclick={() => onNote?.(row)}
+											onclick={(e) => { e.stopPropagation(); onNote?.(row); }}
 											class="p-1.5 h-7 w-7 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 dark:hover:bg-amber-950 dark:hover:border-amber-700 dark:hover:text-amber-300"
 											title="Edit Note"
 										>
@@ -311,7 +311,7 @@
 										<Button
 											variant="outline"
 											size="sm"
-											onclick={() => onEdit?.(row)}
+											onclick={(e) => { e.stopPropagation(); onEdit?.(row); }}
 											class="p-1.5 h-7 w-7 hover:bg-green-50 hover:border-green-300 hover:text-green-700 dark:hover:bg-green-950 dark:hover:border-green-700 dark:hover:text-green-300"
 											title="Edit"
 										>
@@ -322,7 +322,7 @@
 										<Button
 											variant="outline"
 											size="sm"
-											onclick={() => onDelete?.(row)}
+											onclick={(e) => { e.stopPropagation(); onDelete?.(row); }}
 											class="p-1.5 h-7 w-7 hover:bg-red-50 hover:border-red-300 hover:text-red-700 dark:hover:bg-red-950 dark:hover:border-red-700 dark:hover:text-red-300"
 											title="Delete"
 										>

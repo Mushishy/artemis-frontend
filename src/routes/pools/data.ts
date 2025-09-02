@@ -10,6 +10,22 @@ export interface Pool {
     createdAt: string;
 }
 
+export interface PoolStatusResult {
+    userId: string;
+    state: string;
+    error?: string;
+}
+
+export interface PoolStatusResponse {
+    results: PoolStatusResult[];
+    allDeployed: boolean;
+}
+
+export interface UserCheckResponse {
+    allExist: boolean;
+    missingUserIds: string[];
+}
+
 // Format date from ISO string to mm/dd/yyyy hh:mm format in UTC+2 timezone
 export function formatDate(dateString: string): string {
     const date = new Date(dateString);
@@ -97,6 +113,93 @@ export async function updatePoolNote(poolId: string, note: string): Promise<void
         }
     } catch (error) {
         console.error('Error updating pool note:', error);
+        throw error;
+    }
+}
+
+// Check pool status before deletion
+export async function checkPoolStatus(poolId: string): Promise<PoolStatusResponse> {
+    try {
+        const response = await fetch(`${dulusBaseUrl}:${dulusPort}/range/status?poolId=${poolId}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-API-Key': dulusApiKey
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error checking pool status:', error);
+        throw error;
+    }
+}
+
+// Unshare a shared pool
+export async function unsharePool(poolId: string): Promise<void> {
+    try {
+        const response = await fetch(`${dulusBaseUrl}:${dulusPort}/range/unshare?poolId=${poolId}`, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'X-API-Key': dulusApiKey
+            },
+            body: ''
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+    } catch (error) {
+        console.error('Error unsharing pool:', error);
+        throw error;
+    }
+}
+
+// Delete users in a pool
+export async function deletePoolUsers(poolId: string): Promise<void> {
+    try {
+        const response = await fetch(`${dulusBaseUrl}:${dulusPort}/users/delete?poolId=${poolId}`, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'X-API-Key': dulusApiKey,
+                'Content-Type': 'application/json'
+            },
+            body: ''
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+    } catch (error) {
+        console.error('Error deleting pool users:', error);
+        throw error;
+    }
+}
+
+// Check if users exist in a pool
+export async function checkUsersExist(poolId: string): Promise<UserCheckResponse> {
+    try {
+        const response = await fetch(`${dulusBaseUrl}:${dulusPort}/users/check?poolId=${poolId}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-API-Key': dulusApiKey
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error checking users exist:', error);
         throw error;
     }
 }

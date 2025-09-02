@@ -14,7 +14,11 @@
     import type { Pool } from './data.js';
     import { 
         deletePool,
-        updatePoolNote 
+        updatePoolNote,
+        checkPoolStatus,
+        unsharePool,
+        deletePoolUsers,
+        checkUsersExist
     } from './data.js';
     import type { PageData } from './$types';
 
@@ -22,10 +26,12 @@
     let pools = $state(data?.pools || []);
     let deleteDialogOpen = $state(false);
     let noteDialogOpen = $state(false);
+    let destroyUsersDialogOpen = $state(false);
     let deletingPool: Pool | null = $state(null);
     let editingPool: Pool | null = $state(null);
     let noteInputValue = $state('');
     let alertMessage = $state<{ message: string; type: 'success' | 'error' } | null>(null);
+    let isDeletingProcess = $state(false);
 
     const headers: { key: keyof Pool; label: string; sortable?: boolean }[] = [
         { key: 'note', label: 'Note', sortable: true },
@@ -65,15 +71,130 @@
         if (!deletingPool) return;
 
         try {
-            await deletePool(deletingPool.poolId);
-            pools = pools.filter(p => p.poolId !== deletingPool!.poolId);
-            showAlert('Pool deleted successfully', 'success');
+            isDeletingProcess = true;
+            
+            // Step 1: Check pool status first - this is critical
+            showAlert('Checking pool status...', 'success');
+            const statusResponse = await checkPoolStatus(deletingPool.poolId);
+            
+            // Check if any user has a state that's not DESTROYED, UNKNOWN, or NEVER DEPLOYED
+            const invalidStates = statusResponse.results.filter(result => {
+                const state = result.state.toUpperCase();
+                return !['DESTROYED', 'UNKNOWN', 'NEVER DEPLOYED'].includes(state);
+            });
+
+            if (invalidStates.length > 0) {
+                const userStates = invalidStates.map(result => `${result.userId}: ${result.state}`).join(', ');
+                showAlert(`Cannot delete pool. Users with active deployments: ${userStates}`, 'error');
+                deleteDialogOpen = false;
+                deletingPool = null;
+                isDeletingProcess = false;
+                return;
+            }
+
+            // Step 2: All status checks passed, now ask about user destruction
+            showAlert('Pool status check passed. Ready for deletion.', 'success');
+            deleteDialogOpen = false;
+            destroyUsersDialogOpen = true;
+            isDeletingProcess = false;
+
+        } catch (error) {
+            console.error('Error in delete process:', error);
+            showAlert('Failed to check pool status', 'error');
             deleteDialogOpen = false;
             deletingPool = null;
+            isDeletingProcess = false;
+        }
+    }
+
+    async function confirmDestroyUsers() {
+        if (!deletingPool) return;
+
+        try {
+            isDeletingProcess = true;
+
+            // Step 3: If SHARED type, unshare the pool first
+            if (deletingPool.type === 'SHARED') {
+                showAlert('Unsharing pool...', 'success');
+                await unsharePool(deletingPool.poolId);
+                showAlert('Pool unshared successfully', 'success');
+            }
+
+            // Step 4: Delete users in the pool
+            showAlert('Deleting pool users... This process will take a while', 'success');
+            await deletePoolUsers(deletingPool.poolId);
+
+            // Step 5: Wait and check if users are deleted (allExist should be false)
+            showAlert('Waiting for users to be deleted...', 'success');
+            let usersDeleted = false;
+            let attempts = 0;
+            const maxAttempts = 20; // Increased attempts for safety
+
+            while (!usersDeleted && attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+                attempts++;
+                showAlert(`Checking user deletion progress... (${attempts}/${maxAttempts})`, 'success');
+                
+                const userCheckResponse = await checkUsersExist(deletingPool.poolId);
+                
+                if (!userCheckResponse.allExist) {
+                    usersDeleted = true;
+                    showAlert('All users deleted successfully', 'success');
+                } else {
+                    console.log(`Attempt ${attempts}: Users still exist, waiting...`);
+                }
+            }
+
+            if (!usersDeleted) {
+                showAlert('Users deletion is taking longer than expected. Please check manually and try again later.', 'error');
+                destroyUsersDialogOpen = false;
+                deletingPool = null;
+                isDeletingProcess = false;
+                return;
+            }
+
+            // Step 6: Only now delete the pool after all checks pass
+            showAlert('Deleting pool...', 'success');
+            await deletePool(deletingPool.poolId);
+            pools = pools.filter(p => p.poolId !== deletingPool!.poolId);
+            showAlert('Pool and users deleted successfully', 'success');
+
+        } catch (error) {
+            console.error('Error in destroy users process:', error);
+            showAlert(`Failed during deletion process: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+        }
+
+        destroyUsersDialogOpen = false;
+        deletingPool = null;
+        isDeletingProcess = false;
+    }
+
+    async function skipDestroyUsers() {
+        if (!deletingPool) return;
+
+        try {
+            isDeletingProcess = true;
+
+            // Step 3: If SHARED type, unshare the pool first
+            if (deletingPool.type === 'SHARED') {
+                showAlert('Unsharing pool...', 'success');
+                await unsharePool(deletingPool.poolId);
+                showAlert('Pool unshared successfully', 'success');
+            }
+
+            // Step 4: Just delete the pool without deleting users
+            showAlert('Deleting pool (preserving users)...', 'success');
+            await deletePool(deletingPool.poolId);
+            pools = pools.filter(p => p.poolId !== deletingPool!.poolId);
+            showAlert('Pool deleted successfully (users preserved)', 'success');
         } catch (error) {
             console.error('Error deleting pool:', error);
-            showAlert('Failed to delete pool', 'error');
+            showAlert(`Failed to delete pool: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
         }
+
+        destroyUsersDialogOpen = false;
+        deletingPool = null;
+        isDeletingProcess = false;
     }
 
     async function saveNote() {
@@ -159,20 +280,58 @@
 <AlertDialog.Root bind:open={deleteDialogOpen}>
     <AlertDialog.Content>
         <AlertDialog.Header>
-            <AlertDialog.Title>Are you absolutely sure?</AlertDialog.Title>
+            <AlertDialog.Title>Delete Pool</AlertDialog.Title>
             <AlertDialog.Description>
                 {#if deletingPool}
-                    This action cannot be undone. This will permanently delete the pool 
-                    <strong>"{deletingPool.poolId}"</strong> and remove it from the system.
+                    {#if isDeletingProcess}
+                        Checking pool status for <strong>"{deletingPool.poolId}"</strong>...
+                    {:else}
+                        This will check the pool status and guide you through the deletion process for 
+                        <strong>"{deletingPool.poolId}"</strong>.
+                    {/if}
                 {/if}
             </AlertDialog.Description>
         </AlertDialog.Header>
         <AlertDialog.Footer>
-            <AlertDialog.Cancel onclick={() => { deleteDialogOpen = false; deletingPool = null; }}>
+            <AlertDialog.Cancel onclick={() => { deleteDialogOpen = false; deletingPool = null; }} disabled={isDeletingProcess}>
                 Cancel
             </AlertDialog.Cancel>
-            <AlertDialog.Action onclick={confirmDelete} class="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Delete
+            <AlertDialog.Action onclick={confirmDelete} disabled={isDeletingProcess} class="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                {#if isDeletingProcess}
+                    Checking...
+                {:else}
+                    Check & Delete
+                {/if}
+            </AlertDialog.Action>
+        </AlertDialog.Footer>
+    </AlertDialog.Content>
+</AlertDialog.Root>
+
+<!-- Destroy Users Dialog -->
+<AlertDialog.Root bind:open={destroyUsersDialogOpen}>
+    <AlertDialog.Content>
+        <AlertDialog.Header>
+            <AlertDialog.Title>Destroy Users in Pool?</AlertDialog.Title>
+            <AlertDialog.Description>
+                {#if deletingPool}
+                    Do you want to destroy all users inside pool <strong>"{deletingPool.poolId}"</strong>?
+                    <br><br>
+                    <strong>Yes:</strong> Delete all users in the pool and then delete the pool (recommended)
+                    <br>
+                    <strong>No:</strong> Only delete the pool, preserve users for other pools
+                {/if}
+            </AlertDialog.Description>
+        </AlertDialog.Header>
+        <AlertDialog.Footer>
+            <AlertDialog.Cancel onclick={skipDestroyUsers} disabled={isDeletingProcess}>
+                No (Preserve Users)
+            </AlertDialog.Cancel>
+            <AlertDialog.Action onclick={confirmDestroyUsers} disabled={isDeletingProcess} class="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                {#if isDeletingProcess}
+                    Processing...
+                {:else}
+                    Yes (Destroy Users)
+                {/if}
             </AlertDialog.Action>
         </AlertDialog.Footer>
     </AlertDialog.Content>
