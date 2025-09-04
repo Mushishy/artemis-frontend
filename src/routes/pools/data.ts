@@ -1,4 +1,5 @@
 import { dulusBaseUrl, dulusPort, dulusApiKey } from "$lib/api/settings";
+import { formatDate } from '$lib/utils';
 
 export interface Pool {
     poolId: string;
@@ -25,22 +26,6 @@ export interface PoolStatusResponse {
 export interface UserCheckResponse {
     allExist: boolean;
     missingUserIds: string[];
-}
-
-// Format date from ISO string to mm/dd/yyyy hh:mm format in UTC+2 timezone
-export function formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    
-    // Convert to UTC+2 timezone
-    const utcPlus2 = new Date(date.getTime() + (2 * 60 * 60 * 1000));
-    
-    const month = (utcPlus2.getUTCMonth() + 1).toString().padStart(2, '0');
-    const day = utcPlus2.getUTCDate().toString().padStart(2, '0');
-    const year = utcPlus2.getUTCFullYear();
-    const hours = utcPlus2.getUTCHours().toString().padStart(2, '0');
-    const minutes = utcPlus2.getUTCMinutes().toString().padStart(2, '0');
-    
-    return `${month}/${day}/${year} ${hours}:${minutes}`;
 }
 
 // Load pools from API

@@ -9,7 +9,9 @@
     import { AlertCircle, CheckCircle2, X, RotateCcw, Check, ChevronsUpDown, Save, Users, Search } from 'lucide-svelte';
     import { tick } from 'svelte';
     import type { PageData } from './$types';
-    import { createPool, type PoolRequest, type PoolUserAndTeam, checkUsersInTopologies } from '$lib/api/pools.client';
+    import { createPool } from '$lib/api/pools.client';
+    import { checkUsersInPools } from '$lib/api/users.client';
+    import type { PoolRequest, PoolUserAndTeam } from '$lib/api/types';
     import { dulusApiKey } from '$lib/api/settings';
     import { goto } from '$app/navigation';
 
@@ -196,7 +198,7 @@
             }
             
             console.log('Making API call...'); // Debug log
-            const results = await checkUsersInTopologies(userIds);
+            const results = await checkUsersInPools(userIds);
             console.log('API results:', results); // Debug log
             
             const existingUsers = results.filter(r => r.exists);

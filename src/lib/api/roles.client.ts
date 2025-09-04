@@ -1,63 +1,53 @@
-import axios from 'axios';
+import { getLudusClient } from './api-client';
+import type { InstallRoleRequest, InstallCollectionRequest, ApiResponse } from './types';
 
-// Client that calls our own API routes (which then call ludus server-side)
-const apiClient = axios.create({
-    baseURL: '',  // Use same origin
-    headers: {
-        'Content-Type': 'application/json'
-    }
-});
+// Get the Ludus client
+const rolesLudusClient = getLudusClient();
 
-export interface InstallRoleRequest {
-    role: string;
-    version: string;
-    force: boolean;
-    action: 'install';
-    global: boolean;
-}
-
-export interface InstallCollectionRequest {
-    collection: string;
-    version: string;
-    force: boolean;
-}
-
-export interface ApiResponse {
-    message: string;
-    success: boolean;
-}
-
-// Install a role
+// Install a role via client-side API call
 export async function installRole(request: InstallRoleRequest): Promise<ApiResponse> {
     try {
-        const response = await apiClient.post('/api/roles', request);
+        const response = await rolesLudusClient.post('/ansible/role', request);
         return response.data;
     } catch (error) {
         console.error('Error installing role:', error);
-        throw new Error(`Failed to install role: ${error}`);
+        throw error;
     }
 }
 
-// Install a collection
+// Install a collection via client-side API call
 export async function installCollection(request: InstallCollectionRequest): Promise<ApiResponse> {
     try {
-        const response = await apiClient.post('/api/roles/collection', request);
+        const response = await rolesLudusClient.post('/ansible/collection', request);
         return response.data;
     } catch (error) {
         console.error('Error installing collection:', error);
-        throw new Error(`Failed to install collection: ${error}`);
+        throw error;
     }
 }
 
-// Install role from file
+// Install role from file via client-side API call
 export async function installRoleFromFile(file: File, force: boolean = false, global: boolean = true): Promise<ApiResponse> {
     try {
+        if (!file) {
+            throw new Error('No file provided');
+        }
+
+        // Remove .tar extension from filename
+        let filename = file.name;
+        if (filename.endsWith('.tar')) {
+            filename = filename.slice(0, -4);
+        }
+        
+        // Create a new file with the modified name
+        const modifiedFile = new File([file], filename, { type: file.type });
+        
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', modifiedFile);
         formData.append('force', force.toString());
         formData.append('global', global.toString());
 
-        const response = await apiClient.put('/api/roles/fromtar', formData, {
+        const response = await rolesLudusClient.put('/ansible/role/fromtar', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data'
             }
@@ -65,6 +55,6 @@ export async function installRoleFromFile(file: File, force: boolean = false, gl
         return response.data;
     } catch (error) {
         console.error('Error installing role from file:', error);
-        throw new Error(`Failed to install role from file: ${error}`);
+        throw error;
     }
 }

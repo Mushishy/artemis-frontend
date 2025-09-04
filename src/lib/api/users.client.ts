@@ -1,65 +1,117 @@
-import axios from 'axios';
-import { ludusBaseUrl, ludusPort, ludusApiKey, dulusBaseUrl, dulusPort, dulusApiKey } from './settings';
+import { getLudusClient, getDulusClient, getLudusAdminClient } from './api-client';
+import { cleanUsername, transformUsernamesToBatch } from '$lib/utils';
+import type { User, UserCheckResult, UserCheckResponse, UserExistsCheck, UsersCheckResponse } from './types';
 
-// Configure axios for browser compatibility (no https.Agent)
-const usersClient = axios.create({
-    baseURL: `${ludusBaseUrl}:${ludusPort}`,
-    headers: {
-        'X-API-KEY': ludusApiKey,
-        'Content-Type': 'application/json'
-    }
-});
+// Get the appropriate clients
+const usersLudusClient = getLudusClient();
+const usersAdminLudusClient = getLudusAdminClient()
+const usersDulusClient = getDulusClient();
 
-export interface User {
-    name: string;
-    userID: string;
-    dateCreated: string;
-    isAdmin: boolean;
-}
-
-// Get WireGuard configuration for a user (client-side)
-export async function getWireGuardConfig(userID: string): Promise<string> {
+// Get all users
+export async function getUsers(): Promise<User[]> {
     try {
-        const response = await usersClient.get('/user/wireguard', {
-            params: { userID }
-        });
-        return response.data.result.wireGuardConfig;
+        const response = await usersLudusClient.get('/user/all');
+        return response.data;
     } catch (error) {
-        console.error('Error fetching WireGuard configuration:', error);
+        console.error('Error fetching users:', error);
         throw error;
     }
 }
 
-export interface UserCheckResult {
-    userId: string;
-    exists: boolean;
+// Create a new user
+export async function createUser(name: string, isAdmin: boolean): Promise<User> {
+    try {
+        const userID = cleanUsername(name);
+        
+        const response = await usersAdminLudusClient.post('/user', {
+            name,
+            userID,
+            isAdmin
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error creating user:', error);
+        throw error;
+    }
 }
 
-export interface UserCheckResponse {
-    results: UserCheckResult[];
+// Download WireGuard configuration for a user
+export async function downloadWireGuardConfig(userID: string): Promise<void> {
+    try {
+        const response = await usersLudusClient.get('/user/wireguard', {
+            params: { userID }
+        });
+        const config = response.data.result.wireGuardConfig;
+        
+        const blob = new Blob([config], { type: 'text/plain' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `${userID}.conf`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+    } catch (error) {
+        console.error('Error downloading WireGuard config:', error);
+        throw error;
+    }
+}
+
+// Delete a user
+export async function deleteUser(userID: string): Promise<void> {
+    try {
+        await usersAdminLudusClient.delete(`/user/${userID}`);
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        throw error;
+    }
 }
 
 // Check if users exist (using dulus API)
 export async function checkUsers(userIds: string[]): Promise<UserCheckResponse> {
     try {
-        const response = await fetch(`${dulusBaseUrl}:${dulusPort}/users/check`, {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'X-API-Key': dulusApiKey
-            },
-            body: JSON.stringify({
-                userIds: userIds
-            })
+        const response = await usersDulusClient.post('/users/check', {
+            userIds: userIds
         });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return await response.json();
+        return response.data;
     } catch (error) {
         console.error('Error checking users:', error);
+        throw error;
+    }
+}
+
+// Check if users exist in pools/topologies (consolidating checkUsersInTopologies from pools.client)
+export async function checkUsersInPools(userIds: string[]): Promise<UserExistsCheck[]> {
+    try {
+        const response = await usersDulusClient.post('/pool/users', {
+            userIds: userIds
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error checking users in pools:', error);
+        throw error;
+    }
+}
+
+// Check if all pool users exist (consolidating checkPoolUsers from pools.client)
+export async function checkPoolUsers(poolId: string): Promise<UsersCheckResponse> {
+    try {
+        const response = await usersDulusClient.get('/users/check', {
+            params: { poolId }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error checking pool users:', error);
+        throw error;
+    }
+}
+
+// Import missing users for a pool (consolidating importMissingUsers from pools.client)
+export async function importMissingUsers(poolId: string): Promise<void> {
+    try {
+        await usersDulusClient.post('/users/import', '', {
+            params: { poolId }
+        });
+    } catch (error) {
+        console.error('Error importing missing users:', error);
         throw error;
     }
 }
@@ -67,33 +119,27 @@ export async function checkUsers(userIds: string[]): Promise<UserCheckResponse> 
 // Create/import users (using dulus API)
 export async function importUsers(userIds: string[]): Promise<void> {
     try {
-        const response = await fetch(`${dulusBaseUrl}:${dulusPort}/users/import`, {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'X-API-Key': dulusApiKey
-            },
-            body: JSON.stringify({
-                userIds: userIds
-            })
+        await usersDulusClient.post('/users/import', {
+            userIds: userIds
         });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
     } catch (error) {
         console.error('Error importing users:', error);
         throw error;
     }
 }
 
-// Helper function to transform usernames to BATCH format
-// Transform usernames to BATCH format for API
-export function transformUsernamesToBatch(usernames: string[]): string[] {
-    return usernames.map(username => {
-        // Remove all spaces and convert to lowercase, then add BATCH prefix
-        const cleanUsername = username.replace(/\s+/g, '').toLowerCase();
-        return `BATCH${cleanUsername}`;
-    });
+// Delete multiple users
+export async function deleteMultipleUsers(userIDs: string[]): Promise<void> {
+    try {
+        const response = await usersDulusClient.post('/users/delete', {
+            userIds: userIDs
+        });
+        
+        if (!response.data) {
+            throw new Error('Failed to delete users');
+        }
+    } catch (error) {
+        console.error('Error deleting multiple users:', error);
+        throw error;
+    }
 }

@@ -4,13 +4,11 @@
     import { goto } from '$app/navigation';
     import { DataTable } from '$lib/components/ui/data-table';
     import { Button } from '$lib/components/ui/button';
-    import { Input } from '$lib/components/ui/input';
     import { Skeleton } from '$lib/components/ui/skeleton';
     import * as Alert from '$lib/components/ui/alert';
     import * as Dialog from '$lib/components/ui/dialog';
     import * as Command from '$lib/components/ui/command';
     import * as Popover from '$lib/components/ui/popover';
-    import LogViewer from '$lib/components/ui/log-viewer.svelte';
     import { 
         RefreshCw, 
         AlertCircle, 
@@ -26,31 +24,32 @@
         Search,
         Share2
     } from 'lucide-svelte';
-    import type { PoolDetail, PoolUser, PoolDetailData, PoolHealthCheck, UserExistsCheck } from './data.js';
+    import type { PoolDetail, PoolUserTeam, PoolDetailData, PoolHealthCheck, PatchUserRequest, UserExistsCheck } from '$lib/api/types.js';
     import { 
         getPoolDetail, 
         refreshPoolData, 
         downloadUserLogs, 
         downloadUserWireguard,
         checkPoolHealth,
-        importMissingUsers,
         setPoolTopology,
         changePoolTopology,
-        getTopologies,
         fetchCtfdData,
         downloadCtfdLogins,
         downloadWireguardConfigs,
         deployPool,
         redeployPool,
         abortPool,
-        destroyPool,
-        fetchUserLogs,
-        checkUsersInPools,
-        patchPoolUsers
-    } from './data.js';
-    import { downloadTopologyFile } from '$lib/api/pools.client.js';
+        removePool as destroyPool,
+        patchPoolUsers,
+        checkSharingStatus as checkSharingStatusAPI,
+        sharePool,
+        unsharePool
+    } from '$lib/api/pools.client.js';
+    import { getUserLogs as fetchUserLogs } from '$lib/api/ludus.js';
+    import { checkUsersInPools, importMissingUsers } from '$lib/api/users.client.js';
+    import { downloadTopologyFile, getTopologies } from '$lib/api/topology.client.js';
+    import { formatDate } from '$lib/utils';
     import { getTopology } from '$lib/api/topology.client.js';
-    import { dulusBaseUrl, dulusPort, dulusApiKey } from '$lib/api/settings.js';
     import type { PageData } from './$types';
 
     // Cleanup streaming when component is destroyed
@@ -492,11 +491,11 @@
     }
 
     // Parse bulk user input from create page
-    function parseBulkUsers(input: string) {
+    function parseBulkUsers(input: string): PatchUserRequest[] {
         if (!input.trim()) return [];
         
         const lines = input.trim().split('\n');
-        const users: Array<{user: string; team?: string}> = [];
+        const users: PatchUserRequest[] = [];
         
         for (const line of lines) {
             const trimmed = line.trim();
@@ -670,7 +669,7 @@
 
 
 
-    async function handleUserLogs(user: PoolUser) {
+    async function handleUserLogs(user: PoolUserTeam) {
         try {
             await downloadUserLogs(data.poolId, user.userId);
             showAlert(`Logs for ${user.user} downloaded successfully`, 'success');
@@ -680,7 +679,7 @@
         }
     }
 
-    async function handleUserWireguard(user: PoolUser) {
+    async function handleUserWireguard(user: PoolUserTeam) {
         try {
             await downloadUserWireguard(data.poolId, user.userId);
             showAlert(`Wireguard config for ${user.user} downloaded successfully`, 'success');
@@ -914,24 +913,9 @@
         
         sharingStatus.isLoading = true;
         try {
-            const url = `${dulusBaseUrl}:${dulusPort}/range/shared?poolId=${data.poolId}&targetId=${poolDetail.mainUser}`;
-            console.log('🔗 Checking sharing status:', url);
+            console.log('🔗 Checking sharing status for pool:', data.poolId, 'target:', poolDetail.mainUser);
             
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'accept': 'application/json',
-                    'X-API-Key': dulusApiKey
-                }
-            });
-            
-            console.log('🔗 Sharing response status:', response.status);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const responseData = await response.json();
+            const responseData = await checkSharingStatusAPI(data.poolId, poolDetail.mainUser);
             console.log('🔗 Sharing response data:', responseData);
             console.log('🔗 Sharing response data.shared:', responseData.shared);
             console.log('🔗 Sharing response data.shared type:', typeof responseData.shared);
@@ -955,18 +939,7 @@
         
         try {
             showAlert('Sending sharing request', 'success');
-            const response = await fetch(`${dulusBaseUrl}:${dulusPort}/range/share?poolId=${data.poolId}&targetId=${poolDetail.mainUser}`, {
-                method: 'POST',
-                headers: {
-                    'accept': 'application/json',
-                    'X-API-Key': dulusApiKey
-                },
-                body: ''
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+            await sharePool(data.poolId, poolDetail.mainUser);
             
             showAlert('Sharing request sent', 'success');
             // Refresh sharing status
@@ -994,35 +967,11 @@
         
         try {
             showAlert('Sending unsharing request...', 'success');
-            const response = await fetch(`${dulusBaseUrl}:${dulusPort}/range/unshare?poolId=${data.poolId}&targetId=${poolDetail.mainUser}`, {
-                method: 'POST',
-                headers: {
-                    'accept': 'application/json',
-                    'X-API-Key': dulusApiKey
-                },
-                body: ''
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+            await unsharePool(data.poolId, poolDetail.mainUser);
             
             // Check if unsharing was successful by verifying shared status
             showAlert('Verifying unshare status...', 'success');
-            const checkUrl = `${dulusBaseUrl}:${dulusPort}/range/shared?poolId=${data.poolId}&targetId=${poolDetail.mainUser}`;
-            const checkResponse = await fetch(checkUrl, {
-                method: 'GET',
-                headers: {
-                    'accept': 'application/json',
-                    'X-API-Key': dulusApiKey
-                }
-            });
-            
-            if (!checkResponse.ok) {
-                throw new Error(`HTTP error! status: ${checkResponse.status}`);
-            }
-            
-            const checkData = await checkResponse.json();
+            const checkData = await checkSharingStatusAPI(data.poolId, poolDetail.mainUser);
             console.log('🔗 Unshare verification response:', checkData);
             
             if (checkData.shared === false) {
@@ -1231,22 +1180,6 @@
         );
         return user?.user || selectedUserId;
     });
-
-    // Format date from ISO string to mm/dd/yyyy hh:mm format in UTC+2 timezone
-    function formatDate(dateString: string): string {
-        const date = new Date(dateString);
-        
-        // Convert to UTC+2 timezone
-        const utcPlus2 = new Date(date.getTime() + (2 * 60 * 60 * 1000));
-        
-        const month = (utcPlus2.getUTCMonth() + 1).toString().padStart(2, '0');
-        const day = utcPlus2.getUTCDate().toString().padStart(2, '0');
-        const year = utcPlus2.getUTCFullYear();
-        const hours = utcPlus2.getUTCHours().toString().padStart(2, '0');
-        const minutes = utcPlus2.getUTCMinutes().toString().padStart(2, '0');
-        
-        return `${month}/${day}/${year} ${hours}:${minutes}`;
-    }
 
     // Simple variable to hold the display name
     let displayUserName = $state('');

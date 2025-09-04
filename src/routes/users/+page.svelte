@@ -3,11 +3,16 @@
     import { Button } from '$lib/components/ui/button';
     import * as Alert from '$lib/components/ui/alert';
     import * as Dialog from '$lib/components/ui/dialog';
-    import * as Select from '$lib/components/ui/select';
     import { Input } from '$lib/components/ui/input';
     import { AlertCircle, CheckCircle2, X, Trash2, Users, Plus, UserPlus, Search } from 'lucide-svelte';
-    import type { User, UserExistsCheck } from './data.js';
-    import { downloadWireGuardConfig, deleteUser, deleteMultipleUsers, createUser, checkUsersInPools } from './data.js';
+    import type { User } from '$lib/api/types';
+    import { 
+        downloadWireGuardConfig, 
+        deleteUser, 
+        deleteMultipleUsers, 
+        createUser 
+    } from '$lib/api/users.client';
+    import { checkUsersInPools } from '$lib/api/users.client';
     import type { PageData } from './$types';
 
     let { data }: { data: PageData } = $props();
@@ -20,12 +25,13 @@
     let newUserName = $state('');
     let isCheckingUsers = $state(false);
 
-    // Filter out only root users (keep admin users visible in main table)
+    // TABLE
+    // Filter out root user
     const filteredUsers = $derived(data.users.filter(user => 
         user.name.toLowerCase() !== 'root'
     ));
 
-    // Filter out admin users for mass delete selection only
+    // Filter out admin users for mass delete selection
     const nonAdminUsers = $derived(filteredUsers.filter(user => !user.isAdmin));
 
     const headers: { key: keyof User; label: string; sortable?: boolean }[] = [
@@ -51,30 +57,21 @@
     async function confirmDeleteUser() {
         if (!userToDelete) return;
         
-        // Store user info before clearing
         const userName = userToDelete.name;
         const userId = userToDelete.userID;
         
-        // Close dialog immediately
         deleteDialogOpen = false;
         userToDelete = null;
         
-        // Show initial deleting notification
         showAlert('success', `Deleting user "${userName}"`);
         
         try {
             await deleteUser(userId);
             showAlert('success', `User "${userName}" deleted successfully`);
-            // Wait a moment for user to see the success message before refreshing
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
+            setTimeout(() => window.location.reload(), 1500);
         } catch (error) {
             showAlert('error', `User "${userName}" deleted with errors (may still be processing)`);
-            // Still refresh after a delay in case the deletion actually worked
-            setTimeout(() => {
-                window.location.reload();
-            }, 3000);
+            setTimeout(() => window.location.reload(), 3000);
         }
     }
 
@@ -137,64 +134,61 @@
             return;
         }
         
-        // Store values before clearing
         const userName = newUserName.trim();
         
-        // Close dialog immediately
         addUserDialogOpen = false;
         newUserName = '';
         
-        // Show loading notification
-        showAlert('success', 'Creating user');
+        showAlert('success', `Creating user "${userName}"`);
         
         try {
-            await createUser(userName, false); // Always create regular user (not admin)
+            await createUser(userName, false);
             showAlert('success', `User "${userName}" created successfully`);
-            // Wait a moment for user to see the success message before refreshing
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
-        } catch (error) {
-            showAlert('error', `Failed to create user: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            setTimeout(() => window.location.reload(), 1500);
+        } catch (error: any) {
+            // Extract meaningful error message from the API response
+            let errorMessage = 'Unknown error occurred';
+            
+            if (error.response?.data) {
+                if (typeof error.response.data === 'string') {
+                    errorMessage = error.response.data;
+                } else if (error.response.data.error) {
+                    errorMessage = error.response.data.error;
+                } else if (error.response.data.message) {
+                    errorMessage = error.response.data.message;
+                }
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            showAlert('error', `Failed to create user: ${errorMessage}`);
         }
     }
 
     async function confirmMassDelete() {
         if (selectedUsersForDelete.length === 0) return;
         
-        // Store values before clearing
         const userCount = selectedUsersForDelete.length;
         const userIds = [...selectedUsersForDelete];
         
-        // Close dialog immediately
         massDeleteDialogOpen = false;
         selectedUsersForDelete = [];
         
-        // Show initial deleting notification
         showAlert('success', `Deleting ${userCount} user${userCount !== 1 ? 's' : ''}`);
         
         try {
             await deleteMultipleUsers(userIds);
             showAlert('success', `${userCount} user${userCount !== 1 ? 's' : ''} deleted successfully`);
-            // Wait a moment for user to see the success message before refreshing
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
+            setTimeout(() => window.location.reload(), 1500);
         } catch (error) {
             showAlert('error', `${userCount} user${userCount !== 1 ? 's' : ''} deleted with errors (may still be processing)`);
-            // Still refresh after a delay in case the deletion actually worked
-            setTimeout(() => {
-                window.location.reload();
-            }, 3000);
+            setTimeout(() => window.location.reload(), 3000);
         }
     }
 
     function showAlert(type: 'success' | 'error', message: string) {
         alertMessage = { type, message };
-        // Auto-hide after 5 seconds
-        setTimeout(() => {
-            alertMessage = null;
-        }, 5000);
+        setTimeout(() => alertMessage = null, 5000);
     }
 
     function hideAlert() {
@@ -331,16 +325,10 @@
                 {/each}
             </div>
 
-            {#if selectedUsersForDelete.length >= 0}
+            {#if selectedUsersForDelete.length > 0}
                 <div class="p-3 bg-muted/50 border border-input rounded-lg">
                     <p class="text-sm font-medium">
                         {selectedUsersForDelete.length} user{selectedUsersForDelete.length !== 1 ? 's' : ''} selected for deletion
-                    </p>
-                </div>
-            {:else}
-                <div class="p-3 bg-muted/50 border border-input rounded-lg opacity-0 pointer-events-none">
-                    <p class="text-sm font-medium">
-                        0 users selected for deletion
                     </p>
                 </div>
             {/if}
@@ -378,7 +366,7 @@
                     Add New User
                 </Dialog.Title>
                 <Dialog.Description>
-                    Create a new user account. Choose whether they should have admin privileges.
+                    Create a new user account.
                 </Dialog.Description>
             </Dialog.Header>
 

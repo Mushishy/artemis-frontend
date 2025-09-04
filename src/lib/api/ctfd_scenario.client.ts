@@ -1,13 +1,6 @@
-import axios from 'axios';
-import { dulusBaseUrl, dulusPort, dulusApiKey } from './settings';
+import { getDulusClient } from './api-client';
 
-const apiClient = axios.create({
-  baseURL: `${dulusBaseUrl}:${dulusPort}`,
-  headers: {
-    'Accept': 'application/json',
-    'X-API-Key': dulusApiKey,
-  },
-});
+const apiClient = getDulusClient();
 
 export async function getScenario(scenarioID?: string) {
   try {

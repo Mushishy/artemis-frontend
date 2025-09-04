@@ -4,16 +4,15 @@
 	import { Input } from '$lib/components/ui/input';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Alert from '$lib/components/ui/alert';
-	import { Plus, Upload, AlertCircle, CheckCircle2, X, Download } from 'lucide-svelte';
-	import type { Role } from './data.js';
+	import { Plus, AlertCircle, CheckCircle2, X, Download } from 'lucide-svelte';
+	import type { LudusRole } from "$lib/api/types";
 	import type { PageData } from './$types';
 	import { 
 		installRole, 
 		installCollection, 
-		installRoleFromFile,
-		type InstallRoleRequest,
-		type InstallCollectionRequest
+		installRoleFromFile
 	} from '$lib/api/roles.client';
+	import type { InstallRoleRequest, InstallCollectionRequest } from '$lib/api/types';
 
 	let { data }: { data: PageData } = $props();
 	
@@ -33,11 +32,11 @@
 	let forceInstall = $state(true);
 	let globalInstall = $state(true);
 
-	const headers: { key: keyof Role; label: string; sortable?: boolean }[] = [
-		{ key: 'name', label: 'Role Name', sortable: true },
-		{ key: 'version', label: 'Role Version', sortable: true },
-		{ key: 'type', label: 'Role Type', sortable: true },
-		{ key: 'global', label: 'Global Role', sortable: true }
+	const headers: { key: keyof LudusRole; label: string; sortable?: boolean }[] = [
+		{ key: 'Name', label: 'Role Name', sortable: true },
+		{ key: 'Version', label: 'Role Version', sortable: true },
+		{ key: 'Type', label: 'Role Type', sortable: true },
+		{ key: 'Global', label: 'Global Role', sortable: true }
 	];
 
 	function showAlert(message: string, type: 'success' | 'error') {
@@ -75,54 +74,97 @@
 	}
 
 	async function handleInstall() {
-		try {
-			if (installType === 'role') {
-				if (!roleName.trim() || !roleVersion.trim()) {
-					showAlert('Please enter role name and version', 'error');
-					return;
-				}
-				
-				const request: InstallRoleRequest = {
-					role: roleName.trim(),
-					version: roleVersion.trim(),
-					force: forceInstall,
-					action: 'install',
-					global: globalInstall
-				};
-				
-				await installRole(request);
-				showAlert(`Role "${roleName}" installed successfully`, 'success');
-			} else if (installType === 'collection') {
-				if (!collectionName.trim() || !collectionVersion.trim()) {
-					showAlert('Please enter collection name and version', 'error');
-					return;
-				}
-				
-				const request: InstallCollectionRequest = {
-					collection: collectionName.trim(),
-					version: collectionVersion.trim(),
-					force: forceInstall
-				};
-				
-				await installCollection(request);
-				showAlert(`Collection "${collectionName}" installed successfully`, 'success');
-			} else if (installType === 'file') {
-				if (!selectedFile) {
-					showAlert('Please select a file', 'error');
-					return;
-				}
-				
-				await installRoleFromFile(selectedFile, forceInstall, globalInstall);
-				showAlert(`Role from file "${selectedFile.name}" installed successfully`, 'success');
+		let installName = '';
+		let request: any = null;
+		let fileToUpload: File | null = null;
+		
+		// Validate and prepare request based on type
+		if (installType === 'role') {
+			if (!roleName.trim() || !roleVersion.trim()) {
+				showAlert('Please enter role name and version', 'error');
+				return;
 			}
 			
-			closeInstallDialog();
+			installName = roleName.trim();
+			request = {
+				role: roleName.trim(),
+				version: roleVersion.trim(),
+				force: forceInstall,
+				action: 'install',
+				global: globalInstall
+			} as InstallRoleRequest;
+		} else if (installType === 'collection') {
+			if (!collectionName.trim() || !collectionVersion.trim()) {
+				showAlert('Please enter collection name and version', 'error');
+				return;
+			}
+			
+			installName = collectionName.trim();
+			request = {
+				collection: collectionName.trim(),
+				version: collectionVersion.trim(),
+				force: forceInstall
+			} as InstallCollectionRequest;
+		} else if (installType === 'file') {
+			if (!selectedFile) {
+				showAlert('Please select a file', 'error');
+				return;
+			}
+			
+			installName = selectedFile.name;
+			fileToUpload = selectedFile; // Store reference before dialog closes
+		}
+		
+		// Close dialog immediately
+		closeInstallDialog();
+		
+		// Show installing message
+		if (installType === 'role') {
+			showAlert(`Installing role "${installName}"...`, 'success');
+		} else if (installType === 'collection') {
+			showAlert(`Installing collection "${installName}"...`, 'success');
+		} else if (installType === 'file') {
+			showAlert(`Installing role from file "${installName}"...`, 'success');
+		}
+		
+		try {
+			if (installType === 'role') {
+				await installRole(request);
+				showAlert(`Role "${installName}" installed successfully`, 'success');
+			} else if (installType === 'collection') {
+				await installCollection(request);
+				showAlert(`Collection "${installName}" installed successfully`, 'success');
+			} else if (installType === 'file') {
+				await installRoleFromFile(fileToUpload!, forceInstall, globalInstall);
+				showAlert(`Role from file "${installName}" installed successfully`, 'success');
+			}
+			
 			// Refresh the roles list
 			location.reload();
 		} catch (error) {
 			console.error('Failed to install:', error);
-			const errorMessage = error instanceof Error ? error.message : 'Installation failed';
-			showAlert(errorMessage, 'error');
+			
+			// Extract meaningful error message from the API response
+			let errorMessage = 'Installation failed';
+			
+			if (error && typeof error === 'object' && 'response' in error) {
+				const apiError = error as any;
+				if (apiError.response?.data) {
+					if (typeof apiError.response.data === 'string') {
+						errorMessage = apiError.response.data;
+					} else if (apiError.response.data.error) {
+						errorMessage = apiError.response.data.error;
+					} else if (apiError.response.data.message) {
+						errorMessage = apiError.response.data.message;
+					}
+				} else if (apiError.message) {
+					errorMessage = apiError.message;
+				}
+			} else if (error instanceof Error) {
+				errorMessage = error.message;
+			}
+			
+			showAlert(`Installation failed: ${errorMessage}`, 'error');
 		}
 	}
 

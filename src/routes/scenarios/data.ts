@@ -1,26 +1,6 @@
-import { getScenario, createOrUpdateScenario, deleteScenario } from "$lib/api/ctfd_scenario.client";
-
-export interface Scenario {
-    ID: string;
-    Name: string;
-    Created: string;
-}
-
-// Format date from ISO string to mm/dd/yyyy hh:mm format in UTC+2 timezone
-export function formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    
-    // Convert to UTC+2 timezone
-    const utcPlus2 = new Date(date.getTime() + (2 * 60 * 60 * 1000));
-    
-    const month = (utcPlus2.getUTCMonth() + 1).toString().padStart(2, '0');
-    const day = utcPlus2.getUTCDate().toString().padStart(2, '0');
-    const year = utcPlus2.getUTCFullYear();
-    const hours = utcPlus2.getUTCHours().toString().padStart(2, '0');
-    const minutes = utcPlus2.getUTCMinutes().toString().padStart(2, '0');
-    
-    return `${month}/${day}/${year} ${hours}:${minutes}`;
-}
+import { getScenario } from "$lib/api/ctfd_scenario.client";
+import { formatDate } from '$lib/utils';
+import type { Scenario } from '$lib/api/types';
 
 // Load scenarios from API
 export async function loadScenarios(): Promise<Scenario[]> {
@@ -49,16 +29,6 @@ export async function loadScenarios(): Promise<Scenario[]> {
     }
 }
 
-// Create or update scenario
-export async function uploadScenario(file: File, scenarioID?: string) {
-    try {
-        return await createOrUpdateScenario(file, scenarioID);
-    } catch (error) {
-        console.error('Error uploading scenario:', error);
-        throw error;
-    }
-}
-
 // Download scenario
 export async function downloadScenario(scenarioID: string): Promise<void> {
     try {
@@ -84,16 +54,6 @@ export async function downloadScenario(scenarioID: string): Promise<void> {
         }
     } catch (error) {
         console.error('Error downloading scenario:', error);
-        throw error;
-    }
-}
-
-// Delete scenario
-export async function removeScenario(scenarioID: string) {
-    try {
-        return await deleteScenario(scenarioID);
-    } catch (error) {
-        console.error('Error deleting scenario:', error);
         throw error;
     }
 }

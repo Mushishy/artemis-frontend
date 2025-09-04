@@ -1,11 +1,6 @@
 import { loadScenarios } from './data';
+import type { Scenario } from '$lib/api/types';
 import type { PageServerLoad } from './$types';
-
-export interface Scenario {
-    ID: string;
-    Name: string;
-    Created: string;
-}
 
 export const load: PageServerLoad = async () => {
     const scenarios = await loadScenarios();

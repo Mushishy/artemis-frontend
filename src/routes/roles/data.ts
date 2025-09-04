@@ -1,23 +1,12 @@
-import { getAnsibleRoles } from "$lib/api/ludus.collections";
+import { getAnsibleRoles } from "$lib/api/ludus";
+import type { LudusRole } from "$lib/api/types";
+import { createLudusRole } from "$lib/api/types";
 
-export interface Role {
-    name: string;
-    version: string;
-    type: "role" | "collection";
-    global: boolean;
-}
-
-// Load roles from API
-export async function loadRoles(): Promise<Role[]> {
+// Load roles from API - returns normalized role data
+export async function loadRoles(): Promise<LudusRole[]> {
     try {
-        const response = await getAnsibleRoles();
-        
-        return response.map(item => ({
-            name: item.Name,
-            version: item.Version === '(unknown version)' ? 'custom' : item.Version,
-            type: item.Type as "role" | "collection",
-            global: item.Global
-        }));
+        const rawRoles = await getAnsibleRoles();
+        return rawRoles.map(item => createLudusRole(item));
     } catch (error) {
         console.error('Error loading roles:', error);
         return [];

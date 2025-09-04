@@ -5,8 +5,9 @@
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Plus, Upload, AlertCircle, CheckCircle2, X } from 'lucide-svelte';
-	import type { Scenario } from './data.js';
-	import { uploadScenario, removeScenario, downloadScenario } from './data.js';
+	import type { Scenario } from '$lib/api/types';
+	import { createOrUpdateScenario, deleteScenario } from '$lib/api/ctfd_scenario.client';
+	import { downloadScenario } from './data.js';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -41,7 +42,7 @@
 		const scenarioToDelete = deletingScenario;
 		
 		try {
-			await removeScenario(scenarioToDelete.ID);
+			await deleteScenario(scenarioToDelete.ID);
 			scenarios = scenarios.filter(s => s.ID !== scenarioToDelete.ID);
 			showAlert('success', `Scenario "${scenarioToDelete.Name}" deleted successfully`);
 		} catch (error) {
@@ -80,7 +81,7 @@
 		}
 
 		try {
-			const result = await uploadScenario(selectedFile, editingScenario?.ID);
+			const result = await createOrUpdateScenario(selectedFile, editingScenario?.ID);
 			const action = editingScenario ? 'updated' : 'created';
 			showAlert('success', `Scenario ${action} successfully`);
 			// Refresh the scenarios list

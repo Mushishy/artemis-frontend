@@ -1,5 +1,5 @@
-import { getUsers } from '$lib/api/users.server';
-import { formatDate } from './data.js';
+import { getUsers } from '$lib/api/users.client';
+import { formatDate } from '$lib/utils';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
