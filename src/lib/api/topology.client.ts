@@ -1,8 +1,3 @@
-/**
- * Topology management API client
- * Handles topology CRUD operations and pool topology checking
- */
-
 import { getDulusClient } from './api-client';
 import type { Topology, TopologyCheckResponse } from './types';
 
@@ -12,9 +7,6 @@ const dulusClient = getDulusClient();
 // TOPOLOGY DATA RETRIEVAL
 // ============================================================================
 
-/**
- * Get specific topology by ID or list all topologies
- */
 export async function getTopology(topologyId?: string) {
     try {
         const params = topologyId ? { topologyId } : {};
@@ -26,9 +18,6 @@ export async function getTopology(topologyId?: string) {
     }
 }
 
-/**
- * Get all available topologies
- */
 export async function getTopologies(): Promise<Topology[]> {
     try {
         const response = await dulusClient.get('/topology');
@@ -43,48 +32,18 @@ export async function getTopologies(): Promise<Topology[]> {
 // TOPOLOGY FILE OPERATIONS
 // ============================================================================
 
-/**
- * Download topology file content and metadata
- */
-export async function downloadTopology(topologyId: string): Promise<{
-    content: string;
-    filename: string;
-    createdAt: string;
-}> {
-    try {
-        const response = await dulusClient.get(`/topology?topologyId=${topologyId}`);
-        const { topologyFile, topologyName, createdAt } = response.data;
-        
-        // Base64 decode the topology file
-        const decodedContent = atob(topologyFile);
-        
-        return {
-            content: decodedContent,
-            filename: topologyName,
-            createdAt
-        };
-    } catch (error) {
-        console.error('Error downloading topology:', error);
-        throw error;
-    }
-}
-
-/**
- * Download topology file to user's computer
- */
 export async function downloadTopologyFile(topologyId: string): Promise<void> {
     try {
-        const { content, filename } = await downloadTopology(topologyId);
-
-        const blob = new Blob([content], { type: 'text/yaml' });
+        const response = await dulusClient.get(`/topology?topologyId=${topologyId}`);
+        const { topologyFile, topologyName } = response.data;
+        const decodedContent = atob(topologyFile);
+        const blob = new Blob([decodedContent], { type: 'text/yaml' });
         const url = window.URL.createObjectURL(blob);
-        
         const link = document.createElement('a');
         link.href = url;
-        link.download = filename;
+        link.download = topologyName;
         document.body.appendChild(link);
         link.click();
-        
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
     } catch (error) {
@@ -97,9 +56,6 @@ export async function downloadTopologyFile(topologyId: string): Promise<void> {
 // TOPOLOGY MANAGEMENT
 // ============================================================================
 
-/**
- * Create or update a topology by uploading a file
- */
 export async function createOrUpdateTopology(file: File, topologyId?: string) {
     try {
         const formData = new FormData();
@@ -117,9 +73,6 @@ export async function createOrUpdateTopology(file: File, topologyId?: string) {
     }
 }
 
-/**
- * Delete a topology by ID
- */
 export async function deleteTopology(topologyId: string) {
     try {
         const response = await dulusClient.delete('/topology', {
@@ -136,9 +89,6 @@ export async function deleteTopology(topologyId: string) {
 // POOL TOPOLOGY CHECKING
 // ============================================================================
 
-/**
- * Check if pool topology configuration matches
- */
 export async function checkPoolTopology(poolId: string): Promise<TopologyCheckResponse> {
     try {
         const response = await dulusClient.get('/range/config', {

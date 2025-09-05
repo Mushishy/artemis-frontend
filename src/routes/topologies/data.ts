@@ -44,7 +44,7 @@ export async function uploadTopology(file: File, topologyId?: string) {
     }
 }
 
-// Download topology (use consolidated function from topology.client)
+// Download topology (wrapper for downloadTopologyFile)
 export async function downloadTopology(topologyId: string): Promise<void> {
     try {
         await downloadTopologyFile(topologyId);

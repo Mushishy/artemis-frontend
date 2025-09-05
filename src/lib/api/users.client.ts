@@ -225,30 +225,4 @@ export async function downloadWireGuardConfig(userID: string): Promise<void> {
     }
 }
 
-/**
- * Download user Wireguard config for a pool
- * Note: Downloads all configs as ZIP since API doesn't support individual user downloads
- */
-export async function downloadUserWireguard(poolId: string, userId: string): Promise<void> {
-    try {
-        const response = await dulusClient.get('/range/access', {
-            params: { poolId },
-            headers: { 'Accept': 'application/zip' },
-            responseType: 'blob'
-        });
 
-        const blob = response.data;
-        const url = window.URL.createObjectURL(blob);
-        
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${userId}_wireguard.zip`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-    } catch (error) {
-        console.error('Error downloading user Wireguard config:', error);
-        throw error;
-    }
-}

@@ -1,8 +1,3 @@
-/**
- * Ansible roles, collections, and templates management API client
- * Handles installation and management of Ansible roles and Ludus templates
- */
-
 import { getLudusClient } from './api-client';
 import type { InstallRoleRequest, InstallCollectionRequest, ApiResponse, LudusRole, LudusTemplate } from './types';
 
@@ -12,9 +7,6 @@ const ludusClient = getLudusClient();
 // TEMPLATES & ROLES RETRIEVAL
 // ============================================================================
 
-/**
- * Get all available Ludus templates
- */
 export async function getTemplates(): Promise<LudusTemplate[]> {
     try {
         const response = await ludusClient.get('/templates');
@@ -25,9 +17,6 @@ export async function getTemplates(): Promise<LudusTemplate[]> {
     }
 }
 
-/**
- * Get all available Ansible roles
- */
 export async function getAnsibleRoles(): Promise<LudusRole[]> {
     try {
         const response = await ludusClient.get('/ansible');

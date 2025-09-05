@@ -29,13 +29,12 @@
         getPoolDetail, 
         refreshPoolData, 
         downloadUserLogs, 
-        downloadUserWireguard,
+        downloadWireguardConfigs,
         checkPoolHealth,
         setPoolTopology,
         changePoolTopology,
         fetchCtfdData,
         downloadCtfdLogins,
-        downloadWireguardConfigs,
         deployPool,
         redeployPool,
         abortPool,
@@ -47,7 +46,8 @@
     } from '$lib/api/pools.client.js';
     import { getUserLogs as fetchUserLogs } from '$lib/api/users.client.js';
     import { checkUsersInPools, importMissingUsers } from '$lib/api/users.client.js';
-    import { downloadTopologyFile, getTopologies, getTopology } from '$lib/api/topology.client.js';
+    import { getTopologies, getTopology } from '$lib/api/topology.client.js';
+    import { downloadTopology } from '../../topologies/data';
     import { formatDate } from '$lib/utils';
     import type { PageData } from './$types';
 
@@ -521,7 +521,7 @@
         
         try {
             showAlert('Downloading topology...', 'success');
-            await downloadTopologyFile(selectedTopologyId);
+            await downloadTopology(selectedTopologyId);
             showAlert('Topology downloaded successfully', 'success');
         } catch (error) {
             console.error('Error downloading topology:', error);
@@ -680,7 +680,7 @@
 
     async function handleUserWireguard(user: PoolUserTeam) {
         try {
-            await downloadUserWireguard(data.poolId, user.userId);
+            await downloadWireguardConfigs(data.poolId, user.userId);
             showAlert(`Wireguard config for ${user.user} downloaded successfully`, 'success');
         } catch (error) {
             console.error('Error downloading Wireguard config:', error);

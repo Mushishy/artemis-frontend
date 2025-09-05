@@ -211,7 +211,7 @@ export async function checkUsersExist(poolId: string): Promise<UserCheckResponse
 }
 
 // Get pool details (including mainUser)
-export async function getPoolDetails(poolId: string): Promise<any> {
+export async function getPoolDetail(poolId: string): Promise<any> {
     try {
         const response = await fetch(`${dulusBaseUrl}:${dulusPort}/pool?poolId=${poolId}&userIds=false`, {
             method: 'GET',

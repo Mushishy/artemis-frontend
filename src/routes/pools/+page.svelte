@@ -19,7 +19,7 @@
         unsharePool,
         deletePoolUsers,
         checkUsersExist,
-        getPoolDetails
+        getPoolDetail
     } from './data.js';
     import type { PageData } from './$types';
 
@@ -117,12 +117,12 @@
             // Step 3: If SHARED type, unshare the pool first
             if (deletingPool.type === 'SHARED') {
                 showAlert('Getting pool details for unsharing...', 'success');
-                const poolDetails = await getPoolDetails(deletingPool.poolId);
-                if (!poolDetails.mainUser) {
+                const poolDetail = await getPoolDetail(deletingPool.poolId);
+                if (!poolDetail.mainUser) {
                     throw new Error('Cannot unshare pool: mainUser not found');
                 }
                 showAlert('Unsharing pool...', 'success');
-                await unsharePool(deletingPool.poolId, poolDetails.mainUser);
+                await unsharePool(deletingPool.poolId, poolDetail.mainUser);
             }
 
             // Step 4: Delete users in the pool
@@ -183,12 +183,12 @@
             // Step 3: If SHARED type, unshare the pool first
             if (deletingPool.type === 'SHARED') {
                 showAlert('Getting pool details for unsharing...', 'success');
-                const poolDetails = await getPoolDetails(deletingPool.poolId);
-                if (!poolDetails.mainUser) {
+                const poolDetail = await getPoolDetail(deletingPool.poolId);
+                if (!poolDetail.mainUser) {
                     throw new Error('Cannot unshare pool: mainUser not found');
                 }
                 showAlert('Unsharing pool...', 'success');
-                await unsharePool(deletingPool.poolId, poolDetails.mainUser);
+                await unsharePool(deletingPool.poolId, poolDetail.mainUser);
                 showAlert('Pool unshared successfully', 'success');
             }
 

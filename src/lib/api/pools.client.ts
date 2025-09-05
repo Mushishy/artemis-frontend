@@ -193,27 +193,31 @@ export async function removePool(poolId: string): Promise<any> {
 }
 
 // ============================================================================
-// POOL ACCESS & DOWNLOADS
+// POOL ACCESS & SHARING
 // ============================================================================
 
 
-export async function downloadWireguardConfigs(poolId: string): Promise<Blob> {
+export async function downloadWireguardConfigs(poolId: string, downloadFileName: string = 'wireguard_configs.zip'): Promise<void> {
     try {
         const response = await dulusClient.get('/range/access', {
             params: { poolId },
             headers: { 'accept': 'application/zip' },
             responseType: 'blob'
         });
-        return response.data;
+        const blob = response.data;
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = downloadFileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
     } catch (error) {
         console.error('Error downloading Wireguard configs:', error);
         throw error;
     }
 }
-
-// ============================================================================
-// POOL SHARING (for SHARED type pools)
-// ============================================================================
 
 export async function checkSharingStatus(poolId: string, targetId: string): Promise<{ shared: boolean }> {
     try {
@@ -304,9 +308,6 @@ export async function refreshPoolData(poolId: string): Promise<PoolDetailData> {
 // RE-EXPORTS FOR BACKWARD COMPATIBILITY
 // ============================================================================
 
-export { checkUsersInPools, checkPoolUsers, importMissingUsers, downloadUserLogs, downloadUserWireguard } from './users.client';
-export { getTopologies, downloadTopologyFile, checkPoolTopology } from './topology.client';
+export { checkUsersInPools, checkPoolUsers, importMissingUsers, downloadUserLogs } from './users.client';
+export { getTopologies, checkPoolTopology } from './topology.client';
 export { fetchCtfdData, downloadCtfdLogins, getPoolFlags } from './ctfd.client';
-
-// Alternative names for compatibility
-export const getPoolDetails = getPoolDetail;
