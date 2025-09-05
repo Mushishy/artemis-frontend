@@ -1,4 +1,4 @@
-import { getTemplates } from "$lib/api/ludus";
+import { getTemplates } from "$lib/api/roles.client";
 
 export interface Template {
     name: string;

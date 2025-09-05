@@ -1,4 +1,4 @@
-import { getAnsibleRoles } from "$lib/api/ludus";
+import { getAnsibleRoles } from "$lib/api/roles.client";
 import type { LudusRole } from "$lib/api/types";
 import { createLudusRole } from "$lib/api/types";
 

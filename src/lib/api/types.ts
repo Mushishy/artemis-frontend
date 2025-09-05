@@ -1,8 +1,21 @@
 /**
- * Shared interfaces and types for API responses
+ * Shared TypeScript interfaces and types for API responses
+ * Central location for all API-related type definitions
  */
 
-// Common User interface
+// ============================================================================
+// CORE API TYPES
+// ============================================================================
+
+export interface ApiResponse {
+    message: string;
+    success: boolean;
+}
+
+// ============================================================================
+// USER TYPES
+// ============================================================================
+
 export interface User {
     name: string;
     userID: string;
@@ -10,75 +23,6 @@ export interface User {
     isAdmin: boolean;
 }
 
-// Ludus Templates
-export interface LudusTemplate {
-    name: string;
-    built: boolean;
-}
-
-// Ludus Roles - using consistent casing
-export interface LudusRole {
-    Name: string;
-    Version: string;
-    Type: string;
-    Global: boolean;
-}
-
-// Factory function to create LudusRole with version normalization
-export function createLudusRole(item: any): LudusRole {
-    return {
-        Name: item.Name,
-        Version: item.Version === '(unknown version)' ? 'custom' : item.Version,
-        Type: item.Type,
-        Global: item.Global
-    };
-}
-
-// API Response wrappers
-export interface ApiResponse {
-    message: string;
-    success: boolean;
-}
-
-// Pool related interfaces
-export interface PoolUserAndTeam {
-    user: string;
-    team?: string;
-}
-
-export interface PoolRequest {
-    type: 'SHARED' | 'INDIVIDUAL';
-    mainUser?: string;
-    usersAndTeams?: PoolUserAndTeam[];
-    topologyId: string;
-    note?: string;
-}
-
-// Dulus specific interfaces
-export interface UsersCheckResponse {
-    allExist: boolean;
-    missingUserIds: string[];
-}
-
-export interface TopologyCheckResponse {
-    matchPoolTopology: boolean;
-}
-
-export interface StatusCheckResponse {
-    allDeployed: boolean;
-    results: Array<{
-        state: string;
-        userId: string;
-    }>;
-}
-
-export interface Topology {
-    topologyId: string;
-    topologyName: string;
-    createdAt: string;
-}
-
-// User existence check
 export interface UserExistsCheck {
     exists: boolean;
     userId: string;
@@ -93,49 +37,61 @@ export interface UserCheckResponse {
     results: UserCheckResult[];
 }
 
-// Roles interfaces
-export interface InstallRoleRequest {
-    role: string;
-    version: string;
-    force: boolean;
-    action: 'install';
-    global: boolean;
+export interface UsersCheckResponse {
+    allExist: boolean;
+    missingUserIds: string[];
 }
 
-export interface InstallCollectionRequest {
-    collection: string;
-    version: string;
-    force: boolean;
+// ============================================================================
+// LUDUS PLATFORM TYPES
+// ============================================================================
+
+export interface LudusTemplate {
+    name: string;
+    built: boolean;
 }
 
-// Ludus logs
+export interface LudusRole {
+    Name: string;
+    Version: string;
+    Type: string;
+    Global: boolean;
+}
+
+/**
+ * Factory function to create LudusRole with version normalization
+ */
+export function createLudusRole(item: any): LudusRole {
+    return {
+        Name: item.Name,
+        Version: item.Version === '(unknown version)' ? 'custom' : item.Version,
+        Type: item.Type,
+        Global: item.Global
+    };
+}
+
 export interface LudusLogResponse {
     result: string;
     cursor: number;
 }
 
-// Range interfaces
-export interface RangeRequest {
-    name: string;
-    description?: string;
-    type: 'INDIVIDUAL' | 'SHARED' | 'CTFD';
-    topology_id: string;
-    users?: string[];
-    adminPassword?: string;
+// ============================================================================
+// POOL TYPES
+// ============================================================================
+
+export interface PoolUserAndTeam {
+    user: string;
+    team?: string;
 }
 
-export interface Range {
-    id: string;
-    name: string;
-    description: string;
-    status: string;
-    topology_id: string;
-    users: string[];
-    created_at: string;
-    updated_at: string;
+export interface PoolRequest {
+    type: 'SHARED' | 'INDIVIDUAL';
+    mainUser?: string;
+    usersAndTeams?: PoolUserAndTeam[];
+    topologyId: string;
+    note?: string;
 }
 
-// Pool detail interfaces
 export interface PoolUserTeam {
     team: string;
     user: string;
@@ -182,13 +138,79 @@ export interface PoolHealthCheck {
     isLoading: boolean;
 }
 
-// User patch interface for pool user operations
 export interface PatchUserRequest {
     user: string;
     team?: string;
 }
 
-// Scenario interfaces
+// ============================================================================
+// STATUS & HEALTH CHECK TYPES
+// ============================================================================
+
+export interface StatusCheckResponse {
+    allDeployed: boolean;
+    results: Array<{
+        state: string;
+        userId: string;
+    }>;
+}
+
+export interface TopologyCheckResponse {
+    matchPoolTopology: boolean;
+}
+
+// ============================================================================
+// TOPOLOGY TYPES
+// ============================================================================
+
+export interface Topology {
+    topologyId: string;
+    topologyName: string;
+    createdAt: string;
+}
+
+// ============================================================================
+// ANSIBLE ROLE TYPES
+// ============================================================================
+
+export interface InstallRoleRequest {
+    role: string;
+    version: string;
+    force: boolean;
+    action: 'install';
+    global: boolean;
+}
+
+export interface InstallCollectionRequest {
+    collection: string;
+    version: string;
+    force: boolean;
+}
+
+// ============================================================================
+// RANGE & SCENARIO TYPES
+// ============================================================================
+
+export interface RangeRequest {
+    name: string;
+    description?: string;
+    type: 'INDIVIDUAL' | 'SHARED' | 'CTFD';
+    topology_id: string;
+    users?: string[];
+    adminPassword?: string;
+}
+
+export interface Range {
+    id: string;
+    name: string;
+    description: string;
+    status: string;
+    topology_id: string;
+    users: string[];
+    created_at: string;
+    updated_at: string;
+}
+
 export interface Scenario {
     ID: string;
     Name: string;

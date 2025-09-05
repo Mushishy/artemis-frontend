@@ -45,11 +45,10 @@
         sharePool,
         unsharePool
     } from '$lib/api/pools.client.js';
-    import { getUserLogs as fetchUserLogs } from '$lib/api/ludus.js';
+    import { getUserLogs as fetchUserLogs } from '$lib/api/users.client.js';
     import { checkUsersInPools, importMissingUsers } from '$lib/api/users.client.js';
-    import { downloadTopologyFile, getTopologies } from '$lib/api/topology.client.js';
+    import { downloadTopologyFile, getTopologies, getTopology } from '$lib/api/topology.client.js';
     import { formatDate } from '$lib/utils';
-    import { getTopology } from '$lib/api/topology.client.js';
     import type { PageData } from './$types';
 
     // Cleanup streaming when component is destroyed
