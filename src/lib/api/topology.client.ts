@@ -1,5 +1,6 @@
 import { getDulusClient } from './api-client';
-import type { Topology, TopologyCheckResponse } from './types';
+import { formatDate } from '$lib/utils';
+import type { Topology, TopologyCheckResponse, TopologyDisplay } from './types';
 
 const dulusClient = getDulusClient();
 
@@ -25,6 +26,33 @@ export async function getTopologies(): Promise<Topology[]> {
     } catch (error) {
         console.error('Error fetching topologies:', error);
         throw error;
+    }
+}
+
+// Get formatted topologies for display
+export async function getTopologiesDisplay(): Promise<TopologyDisplay[]> {
+    try {
+        const response = await getTopology();
+        
+        // Handle both single topology and array of topologies
+        if (Array.isArray(response)) {
+            return response.map(item => ({
+                ID: item.topologyId,
+                Name: item.topologyName,
+                Created: formatDate(item.createdAt)
+            }));
+        } else if (response.topologyId) {
+            return [{
+                ID: response.topologyId,
+                Name: response.topologyName,
+                Created: formatDate(response.createdAt)
+            }];
+        }
+        
+        return [];
+    } catch (error) {
+        console.error('Error loading formatted topologies:', error);
+        return [];
     }
 }
 
@@ -64,7 +92,10 @@ export async function createOrUpdateTopology(file: File, topologyId?: string) {
         const params = topologyId ? { topologyId } : {};
         const response = await dulusClient.put('/topology', formData, {
             params,
-            headers: { 'Content-Type': 'multipart/form-data' },
+            headers: { 
+                // Don't set Content-Type - let axios/browser set it with boundary
+                'Content-Type': undefined 
+            },
         });
         return response.data;
     } catch (error) {

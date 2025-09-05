@@ -51,6 +51,12 @@ export interface LudusTemplate {
     built: boolean;
 }
 
+// UI-formatted template for display purposes
+export interface TemplateDisplay {
+    name: string;
+    status: boolean;
+}
+
 export interface LudusRole {
     Name: string;
     Version: string;
@@ -143,6 +149,28 @@ export interface PatchUserRequest {
     team?: string;
 }
 
+export interface Pool {
+    poolId: string;
+    note?: string;
+    createdBy: string;
+    type: 'INDIVIDUAL' | 'SHARED' | 'CTFD';
+    topologyId: string;
+    ctfdData: boolean;
+    createdAt: string;
+    mainUser?: string;
+}
+
+export interface PoolStatusResult {
+    userId: string;
+    state: string;
+    error?: string;
+}
+
+export interface PoolStatusResponse {
+    results: PoolStatusResult[];
+    allDeployed: boolean;
+}
+
 // ============================================================================
 // STATUS & HEALTH CHECK TYPES
 // ============================================================================
@@ -167,6 +195,13 @@ export interface Topology {
     topologyId: string;
     topologyName: string;
     createdAt: string;
+}
+
+// UI-formatted topology for display purposes
+export interface TopologyDisplay {
+    ID: string;
+    Name: string;
+    Created: string;
 }
 
 // ============================================================================

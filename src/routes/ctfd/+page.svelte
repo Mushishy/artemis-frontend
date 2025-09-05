@@ -3,7 +3,6 @@
     import { Input } from '$lib/components/ui/input';
     import { Label } from '$lib/components/ui/label';
     import * as Card from '$lib/components/ui/card';
-    import { Badge } from '$lib/components/ui/badge';
     import { RotateCcw } from 'lucide-svelte';
 
     // Form state with default values

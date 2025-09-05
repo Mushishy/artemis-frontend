@@ -24,7 +24,7 @@
         Search,
         Share2
     } from 'lucide-svelte';
-    import type { PoolDetail, PoolUserTeam, PoolDetailData, PoolHealthCheck, PatchUserRequest, UserExistsCheck } from '$lib/api/types.js';
+    import type { PoolDetail, PoolUserTeam, PoolDetailData, PoolHealthCheck, PatchUserRequest } from '$lib/api/types.js';
     import { 
         getPoolDetail, 
         refreshPoolData, 
@@ -46,8 +46,7 @@
     } from '$lib/api/pools.client.js';
     import { getUserLogs as fetchUserLogs } from '$lib/api/users.client.js';
     import { checkUsersInPools, importMissingUsers } from '$lib/api/users.client.js';
-    import { getTopologies, getTopology } from '$lib/api/topology.client.js';
-    import { downloadTopology } from '../../topologies/data';
+    import { getTopologies, getTopology, downloadTopologyFile } from '$lib/api/topology.client.js';
     import { formatDate } from '$lib/utils';
     import type { PageData } from './$types';
 
@@ -521,7 +520,7 @@
         
         try {
             showAlert('Downloading topology...', 'success');
-            await downloadTopology(selectedTopologyId);
+            await downloadTopologyFile(selectedTopologyId);
             showAlert('Topology downloaded successfully', 'success');
         } catch (error) {
             console.error('Error downloading topology:', error);

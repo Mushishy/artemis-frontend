@@ -6,8 +6,7 @@
 	import * as Alert from '$lib/components/ui/alert';
 	import { Plus, Upload, AlertCircle, CheckCircle2, X } from 'lucide-svelte';
 	import type { Scenario } from '$lib/api/types';
-	import { createOrUpdateScenario, deleteScenario } from '$lib/api/ctfd_scenario.client';
-	import { downloadScenario } from './data.js';
+	import { createOrUpdateScenario, deleteScenario, downloadScenarioFile } from '$lib/api/ctfd_scenario.client';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -55,7 +54,7 @@
 
 	async function handleDownload(scenario: Scenario) {
 		try {
-			await downloadScenario(scenario.ID);
+			await downloadScenarioFile(scenario.ID);
 			showAlert('success', `Scenario "${scenario.Name}" downloaded successfully`);
 		} catch (error) {
 			showAlert('error', 'Failed to download scenario');

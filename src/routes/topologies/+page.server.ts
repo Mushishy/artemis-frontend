@@ -1,14 +1,8 @@
-import { loadTopologies } from './data';
+import { getTopologiesDisplay } from '$lib/api/topology.client';
 import type { PageServerLoad } from './$types';
 
-export interface Topology {
-    ID: string;
-    Name: string;
-    Created: string;
-}
-
 export const load: PageServerLoad = async () => {
-    const topologies = await loadTopologies();
+    const topologies = await getTopologiesDisplay();
     return {
         topologies
     };

@@ -1,11 +1,11 @@
-import { loadTopologies } from '../topologies/data.js';
+import { getTopologiesDisplay } from '$lib/api/topology.client';
 import { getUsers } from '$lib/api/users.client';
 import type { PageServerLoad } from './$types.js';
 
 export const load: PageServerLoad = async () => {
     try {
         const [topologies, usersResponse] = await Promise.all([
-            loadTopologies(),
+            getTopologiesDisplay(),
             getUsers()
         ]);
         

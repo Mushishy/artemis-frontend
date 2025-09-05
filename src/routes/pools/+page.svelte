@@ -11,7 +11,7 @@
         CheckCircle2, 
         X 
     } from 'lucide-svelte';
-    import type { Pool } from './data.js';
+    import type { Pool } from '$lib/api/types';
     import { 
         deletePool,
         updatePoolNote,
@@ -20,7 +20,7 @@
         deletePoolUsers,
         checkUsersExist,
         getPoolDetail
-    } from './data.js';
+    } from '$lib/api/pools';
     import type { PageData } from './$types';
 
     let { data }: { data: PageData } = $props();
@@ -161,7 +161,7 @@
             // Step 6: Only now delete the pool after all checks pass
             showAlert('Deleting pool...', 'success');
             await deletePool(deletingPool.poolId);
-            pools = pools.filter(p => p.poolId !== deletingPool!.poolId);
+            pools = pools.filter((p: Pool) => p.poolId !== deletingPool!.poolId);
             showAlert('Pool and users deleted successfully', 'success');
 
         } catch (error) {
@@ -195,7 +195,7 @@
             // Step 4: Just delete the pool without deleting users
             showAlert('Deleting pool (preserving users)...', 'success');
             await deletePool(deletingPool.poolId);
-            pools = pools.filter(p => p.poolId !== deletingPool!.poolId);
+            pools = pools.filter((p: Pool) => p.poolId !== deletingPool!.poolId);
             showAlert('Pool deleted successfully (users preserved)', 'success');
         } catch (error) {
             console.error('Error deleting pool:', error);
@@ -213,7 +213,7 @@
         try {
             await updatePoolNote(editingPool.poolId, noteInputValue);
             // Update the local pools array
-            pools = pools.map(p => 
+            pools = pools.map((p: Pool) => 
                 p.poolId === editingPool!.poolId 
                     ? { ...p, note: noteInputValue }
                     : p

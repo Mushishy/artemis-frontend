@@ -1,9 +1,9 @@
-import { loadRoles } from './data.js';
+import { getAnsibleRolesNormalized } from '$lib/api/roles.client';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
     try {
-        const roles = await loadRoles();
+        const roles = await getAnsibleRolesNormalized();
         return {
             roles
         };

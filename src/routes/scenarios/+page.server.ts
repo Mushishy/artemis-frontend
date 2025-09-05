@@ -1,9 +1,8 @@
-import { loadScenarios } from './data';
-import type { Scenario } from '$lib/api/types';
+import { getScenariosDisplay } from '$lib/api/ctfd_scenario.client';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
-    const scenarios = await loadScenarios();
+    const scenarios = await getScenariosDisplay();
     return {
         scenarios
     };

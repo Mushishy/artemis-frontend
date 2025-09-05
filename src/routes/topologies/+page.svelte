@@ -5,21 +5,21 @@
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Plus, Upload, AlertCircle, CheckCircle2, X } from 'lucide-svelte';
-	import type { Topology } from './data.js';
-	import { uploadTopology, removeTopology, downloadTopology } from './data.js';
+	import type { TopologyDisplay } from '$lib/api/types';
+	import { createOrUpdateTopology, deleteTopology, downloadTopologyFile } from '$lib/api/topology.client';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 	let topologies = $state(data.topologies);
 	let uploadDialogOpen = $state(false);
 	let deleteDialogOpen = $state(false);
-	let editingTopology: Topology | null = $state(null);
-	let deletingTopology: Topology | null = $state(null);
+	let editingTopology: TopologyDisplay | null = $state(null);
+	let deletingTopology: TopologyDisplay | null = $state(null);
 	let selectedFile: File | null = $state(null);
 	let fileInput = $state<HTMLInputElement>();
 	let alertMessage = $state<{ message: string; type: 'success' | 'error' } | null>(null);
 
-	const headers: { key: keyof Topology; label: string; sortable?: boolean }[] = [
+	const headers: { key: keyof TopologyDisplay; label: string; sortable?: boolean }[] = [
 		{ key: 'Name', label: 'Topology Name', sortable: true },
 		{ key: 'ID', label: 'Topology ID', sortable: true },
 		{ key: 'Created', label: 'Created', sortable: true }
@@ -36,12 +36,12 @@
 		alertMessage = null;
 	}
 
-	function handleEdit(topology: Topology) {
+	function handleEdit(topology: TopologyDisplay) {
 		editingTopology = topology;
 		uploadDialogOpen = true;
 	}
 
-	function handleDelete(topology: Topology) {
+	function handleDelete(topology: TopologyDisplay) {
 		deletingTopology = topology;
 		deleteDialogOpen = true;
 	}
@@ -61,7 +61,7 @@
 		showAlert(`Deleting topology "${topologyName}"`, 'success');
 		
 		try {
-			await removeTopology(topologyId);
+			await deleteTopology(topologyId);
 			topologies = topologies.filter(t => t.ID !== topologyId);
 			showAlert(`Topology "${topologyName}" deleted successfully`, 'success');
 		} catch (error: any) {
@@ -78,9 +78,9 @@
 		}
 	}
 
-	async function handleDownload(topology: Topology) {
+	async function handleDownload(topology: TopologyDisplay) {
 		try {
-			await downloadTopology(topology.ID);
+			await downloadTopologyFile(topology.ID);
 			showAlert(`Topology "${topology.Name}" downloaded successfully`, 'success');
 		} catch (error: any) {
 			console.error('Failed to download topology:', error);
@@ -115,7 +115,7 @@
 		}
 
 		try {
-			const result = await uploadTopology(selectedFile, editingTopology?.ID);
+			const result = await createOrUpdateTopology(selectedFile, editingTopology?.ID);
 			
 			if (editingTopology) {
 				showAlert(`Topology "${editingTopology.Name}" updated successfully`, 'success');

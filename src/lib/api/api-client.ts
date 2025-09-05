@@ -1,17 +1,12 @@
 import axios, { type AxiosInstance } from 'axios';
-import { 
-    dulusBaseUrl, 
-    dulusPort, 
-    ludusBaseUrl, 
-    ludusPort, 
-    ludusAdminPort, 
-    ludusApiKey, 
-    dulusApiKey 
+import {
+    ludusApiKey,
+    dulusApiKey,
+    API_ENDPOINTS
 } from './settings';
 
 // Environment detection
 const isServer = typeof window === 'undefined';
-const isDev = import.meta.env.DEV;
 
 // HTTPS agent for self-signed certificates (server-side only)
 let httpsAgent: any;
@@ -32,9 +27,7 @@ export class ApiClientFactory {
 
     static getDulusClient(): AxiosInstance {
         if (!this.dulusClient) {
-            const baseURL = isServer 
-                ? `${dulusBaseUrl}:${dulusPort}` 
-                : (isDev ? '/proxy/dulus' : `${dulusBaseUrl}:${dulusPort}`);
+            const baseURL = isServer ? API_ENDPOINTS.dulus.server : API_ENDPOINTS.dulus.client;
 
             const config: any = {
                 baseURL,
@@ -43,11 +36,11 @@ export class ApiClientFactory {
                     'X-API-Key': dulusApiKey,
                 },
             };
-            
-            if (isServer && httpsAgent && dulusBaseUrl.startsWith('https')) {
+
+            if (isServer && httpsAgent && baseURL.startsWith('https')) {
                 config.httpsAgent = httpsAgent;
             }
-            
+
             this.dulusClient = axios.create(config);
         }
         return this.dulusClient;
@@ -55,9 +48,7 @@ export class ApiClientFactory {
 
     static getLudusClient(): AxiosInstance {
         if (!this.ludusClient) {
-            const baseURL = isServer 
-                ? `${ludusBaseUrl}:${ludusPort}` 
-                : (isDev ? '/proxy/ludus' : `${ludusBaseUrl}:${ludusPort}`);
+            const baseURL = isServer ? API_ENDPOINTS.ludus.server : API_ENDPOINTS.ludus.client;
 
             const config: any = {
                 baseURL,
@@ -66,11 +57,11 @@ export class ApiClientFactory {
                     'Content-Type': 'application/json'
                 },
             };
-            
-            if (isServer && httpsAgent) {
+
+            if (isServer && httpsAgent && baseURL.startsWith('https')) {
                 config.httpsAgent = httpsAgent;
             }
-            
+
             this.ludusClient = axios.create(config);
         }
         return this.ludusClient;
@@ -78,9 +69,7 @@ export class ApiClientFactory {
 
     static getLudusAdminClient(): AxiosInstance {
         if (!this.ludusAdminClient) {
-            const baseURL = isServer 
-                ? `${ludusBaseUrl}:${ludusAdminPort}` 
-                : (isDev ? '/proxy/ludus-admin' : `${ludusBaseUrl}:${ludusAdminPort}`);
+            const baseURL = isServer ? API_ENDPOINTS.ludusAdmin.server : API_ENDPOINTS.ludusAdmin.client;
 
             const config: any = {
                 baseURL,
@@ -89,11 +78,11 @@ export class ApiClientFactory {
                     'Content-Type': 'application/json'
                 },
             };
-            
-            if (isServer && httpsAgent) {
+
+            if (isServer && httpsAgent && baseURL.startsWith('https')) {
                 config.httpsAgent = httpsAgent;
             }
-            
+
             this.ludusAdminClient = axios.create(config);
         }
         return this.ludusAdminClient;

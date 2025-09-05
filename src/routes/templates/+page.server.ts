@@ -1,9 +1,10 @@
-import { loadTemplates } from './data.js';
+import { getTemplatesDisplay } from '$lib/api/roles.client';
 import type { PageServerLoad } from './$types';
+import type { TemplateDisplay } from '$lib/api/types';
 
 export const load: PageServerLoad = async () => {
 	try {
-		const templates = await loadTemplates();
+		const templates = await getTemplatesDisplay();
 		return {
 			templates
 		};

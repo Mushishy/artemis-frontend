@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { DataTable } from '$lib/components/ui/data-table';
-	import type { Template } from './data.js';
+	import type { TemplateDisplay } from '$lib/api/types';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
-	const headers: { key: keyof Template; label: string; sortable?: boolean }[] = [
+	const headers: { key: keyof TemplateDisplay; label: string; sortable?: boolean }[] = [
 		{ key: 'name', label: 'Template Name', sortable: true },
 		{ key: 'status', label: 'Built', sortable: true }
 	];
