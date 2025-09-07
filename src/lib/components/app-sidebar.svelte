@@ -11,7 +11,6 @@
     import MoonIcon from "@lucide/svelte/icons/moon";
 	import UsersIcon from "@lucide/svelte/icons/users";
 	import CalendarIcon from "@lucide/svelte/icons/calendar";
-	import AlarmIcon from "@lucide/svelte/icons/alarm-clock";
 
     import { toggleMode } from "mode-watcher";
     import { Button } from "$lib/components/ui/button/index.js";
