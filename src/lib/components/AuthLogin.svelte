@@ -50,7 +50,7 @@
 					<Key class="h-8 w-8 text-foreground" />
 				</div>
 			</div>
-			<Card.Title class="text-2xl font-bold">Welcome to Artemis</Card.Title>
+			<Card.Title class="text-2xl font-bold">Welcome to Ludus</Card.Title>
 			<Card.Description>
 				Enter your API key to access the Ludus management interface
 			</Card.Description>

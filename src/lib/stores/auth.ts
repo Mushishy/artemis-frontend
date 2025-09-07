@@ -22,9 +22,37 @@ export function setApiKey(key: string) {
 	apiKeyStore.set(key);
 	isAuthenticated.set(true);
 	
-	// Save to secure cookie (7 days)
+	// Save to cookie (7 days)
+	// Only use secure flag in production (HTTPS)
 	if (browser) {
-		document.cookie = `api_key=${encodeURIComponent(key)}; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict; path=/`;
+		const isSecure = window.location.protocol === 'https:';
+		const secureFlag = isSecure ? '; secure' : '';
+		
+		// Note: We cannot use HttpOnly because we need JavaScript access for API calls
+		// SameSite=Strict provides good CSRF protection
+		// Consider SameSite=Lax if you need cross-site functionality
+		const cookieString = `api_key=${encodeURIComponent(key)}; max-age=${7 * 24 * 60 * 60}${secureFlag}; samesite=strict; path=/`;
+		
+		console.log('Setting API key cookie:', {
+			isSecure,
+			protocol: window.location.protocol,
+			cookieString: cookieString.replace(encodeURIComponent(key), '[REDACTED]')
+		});
+		
+		document.cookie = cookieString;
+		
+		// Verify cookie was set
+		setTimeout(() => {
+			const savedApiKey = document.cookie
+				.split('; ')
+				.find(row => row.startsWith('api_key='))
+				?.split('=')[1];
+			
+			console.log('Cookie verification:', {
+				cookieFound: !!savedApiKey,
+				keyMatches: savedApiKey ? decodeURIComponent(savedApiKey) === key : false
+			});
+		}, 100);
 	}
 }
 

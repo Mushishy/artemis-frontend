@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
     import { page } from '$app/stores';
     import { goto } from '$app/navigation';
     import { DataTable } from '$lib/components/ui/data-table';
@@ -60,7 +59,7 @@
     });
 
     let { data }: { data: PageData } = $props();
-    let poolDetail: PoolDetail | null = $state(null);
+    let poolDetail: PoolDetail | null = $state(data.poolDetail || null);
     let poolData: PoolDetailData = $state({
         users: null,
         topology: null,
@@ -79,6 +78,35 @@
     
     // Sharing state
     let sharingStatus = $state<{ shared: boolean; isLoading: boolean }>({ shared: false, isLoading: false });
+    
+    // Loading states - no initial loading if we have pool detail from server
+    let isInitialLoading = $state(!data.poolDetail);
+    let loadingError = $state<string | null>(null);
+    
+    // Only start client-side loading if we don't have server data
+    if (!data.poolDetail) {
+        loadPoolData();
+    } else {
+        // We have server data, load additional data in background
+        loadAdditionalData();
+    }
+    
+    // Load topologies in background immediately
+    getTopologies().then(rawTopologies => {
+        topologyOptions = rawTopologies.map((topology: any) => ({
+            value: topology.topologyId,
+            label: topology.topologyName,
+            description: `ID: ${topology.topologyId}`
+        }));
+    }).catch(error => {
+        console.error('Failed to load topologies:', error);
+        // Fallback to sample data
+        topologyOptions = [
+            { value: 'topo1', label: 'Basic Network', description: 'ID: topo1' },
+            { value: 'topo2', label: 'Advanced Lab', description: 'ID: topo2' },
+            { value: 'topo3', label: 'Security Test', description: 'ID: topo3' }
+        ];
+    });
     
     // Dialog state
     let usersDialogOpen = $state(false);
@@ -110,80 +138,105 @@
     let streamingInterval: ReturnType<typeof setInterval> | null = $state(null);
     let playbookCompleted = $derived(logContent.includes('PLAY RECAP *********************************************************************'));
     
-    // Load topologies on mount
-    onMount(async () => {
-        await loadPoolData();
+    async function loadAdditionalData() {
+        // Load background data when we already have pool detail from server
         try {
-            const rawTopologies = await getTopologies();
-            // Map the raw topology data to the expected format
-            topologyOptions = rawTopologies.map((topology: any) => ({
-                value: topology.topologyId,
-                label: topology.topologyName,
-                description: `ID: ${topology.topologyId}`
-            }));
+            Promise.all([
+                // Load pool data
+                refreshPoolData(data.poolId).then(result => {
+                    poolData = result;
+                    console.log('🔄 Pool data refreshed:', poolData);
+                }).catch(error => {
+                    console.error('❌ Error refreshing pool data:', error);
+                    console.log('⚠️ Continuing without pool data refresh...');
+                }),
+                
+                // Load health checks
+                checkPoolHealth(data.poolId).then(result => {
+                    healthCheck = result;
+                    console.log('🔍 Health check completed:', healthCheck);
+                }).catch(error => {
+                    console.error('❌ Error checking pool health:', error);
+                    console.log('⚠️ Health checks unavailable, using defaults...');
+                    healthCheck = {
+                        users: null,
+                        topology: null,
+                        status: null,
+                        isLoading: false
+                    };
+                })
+            ]).finally(() => {
+                // Load sharing status for SHARED pools after other data
+                if (poolDetail?.type === 'SHARED') {
+                    checkSharingStatus().catch(error => {
+                        console.error('❌ Error checking sharing status:', error);
+                        console.log('⚠️ Sharing status unavailable...');
+                    });
+                }
+            });
         } catch (error) {
-            console.error('Failed to load topologies:', error);
-            // Fallback to sample data
-            topologyOptions = [
-                { value: 'topo1', label: 'Basic Network', description: 'ID: topo1' },
-                { value: 'topo2', label: 'Advanced Lab', description: 'ID: topo2' },
-                { value: 'topo3', label: 'Security Test', description: 'ID: topo3' }
-            ];
+            console.error('❌ Error loading additional data:', error);
         }
-    });
-
+    }
+    
     async function loadPoolData() {
         try {
             console.log('🔄 Loading pool data for:', data.poolId);
+            isInitialLoading = true;
+            loadingError = null;
             
-            // Load pool detail first - this is critical
+            // Load pool detail first - this is critical and fast
             try {
                 poolDetail = await getPoolDetail(data.poolId);
                 console.log('📊 Pool detail loaded:', poolDetail);
+                
+                // Once we have basic pool info, show the UI immediately
+                isInitialLoading = false;
             } catch (error) {
                 console.error('❌ Error loading pool detail:', error);
-                showAlert('Failed to load pool detail - check if dulus API is running', 'error');
+                loadingError = 'Failed to load pool detail - check if dulus API is running';
+                isInitialLoading = false;
                 return;
             }
             
-            // Load pool data - less critical
-            try {
-                poolData = await refreshPoolData(data.poolId);
-                console.log('🔄 Pool data refreshed:', poolData);
-            } catch (error) {
-                console.error('❌ Error refreshing pool data:', error);
-                console.log('⚠️ Continuing without pool data refresh...');
-            }
-            
-            // Load health checks - least critical, should not block UI
-            try {
-                healthCheck.isLoading = true;
-                healthCheck = await checkPoolHealth(data.poolId);
-                console.log('🔍 Health check completed:', healthCheck);
-            } catch (error) {
-                console.error('❌ Error checking pool health:', error);
-                console.log('⚠️ Health checks unavailable, using defaults...');
-                healthCheck = {
-                    users: null,
-                    topology: null,
-                    status: null,
-                    isLoading: false
-                };
-            }
-
-            // Load sharing status for SHARED pools
-            if (poolDetail?.type === 'SHARED') {
-                try {
-                    await checkSharingStatus();
-                    console.log('🔗 Sharing status checked:', sharingStatus);
-                } catch (error) {
-                    console.error('❌ Error checking sharing status:', error);
-                    console.log('⚠️ Sharing status unavailable...');
+            // Load additional data in background (non-blocking)
+            Promise.all([
+                // Load pool data
+                refreshPoolData(data.poolId).then(result => {
+                    poolData = result;
+                    console.log('🔄 Pool data refreshed:', poolData);
+                }).catch(error => {
+                    console.error('❌ Error refreshing pool data:', error);
+                    console.log('⚠️ Continuing without pool data refresh...');
+                }),
+                
+                // Load health checks
+                checkPoolHealth(data.poolId).then(result => {
+                    healthCheck = result;
+                    console.log('🔍 Health check completed:', healthCheck);
+                }).catch(error => {
+                    console.error('❌ Error checking pool health:', error);
+                    console.log('⚠️ Health checks unavailable, using defaults...');
+                    healthCheck = {
+                        users: null,
+                        topology: null,
+                        status: null,
+                        isLoading: false
+                    };
+                })
+            ]).finally(() => {
+                // Load sharing status for SHARED pools after other data
+                if (poolDetail?.type === 'SHARED') {
+                    checkSharingStatus().catch(error => {
+                        console.error('❌ Error checking sharing status:', error);
+                        console.log('⚠️ Sharing status unavailable...');
+                    });
                 }
-            }
+            });
         } catch (error) {
             console.error('❌ Critical error loading pool data:', error);
-            showAlert('Critical error loading pool data', 'error');
+            loadingError = 'Critical error loading pool data';
+            isInitialLoading = false;
         }
     }
 
@@ -1225,6 +1278,28 @@
 </script>
 
 <div class="flex h-full w-full flex-1 flex-col p-6 overflow-hidden">
+    <!-- Show loading state immediately -->
+    {#if isInitialLoading}
+        <div class="flex items-center justify-center h-full">
+            <div class="text-center space-y-4">
+                <div class="animate-spin h-8 w-8 border-2 border-gray-300 border-t-blue-600 rounded-full mx-auto"></div>
+                <p class="text-muted-foreground">Loading pool {data.poolId}...</p>
+            </div>
+        </div>
+    {:else if loadingError}
+        <div class="flex items-center justify-center h-full">
+            <div class="text-center space-y-4">
+                <AlertCircle class="h-8 w-8 text-red-500 mx-auto" />
+                <p class="text-red-500">{loadingError}</p>
+                <Button onclick={loadPoolData} variant="outline">
+                    <RefreshCw class="h-4 w-4 mr-2" />
+                    Retry
+                </Button>
+            </div>
+        </div>
+    {:else}
+    <!-- Main content - only show when we have basic pool data -->
+    
     <!-- Header -->
     <div class="mb-6 flex items-center justify-between flex-shrink-0">
         <div class="flex items-center gap-4">
@@ -1237,6 +1312,11 @@
                         {/if}
                         {poolDetail.type} • Created by {poolDetail.createdBy} • {formatDate(poolDetail.createdAt)}
                     </p>
+                {:else}
+                    <div class="flex space-x-2 mt-1">
+                        <Skeleton class="h-4 w-32" />
+                        <Skeleton class="h-4 w-24" />
+                    </div>
                 {/if}
             </div>
         </div>
@@ -1915,4 +1995,5 @@
             </Dialog.Footer>
         </Dialog.Content>
     </Dialog.Root>
+    {/if}
 </div>

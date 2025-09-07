@@ -1,6 +1,5 @@
-import { getTemplatesDisplay } from '$lib/api/roles.client';
+import { getTemplatesDisplay } from '$lib/api/roles.server';
 import type { PageServerLoad } from './$types';
-import type { TemplateDisplay } from '$lib/api/types';
 
 export const load: PageServerLoad = async () => {
 	try {

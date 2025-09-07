@@ -12,7 +12,7 @@
     import { createPool } from '$lib/api/pools.client';
     import { checkUsersInPools } from '$lib/api/users.client';
     import type { PoolRequest, PoolUserAndTeam } from '$lib/api/types';
-    import { dulusApiKey } from '$lib/api/settings';
+    import { getApiKey } from '$lib/api/settings';
     import { goto } from '$app/navigation';
 
     let { data }: { data: PageData } = $props();
@@ -73,8 +73,14 @@
         userOptions.find((u) => u.value === formData.mainUser)?.label
     );
 
-    // Extract createdBy from dulusApiKey (first part until dot)
-    const createdBy = dulusApiKey.split('.')[0];
+    // Extract createdBy from API key (first part until dot)
+    let createdBy = $state('Unknown');
+    
+    // Update createdBy when component mounts or API key changes
+    $effect(() => {
+        const apiKey = getApiKey();
+        createdBy = apiKey ? apiKey.split('.')[0] : 'Unknown';
+    });
 
     // Filter users based on pool type
     function getFilteredUsers() {

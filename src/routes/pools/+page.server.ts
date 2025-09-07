@@ -1,4 +1,4 @@
-import { loadPools } from '$lib/api/pools';
+import { loadPools } from '$lib/api/pools.server';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {

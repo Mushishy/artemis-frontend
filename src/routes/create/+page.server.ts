@@ -1,5 +1,5 @@
-import { getTopologiesDisplay } from '$lib/api/topology.client';
-import { getUsers } from '$lib/api/users.client';
+import { getTopologiesDisplay } from '$lib/api/topology.server';
+import { getUsers } from '$lib/api/users.server';
 import type { PageServerLoad } from './$types.js';
 
 export const load: PageServerLoad = async () => {

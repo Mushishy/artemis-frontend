@@ -23,13 +23,22 @@ export function getApiKey(): string | null {
 	}
 	
 	try {
-		// Get API key from cookie
-		const savedApiKey = document.cookie
+		// Get API key from cookie - same logic as auth store
+		const allCookies = document.cookie;
+		const savedApiKey = allCookies
 			.split('; ')
 			.find(row => row.startsWith('api_key='))
 			?.split('=')[1];
 		
-		return savedApiKey ? decodeURIComponent(savedApiKey) : null;
+		const result = savedApiKey ? decodeURIComponent(savedApiKey) : null;
+		
+		console.log('getApiKey() called:', {
+			hasCookies: !!allCookies,
+			foundApiKeyCookie: !!savedApiKey,
+			result: result ? '[FOUND]' : null
+		});
+		
+		return result;
 	} catch (error) {
 		console.error('Error getting API key:', error);
 		return null;
