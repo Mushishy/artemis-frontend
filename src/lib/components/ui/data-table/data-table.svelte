@@ -133,7 +133,7 @@
 				return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
 			}
 			// Status tags - Red (error/failed states)
-			else if (value === 'UNKNOWN' || value === 'NEVER DEPLOYED' || value === 'ERROR' || value === 'DESTROYED' || value === 'ABORTED') {
+			else if (value === 'UNKNOWN' || value === 'NEVER DEPLOYED' || value === 'ERROR' || value === 'DESTROYED' || value === 'ABORTED' || value === 'SUCCESS') {
 				return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
 			}
 			// Status tags - Green (success states)
@@ -162,7 +162,7 @@
 			   value === 'True' || value === 'False' ||
 			   value === 'role' || value === 'collection' ||
 			   value === 'regular' || value === 'main' ||
-			   value === 'UNKNOWN' || value === 'NEVER DEPLOYED' || value === 'ERROR' || value === 'DESTROYED' || value === 'ABORTED' ||
+			   value === 'UNKNOWN' || value === 'NEVER DEPLOYED' || value === 'ERROR' || value === 'DESTROYED' || value === 'ABORTED' || value === 'SUCCESS' ||
 			   value === 'DEPLOYED' ||
 			   value === 'DEPLOYING' || value === 'DESTROYING' ||
 			   value === 'INDIVIDUAL' || value === 'SHARED' || value === 'CTFD';

@@ -118,9 +118,9 @@
 			const result = await createOrUpdateTopology(selectedFile, editingTopology?.ID);
 			
 			if (editingTopology) {
-				showAlert(`Topology "${editingTopology.Name}" updated successfully`, 'success');
+				showAlert(`Topology "${editingTopology.Name || 'Unknown'}" updated successfully`, 'success');
 			} else {
-				showAlert(`Topology "${result.Name}" created successfully`, 'success');
+				showAlert(`Topology "${result.Name || 'Unknown'}" created successfully`, 'success');
 			}
 			
 			closeDialog();
@@ -129,14 +129,23 @@
 		} catch (error: any) {
 			console.error('Failed to upload topology:', error);
 			
-			let errorMessage = 'Failed to upload topology';
-			if (error.response?.data?.error) {
-				errorMessage = error.response.data.error;
-			} else if (error.message) {
-				errorMessage = error.message;
+			// Check for 400 error (topology being used by pool)
+			if (error.response?.status === 400) {
+				showAlert('Topology cannot be edited because it is being used by an active pool', 'error');
+			} else {
+				// Extract error message from API response
+				let errorMessage = 'Failed to upload topology';
+				if (error.response?.data) {
+					if (typeof error.response.data === 'string') {
+						errorMessage = error.response.data;
+					} else if (error.response.data.error) {
+						errorMessage = error.response.data.error;
+					} else if (error.response.data.message) {
+						errorMessage = error.response.data.message;
+					}
+				}
+				showAlert(errorMessage, 'error');
 			}
-			
-			showAlert(errorMessage, 'error');
 		}
 	}
 

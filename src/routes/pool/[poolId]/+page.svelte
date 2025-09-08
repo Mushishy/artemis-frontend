@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { page } from '$app/stores';
     import { goto } from '$app/navigation';
     import { DataTable } from '$lib/components/ui/data-table';
     import { Button } from '$lib/components/ui/button';
@@ -21,13 +20,13 @@
         Map,
         FileText,
         Search,
-        Share2
+        Share2,
+        ArrowLeft
     } from 'lucide-svelte';
-    import type { PoolDetail, PoolUserTeam, PoolDetailData, PoolHealthCheck, PatchUserRequest } from '$lib/api/types.js';
+    import type { PoolDetail, PoolDetailData, PoolHealthCheck, PatchUserRequest } from '$lib/api/types.js';
     import { 
         getPoolDetail, 
-        refreshPoolData, 
-        downloadUserLogs, 
+        refreshPoolData,  
         downloadWireguardConfigs,
         checkPoolHealth,
         setPoolTopology,
@@ -43,20 +42,11 @@
         sharePool,
         unsharePool
     } from '$lib/api/pools.client.js';
-    import { getUserLogs as fetchUserLogs } from '$lib/api/users.client.js';
+
     import { checkUsersInPools, importMissingUsers } from '$lib/api/users.client.js';
-    import { getTopologies, getTopology, downloadTopologyFile } from '$lib/api/topology.client.js';
+    import { getTopologies, getTopology } from '$lib/api/topology.client.js';
     import { formatDate } from '$lib/utils';
     import type { PageData } from './$types';
-
-    // Cleanup streaming when component is destroyed
-    $effect(() => {
-        return () => {
-            if (streamingInterval) {
-                clearInterval(streamingInterval);
-            }
-        };
-    });
 
     let { data }: { data: PageData } = $props();
     let poolDetail: PoolDetail | null = $state(data.poolDetail || null);
@@ -114,13 +104,9 @@
     let statusDialogOpen = $state(false);
     let sharingDialogOpen = $state(false);
     let accessDialogOpen = $state(false);
-    let logViewerOpen = $state(false);
-    let selectedUserId = $state<string | null>(null);
     let userActionType: 'import' | 'patch' = $state('import');
-    let topologyActionType: 'set' | 'download' | 'change' = $state('set');
+    let topologyActionType: 'set' | 'change' = $state('set');
     let statusActionType: 'deploy' | 'redeploy' | 'abort' | 'destroy' = $state('deploy');
-    let sharingActionType: 'share' | 'unshare' = $state('share');
-    let accessActionType: 'ctfd' | 'logins' | 'wireguard' = $state('ctfd');
     let missingUsers = $derived(healthCheck.users?.missingUserIds || []); // Use actual data from health check
     let patchUserInput = $state('');
     let selectedTopologyId = $state('');
@@ -129,15 +115,6 @@
     let currentTopologyData = $state<{topologyId: string; topologyName: string; topologyFile?: string} | null>(null);
     let isLoadingCurrentTopology = $state(false);
     
-    // Log viewer state
-    let logContent = $state<string>('');
-    let logCursor = $state(0);
-    let isLoadingLogs = $state(false);
-    let logError = $state<string | null>(null);
-    let isStreaming = $state(false);
-    let streamingInterval: ReturnType<typeof setInterval> | null = $state(null);
-    let playbookCompleted = $derived(logContent.includes('PLAY RECAP *********************************************************************'));
-    
     async function loadAdditionalData() {
         // Load background data when we already have pool detail from server
         try {
@@ -145,19 +122,15 @@
                 // Load pool data
                 refreshPoolData(data.poolId).then(result => {
                     poolData = result;
-                    console.log('🔄 Pool data refreshed:', poolData);
                 }).catch(error => {
                     console.error('❌ Error refreshing pool data:', error);
-                    console.log('⚠️ Continuing without pool data refresh...');
                 }),
                 
                 // Load health checks
                 checkPoolHealth(data.poolId).then(result => {
                     healthCheck = result;
-                    console.log('🔍 Health check completed:', healthCheck);
                 }).catch(error => {
                     console.error('❌ Error checking pool health:', error);
-                    console.log('⚠️ Health checks unavailable, using defaults...');
                     healthCheck = {
                         users: null,
                         topology: null,
@@ -170,7 +143,6 @@
                 if (poolDetail?.type === 'SHARED') {
                     checkSharingStatus().catch(error => {
                         console.error('❌ Error checking sharing status:', error);
-                        console.log('⚠️ Sharing status unavailable...');
                     });
                 }
             });
@@ -181,14 +153,12 @@
     
     async function loadPoolData() {
         try {
-            console.log('🔄 Loading pool data for:', data.poolId);
             isInitialLoading = true;
             loadingError = null;
             
             // Load pool detail first - this is critical and fast
             try {
                 poolDetail = await getPoolDetail(data.poolId);
-                console.log('📊 Pool detail loaded:', poolDetail);
                 
                 // Once we have basic pool info, show the UI immediately
                 isInitialLoading = false;
@@ -204,19 +174,15 @@
                 // Load pool data
                 refreshPoolData(data.poolId).then(result => {
                     poolData = result;
-                    console.log('🔄 Pool data refreshed:', poolData);
                 }).catch(error => {
                     console.error('❌ Error refreshing pool data:', error);
-                    console.log('⚠️ Continuing without pool data refresh...');
                 }),
                 
                 // Load health checks
                 checkPoolHealth(data.poolId).then(result => {
                     healthCheck = result;
-                    console.log('🔍 Health check completed:', healthCheck);
                 }).catch(error => {
                     console.error('❌ Error checking pool health:', error);
-                    console.log('⚠️ Health checks unavailable, using defaults...');
                     healthCheck = {
                         users: null,
                         topology: null,
@@ -229,7 +195,6 @@
                 if (poolDetail?.type === 'SHARED') {
                     checkSharingStatus().catch(error => {
                         console.error('❌ Error checking sharing status:', error);
-                        console.log('⚠️ Sharing status unavailable...');
                     });
                 }
             });
@@ -273,7 +238,6 @@
     async function loadPoolDetail() {
         try {
             poolDetail = await getPoolDetail(data.poolId);
-            console.log('📊 Pool detail refreshed:', poolDetail);
         } catch (error) {
             console.error('❌ Error loading pool detail:', error);
             throw error;
@@ -284,7 +248,6 @@
         try {
             healthCheck = { ...healthCheck, isLoading: true };
             healthCheck = await checkPoolHealth(data.poolId);
-            console.log('🏥 Health check refreshed:', healthCheck);
         } catch (error) {
             console.error('❌ Error refreshing health check:', error);
             throw error;
@@ -564,39 +527,23 @@
         return users;
     }
 
-    // Topology dialog handlers
-    async function handleDownloadTopology() {
-        if (!selectedTopologyId) {
-            showAlert('Please select a topology to download', 'error');
-            return;
-        }
-        
-        try {
-            showAlert('Downloading topology...', 'success');
-            await downloadTopologyFile(selectedTopologyId);
-            showAlert('Topology downloaded successfully', 'success');
-        } catch (error) {
-            console.error('Error downloading topology:', error);
-            showAlert('Failed to download topology', 'error');
-        } finally {
-            topologyDialogOpen = false;
-            selectedTopologyId = '';
-        }
-    }
-
     async function handleSetTopology() {
         try {
             const response: any = await setPoolTopology(data.poolId);
             
             // Check if response contains errors
             if (response?.results && Array.isArray(response.results)) {
-                const errors = response.results
-                    .filter((result: any) => result.response?.error)
-                    .map((result: any) => `${result.userId}: ${result.response.error}`)
-                    .join('\n');
+                const errorResults = response.results.filter((result: any) => result.response?.error);
                 
-                if (errors) {
-                    showAlert(`Configuration errors:\n${errors}`, 'error');
+                if (errorResults.length > 0) {
+                    // Format errors for better visualization
+                    const errorSummary = `Topology configuration failed for ${errorResults.length} user(s):`;
+                    const errorDetails = errorResults
+                        .map((result: any) => `• ${result.userId}: ${result.response.error}`)
+                        .join('\n');
+                    
+                    const formattedError = `${errorSummary}\n\n${errorDetails}`;
+                    showAlert(formattedError, 'error');
                     topologyDialogOpen = false;
                     return;
                 }
@@ -618,21 +565,25 @@
                 
                 // Handle structured error response with results array
                 if (responseData.results && Array.isArray(responseData.results)) {
-                    const errors = responseData.results
-                        .filter((result: any) => result.response?.error)
-                        .map((result: any) => `${result.userId}: ${result.response.error}`)
-                        .join('\n');
+                    const errorResults = responseData.results.filter((result: any) => result.response?.error);
                     
-                    if (errors) {
-                        errorMessage = `Configuration errors:\n${errors}`;
+                    if (errorResults.length > 0) {
+                        const errorSummary = `Topology configuration failed for ${errorResults.length} user(s):`;
+                        const errorDetails = errorResults
+                            .map((result: any) => `• ${result.userId}: ${result.response.error}`)
+                            .join('\n');
+                        
+                        errorMessage = `${errorSummary}\n\n${errorDetails}`;
                     }
                 } else if (responseData.error) {
                     // Handle simple error response
-                    errorMessage = responseData.error;
+                    errorMessage = `Topology configuration error:\n\n${responseData.error}`;
                 } else if (typeof responseData === 'string') {
                     // Handle plain text error
-                    errorMessage = responseData;
+                    errorMessage = `Topology configuration error:\n\n${responseData}`;
                 }
+            } else if (error.message) {
+                errorMessage = `Topology configuration error:\n\n${error.message}`;
             }
             
             showAlert(errorMessage, 'error');
@@ -650,13 +601,17 @@
             
             // Check if response contains errors
             if (response?.results && Array.isArray(response.results)) {
-                const errors = response.results
-                    .filter((result: any) => result.response?.error)
-                    .map((result: any) => `${result.userId}: ${result.response.error}`)
-                    .join('\n');
+                const errorResults = response.results.filter((result: any) => result.response?.error);
                 
-                if (errors) {
-                    showAlert(`Configuration errors:\n${errors}`, 'error');
+                if (errorResults.length > 0) {
+                    // Format errors for better visualization
+                    const errorSummary = `Topology change failed for ${errorResults.length} user(s):`;
+                    const errorDetails = errorResults
+                        .map((result: any) => `• ${result.userId}: ${result.response.error}`)
+                        .join('\n');
+                    
+                    const formattedError = `${errorSummary}\n\n${errorDetails}`;
+                    showAlert(formattedError, 'error');
                     topologyDialogOpen = false;
                     selectedTopologyId = '';
                     return;
@@ -679,21 +634,25 @@
                 
                 // Handle structured error response with results array
                 if (responseData.results && Array.isArray(responseData.results)) {
-                    const errors = responseData.results
-                        .filter((result: any) => result.response?.error)
-                        .map((result: any) => `${result.userId}: ${result.response.error}`)
-                        .join('\n');
+                    const errorResults = responseData.results.filter((result: any) => result.response?.error);
                     
-                    if (errors) {
-                        errorMessage = `Configuration errors:\n${errors}`;
+                    if (errorResults.length > 0) {
+                        const errorSummary = `Topology change failed for ${errorResults.length} user(s):`;
+                        const errorDetails = errorResults
+                            .map((result: any) => `• ${result.userId}: ${result.response.error}`)
+                            .join('\n');
+                        
+                        errorMessage = `${errorSummary}\n\n${errorDetails}`;
                     }
                 } else if (responseData.error) {
                     // Handle simple error response
-                    errorMessage = responseData.error;
+                    errorMessage = `Topology change error:\n\n${responseData.error}`;
                 } else if (typeof responseData === 'string') {
                     // Handle plain text error
-                    errorMessage = responseData;
+                    errorMessage = `Topology change error:\n\n${responseData}`;
                 }
+            } else if (error.message) {
+                errorMessage = `Topology change error:\n\n${error.message}`;
             }
             
             showAlert(errorMessage, 'error');
@@ -713,191 +672,14 @@
         alertMessage = null;
     }
 
-    function getStatusPointColor(value: boolean | null): string {
-        if (value === null) return 'bg-gray-400';
-        return value ? 'bg-green-500' : 'bg-red-500';
-    }
-
-
-
-    async function handleUserLogs(user: PoolUserTeam) {
-        try {
-            await downloadUserLogs(data.poolId, user.userId);
-            showAlert(`Logs for ${user.user} downloaded successfully`, 'success');
-        } catch (error) {
-            console.error('Error downloading user logs:', error);
-            showAlert(`Failed to download logs for ${user.user}`, 'error');
-        }
-    }
-
-    async function handleUserWireguard(user: PoolUserTeam) {
-        try {
-            await downloadWireguardConfigs(data.poolId, user.userId);
-            showAlert(`Wireguard config for ${user.user} downloaded successfully`, 'success');
-        } catch (error) {
-            console.error('Error downloading Wireguard config:', error);
-            showAlert(`Failed to download Wireguard config for ${user.user}`, 'error');
-        }
+    function goBack() {
+        goto('/pools');
     }
 
     function handleUserRowClick(user: any) {
         const userId = user.userId || user.user;
-        goto(`/pool/${data.poolId}?userid=${userId}`);
+        goto(`/pool/${data.poolId}/logs/${userId}`);
     }
-
-    function closeLogViewer() {
-        goto(`/pool/${data.poolId}`);
-    }
-
-    // Log management functions
-    async function loadUserLogs(userId: string, initialTail: number = 1000) {
-        if (!userId) return;
-        
-        isLoadingLogs = true;
-        logError = null;
-        
-        try {
-            // First, try to get as many logs as possible
-            const response = await fetchUserLogs(userId, initialTail, 0);
-            logContent = response.result;
-            logCursor = response.cursor;
-            
-            // Check if the playbook has already completed
-            if (response.result && response.result.includes('PLAY RECAP *********************************************************************')) {
-                console.log('🏁 Detected PLAY RECAP in initial load - playbook already completed');
-                // Don't start streaming if already completed
-                return;
-            }
-            
-            // Start continuous streaming if logs were loaded successfully and playbook not completed
-            if (response.result) {
-                startLogStreaming(userId);
-            }
-        } catch (error: any) {
-            console.error('Error loading user logs:', error);
-            logError = error.message || 'Failed to load logs';
-            logContent = '';
-        } finally {
-            isLoadingLogs = false;
-        }
-    }
-
-    function startLogStreaming(userId: string) {
-        if (streamingInterval) {
-            clearInterval(streamingInterval);
-        }
-        
-        isStreaming = true;
-        
-        // Fetch new logs every 3 seconds
-        streamingInterval = setInterval(async () => {
-            try {
-                const response = await fetchUserLogs(userId, 100, logCursor);
-                
-                // Only append if there's new content
-                if (response.result && response.result.trim()) {
-                    logContent += response.result;
-                    logCursor = response.cursor;
-                    
-                    // Check if we've reached the end of the playbook (PLAY RECAP indicates completion)
-                    if (response.result.includes('PLAY RECAP *********************************************************************')) {
-                        console.log('🏁 Detected PLAY RECAP - stopping log streaming');
-                        stopLogStreaming();
-                        showAlert('Playbook completed - log streaming stopped', 'success');
-                    }
-                }
-            } catch (error: any) {
-                console.error('Error streaming logs:', error);
-                // Don't stop streaming on error, just log it
-            }
-        }, 3000);
-    }
-
-    function stopLogStreaming() {
-        if (streamingInterval) {
-            clearInterval(streamingInterval);
-            streamingInterval = null;
-        }
-        isStreaming = false;
-    }
-
-    async function refreshLogs() {
-        if (!selectedUserId) return;
-        
-        // Stop current streaming
-        stopLogStreaming();
-        
-        // Reset and reload logs
-        logContent = '';
-        logCursor = 0;
-        await loadUserLogs(selectedUserId);
-    }
-
-    async function loadMoreLogs() {
-        if (!selectedUserId || isLoadingLogs) return;
-        
-        // Temporarily stop streaming to avoid conflicts
-        const wasStreaming = isStreaming;
-        if (wasStreaming) {
-            stopLogStreaming();
-        }
-        
-        isLoadingLogs = true;
-        
-        try {
-            const response = await fetchUserLogs(selectedUserId, 500, logCursor);
-            logContent += response.result;
-            logCursor = response.cursor;
-            
-            // Resume streaming if it was active
-            if (wasStreaming && selectedUserId) {
-                startLogStreaming(selectedUserId);
-            }
-        } catch (error: any) {
-            console.error('Error loading more logs:', error);
-            showAlert('Failed to load more logs', 'error');
-            
-            // Resume streaming even on error if it was active
-            if (wasStreaming && selectedUserId) {
-                startLogStreaming(selectedUserId);
-            }
-        } finally {
-            isLoadingLogs = false;
-        }
-    }
-
-    // Download logs for the current user
-    async function downloadCurrentUserLogs() {
-        if (!selectedUserId) return;
-        
-        try {
-            await downloadUserLogs(data.poolId, selectedUserId);
-            showAlert(`Logs for ${displayUserName} downloaded successfully`, 'success');
-        } catch (error) {
-            console.error('Error downloading user logs:', error);
-            showAlert(`Failed to download logs for ${displayUserName}`, 'error');
-        }
-    }
-
-    // Check URL params for userid
-    $effect(() => {
-        if ($page.url.searchParams.has('userid')) {
-            selectedUserId = $page.url.searchParams.get('userid');
-            logViewerOpen = true;
-            // Load logs when user is selected
-            if (selectedUserId) {
-                loadUserLogs(selectedUserId);
-            }
-        } else {
-            selectedUserId = null;
-            logViewerOpen = false;
-            // Stop streaming and clear logs when closing log viewer
-            stopLogStreaming();
-            logContent = '';
-            logError = null;
-            logCursor = 0;
-        }
-    });
 
     // Dialog action handlers
     function handleUsersClick() {
@@ -964,17 +746,10 @@
         
         sharingStatus.isLoading = true;
         try {
-            console.log('🔗 Checking sharing status for pool:', data.poolId, 'target:', poolDetail.mainUser);
-            
             const responseData = await checkSharingStatusAPI(data.poolId, poolDetail.mainUser);
-            console.log('🔗 Sharing response data:', responseData);
-            console.log('🔗 Sharing response data.shared:', responseData.shared);
-            console.log('🔗 Sharing response data.shared type:', typeof responseData.shared);
             
             sharingStatus.shared = responseData.shared === true;
-            console.log('🔗 Final sharing status:', sharingStatus.shared);
         } catch (error) {
-            console.error('❌ Error checking sharing status:', error);
             sharingStatus.shared = false;
         } finally {
             sharingStatus.isLoading = false;
@@ -1023,7 +798,6 @@
             // Check if unsharing was successful by verifying shared status
             showAlert('Verifying unshare status...', 'success');
             const checkData = await checkSharingStatusAPI(data.poolId, poolDetail.mainUser);
-            console.log('🔗 Unshare verification response:', checkData);
             
             if (checkData.shared === false) {
                 showAlert('Pool unshared successfully', 'success');
@@ -1152,16 +926,7 @@
         }
         statusDialogOpen = false;
     }
-
-    function handleImportMissingUsers() {
-        // TODO: Get missing users from API and show confirmation dialog
-        const missingUsers = ['user1', 'user2']; // Example
-        if (confirm(`Do you want to import missing users: ${missingUsers.join(', ')}?`)) {
-            showAlert('Users imported successfully', 'success');
-        }
-        usersDialogOpen = false;
-    }
-
+    
     // Data processing - using $effect for runes mode
     let processedUserData: any[] = $state([]);
     let filteredHeaders: { key: string; label: string; sortable?: boolean }[] = $state([]);
@@ -1223,39 +988,14 @@
         topologyOptions.find((t) => t.value === selectedTopologyId)?.label
     );
 
-    // Get the actual user name from the selectedUserId
-    const selectedUserName = $derived(() => {
-        if (!selectedUserId || !processedUserData.length) return selectedUserId;
-        const user = processedUserData.find((u: any) => 
-            (u.userId === selectedUserId) || (u.user === selectedUserId)
-        );
-        return user?.user || selectedUserId;
-    });
-
-    // Simple variable to hold the display name
-    let displayUserName = $state('');
-    
-    $effect(() => {
-        if (!selectedUserId || !processedUserData.length) {
-            displayUserName = selectedUserId || '';
-            return;
-        }
-        const user = processedUserData.find((u: any) => 
-            (u.userId === selectedUserId) || (u.user === selectedUserId)
-        );
-        displayUserName = user?.user || selectedUserId || '';
-    });
-
     // Status indicator colors - using $derived for Svelte 5
     const getUsersStatusColor = $derived(() => {
-        console.log('getUsersStatusColor - healthCheck.users:', healthCheck.users);
         if (healthCheck.isLoading) return 'bg-gray-400';
         if (!healthCheck.users) return 'bg-gray-400';
         return healthCheck.users.allExist ? 'bg-green-500' : 'bg-red-500';
     });
 
     const getTopologyStatusColor = $derived(() => {
-        console.log('getTopologyStatusColor - healthCheck.topology:', healthCheck.topology);
         if (healthCheck.isLoading) return 'bg-gray-400';
         if (!healthCheck.topology) return 'bg-gray-400';
         return healthCheck.topology.matchPoolTopology ? 'bg-green-500' : 'bg-red-500';
@@ -1263,7 +1003,6 @@
 
     // Status dot based on allDeployed from health check
     const getStatusIndicatorColor = $derived(() => {
-        console.log('getStatusIndicatorColor - healthCheck.status:', healthCheck.status);
         if (healthCheck.isLoading) return 'bg-gray-400';
         if (!healthCheck.status) return 'bg-gray-400';
         return healthCheck.status.allDeployed ? 'bg-green-500' : 'bg-red-500';
@@ -1271,7 +1010,6 @@
 
     // Access dot based on ctfdData from poolDetail
     const getAccessStatusColor = $derived(() => {
-        console.log('getAccessStatusColor - poolDetail.ctfdData:', poolDetail?.ctfdData);
         if (!poolDetail) return 'bg-gray-400';
         return poolDetail.ctfdData ? 'bg-green-500' : 'bg-red-500';
     });
@@ -1303,6 +1041,10 @@
     <!-- Header -->
     <div class="mb-6 flex items-center justify-between flex-shrink-0">
         <div class="flex items-center gap-4">
+            <Button variant="outline" onclick={goBack} class="flex items-center gap-2">
+                <ArrowLeft class="h-4 w-4" />
+                Back
+            </Button>
             <div>
                 <h1 class="text-3xl font-bold">Pool {data.poolId}</h1>
                 {#if poolDetail}
@@ -1383,161 +1125,9 @@
         </div>
     {/if}
 
-    <!-- Users Table or Log Viewer -->
+    <!-- Users Table -->
     <div class="flex-1 min-h-0 w-full overflow-hidden pb-4">
-        {#if logViewerOpen && selectedUserId}
-            <!-- Inline Log Viewer -->
-            <div class="h-full flex flex-col border rounded-lg overflow-hidden">
-                <!-- Log Header -->
-                <div class="flex items-center justify-between px-6 py-3 border-b bg-gray-100 dark:bg-zinc-900 flex-shrink-0">
-                    <div class="flex items-center gap-4">
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onclick={closeLogViewer}
-                            class="hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-lg px-3 py-2"
-                        >
-                            ←
-                        </Button>
-                        
-                        <h3 class="text-xs font-medium text-gray-700 dark:text-zinc-300 uppercase tracking-wider">
-                            {displayUserName} Logs
-                        </h3>
-                        
-                        {#if playbookCompleted}
-                            <div class="text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-2">
-                                <CheckCircle2 class="h-3 w-3" />
-                                Completed
-                            </div>
-                        {:else if isLoadingLogs}
-                            <div class="text-xs text-muted-foreground flex items-center gap-2">
-                                <RefreshCw class="h-3 w-3 animate-spin" />
-                                Loading...
-                            </div>
-                        {:else if isStreaming}
-                            <div class="text-xs text-green-600 dark:text-green-400 flex items-center gap-2">
-                                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                Streaming
-                            </div>
-                        {/if}
-                    </div>
-                    
-                    <div class="flex items-center gap-2">
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onclick={() => {
-                                if (isStreaming) {
-                                    stopLogStreaming();
-                                } else if (selectedUserId) {
-                                    startLogStreaming(selectedUserId);
-                                }
-                            }}
-                            class="h-8 px-3 rounded-lg text-xs border-gray-300 dark:border-zinc-700"
-                            title={isStreaming ? "Stop streaming" : "Start streaming"}
-                        >
-                            {#if isStreaming}
-                                <div class="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
-                                Stop
-                            {:else}
-                                <div class="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                                Stream
-                            {/if}
-                        </Button>
-                        
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onclick={refreshLogs}
-                            disabled={isLoadingLogs}
-                            class="h-8 px-3 rounded-lg text-xs border-gray-300 dark:border-zinc-700"
-                            title="Refresh logs"
-                        >
-                            <RefreshCw class="h-3 w-3 {isLoadingLogs ? 'animate-spin' : ''}" />
-                        </Button>
-                        
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onclick={downloadCurrentUserLogs}
-                            class="h-8 px-3 rounded-lg text-xs border-gray-300 dark:border-zinc-700"
-                            title="Download logs"
-                        >
-                            <Download class="h-3 w-3" />
-                        </Button>
-                    </div>
-                </div>
-                
-                <!-- Log Content -->
-                <div class="flex-1 bg-gray-900 dark:bg-black text-green-600 dark:text-green-400 font-mono text-sm overflow-hidden">
-                    <div class="h-full w-full overflow-y-auto overflow-x-auto p-4">
-                        {#if logError}
-                            <div class="text-red-400 p-4 text-center">
-                                <AlertCircle class="h-5 w-5 mx-auto mb-2" />
-                                <div class="text-sm">Error loading logs</div>
-                                <div class="text-xs mt-1 opacity-75">{logError}</div>
-                                <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    onclick={refreshLogs}
-                                    class="mt-3 text-xs"
-                                >
-                                    Retry
-                                </Button>
-                            </div>
-                        {:else if !logContent && !isLoadingLogs}
-                            <div class="text-gray-400 p-4 text-center">
-                                <div class="text-sm">No logs available</div>
-                                <div class="text-xs mt-1 opacity-75">Logs will appear here when available</div>
-                            </div>
-                        {:else}
-                            <!-- Display actual log content -->
-                            {#each logContent.split('\n') as line, index}
-                                {#if line.trim()}
-                                    <div class="leading-relaxed hover:bg-gray-800/30 dark:hover:bg-gray-900/50 px-2 py-1 rounded mb-1 whitespace-pre-wrap {line.includes('PLAY RECAP') ? 'bg-yellow-900/30 border-l-4 border-yellow-500' : ''}">
-                                        {line}
-                                    </div>
-                                {/if}
-                            {/each}
-                            
-                            {#if isLoadingLogs && !logContent}
-                                <div class="text-gray-500 dark:text-gray-400 animate-pulse mt-2 px-2">
-                                    ● Loading logs...
-                                </div>
-                            {:else if playbookCompleted}
-                                <div class="text-yellow-500 dark:text-yellow-400 mt-2 px-2 flex items-center gap-2">
-                                    <CheckCircle2 class="w-4 h-4" />
-                                    Playbook completed
-                                </div>
-                            {:else if isStreaming}
-                                <div class="text-green-500 dark:text-green-400 mt-2 px-2 flex items-center gap-2">
-                                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                    Live streaming...
-                                </div>
-                            {:else if logContent}
-                                <!-- Load more button when not streaming -->
-                                <div class="mt-4 px-2">
-                                    <Button 
-                                        variant="outline" 
-                                        size="sm" 
-                                        onclick={loadMoreLogs}
-                                        disabled={isLoadingLogs}
-                                        class="text-xs"
-                                    >
-                                        {#if isLoadingLogs}
-                                            <RefreshCw class="h-3 w-3 animate-spin mr-2" />
-                                            Loading...
-                                        {:else}
-                                            Load More Logs
-                                        {/if}
-                                    </Button>
-                                </div>
-                            {/if}
-                        {/if}
-                    </div>
-                </div>
-            </div>
-        {:else if poolDetail?.usersAndTeams}
+        {#if poolDetail?.usersAndTeams}
             <DataTable 
                 data={processedUserData} 
                 headers={filteredHeaders}

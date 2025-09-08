@@ -33,12 +33,14 @@ export function setApiKey(key: string) {
 		// Consider SameSite=Lax if you need cross-site functionality
 		const cookieString = `api_key=${encodeURIComponent(key)}; max-age=${7 * 24 * 60 * 60}${secureFlag}; samesite=strict; path=/`;
 		
+		/*
 		console.log('Setting API key cookie:', {
 			isSecure,
 			protocol: window.location.protocol,
 			cookieString: cookieString.replace(encodeURIComponent(key), '[REDACTED]')
 		});
-		
+		*/
+
 		document.cookie = cookieString;
 		
 		// Verify cookie was set
@@ -48,10 +50,12 @@ export function setApiKey(key: string) {
 				.find(row => row.startsWith('api_key='))
 				?.split('=')[1];
 			
+			/*
 			console.log('Cookie verification:', {
 				cookieFound: !!savedApiKey,
 				keyMatches: savedApiKey ? decodeURIComponent(savedApiKey) === key : false
 			});
+			*/
 		}, 100);
 	}
 }

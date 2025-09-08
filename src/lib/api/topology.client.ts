@@ -89,7 +89,7 @@ export async function createOrUpdateTopology(file: File, topologyId?: string) {
         const formData = new FormData();
         formData.append('file', file);
         
-        const params = topologyId ? { topologyId } : {};
+        const params = topologyId ? { topologyId: topologyId} : {};
         const response = await dulusClient.put('/topology', formData, {
             params,
             headers: { 

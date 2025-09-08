@@ -8,11 +8,13 @@
 	import { onMount } from "svelte";
 	
 	let { children } = $props();
-	let showLogin = $state(true);
+	let showLogin = $state(false);
+	let isLoading = $state(true);
 
 	onMount(() => {
 		const unsubscribe = isAuthenticated.subscribe(auth => {
 			showLogin = !auth;
+			isLoading = false;
 		});
 		
 		return unsubscribe;
@@ -21,7 +23,12 @@
 
 <ModeWatcher />
 
-{#if showLogin}
+{#if isLoading}
+	<!-- Show loading state while checking authentication -->
+	<div class="flex items-center justify-center h-screen">
+		<div class="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full"></div>
+	</div>
+{:else if showLogin}
 	<AuthLogin />
 {:else}
 	<Sidebar.Provider>

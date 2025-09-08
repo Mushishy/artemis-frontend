@@ -6,7 +6,7 @@ const dulusClient = getDulusClient();
 
 export async function getScenario(scenarioID?: string) {
     try {
-        const params = scenarioID ? { scenarioID } : {};
+        const params = scenarioID ? { scenarioId: scenarioID  } : {};
         const response = await dulusClient.get('/ctfd/scenario', { params });
         return response.data;
     } catch (error) {
@@ -46,6 +46,11 @@ export async function getScenariosDisplay(): Promise<Scenario[]> {
 export async function downloadScenarioFile(scenarioID: string): Promise<void> {
     try {
         const response = await getScenario(scenarioID);
+        
+        if (!response || !response.scenarioFile) {
+            throw new Error('Scenario file not found');
+        }
+        
         if (response.scenarioFile && response.scenarioName) {
             // Decode base64 file content
             const binaryString = atob(response.scenarioFile);
@@ -76,7 +81,7 @@ export async function createOrUpdateScenario(file: File, scenarioID?: string) {
         const formData = new FormData();
         formData.append('file', file);
         
-        const params = scenarioID ? { scenarioID } : {};
+        const params = scenarioID ? { scenarioId: scenarioID } : {};
         const response = await dulusClient.put('/ctfd/scenario', formData, {
             params,
             headers: { 

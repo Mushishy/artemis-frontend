@@ -80,29 +80,29 @@
 		
 		// Validate and prepare request based on type
 		if (installType === 'role') {
-			if (!roleName.trim() || !roleVersion.trim()) {
-				showAlert('Please enter role name and version', 'error');
+			if (!roleName.trim()) {
+				showAlert('Please enter role name', 'error');
 				return;
 			}
 			
 			installName = roleName.trim();
 			request = {
 				role: roleName.trim(),
-				version: roleVersion.trim(),
+				version: roleVersion.trim() || undefined,
 				force: forceInstall,
 				action: 'install',
 				global: globalInstall
 			} as InstallRoleRequest;
 		} else if (installType === 'collection') {
-			if (!collectionName.trim() || !collectionVersion.trim()) {
-				showAlert('Please enter collection name and version', 'error');
+			if (!collectionName.trim()) {
+				showAlert('Please enter collection name', 'error');
 				return;
 			}
 			
 			installName = collectionName.trim();
 			request = {
 				collection: collectionName.trim(),
-				version: collectionVersion.trim(),
+				version: collectionVersion.trim() || undefined,
 				force: forceInstall
 			} as InstallCollectionRequest;
 		} else if (installType === 'file') {
@@ -271,11 +271,11 @@
 						/>
 					</div>
 					<div class="space-y-2">
-						<label for="role-version" class="text-sm font-medium">Version</label>
+						<label for="role-version" class="text-sm font-medium">Version (optional)</label>
 						<Input
 							id="role-version"
 							bind:value={roleVersion}
-							placeholder="e.g., 7.4.7"
+							placeholder="e.g., 7.4.7 (leave empty for latest)"
 							class="w-full"
 						/>
 					</div>
@@ -303,11 +303,11 @@
 						/>
 					</div>
 					<div class="space-y-2">
-						<label for="collection-version" class="text-sm font-medium">Version</label>
+						<label for="collection-version" class="text-sm font-medium">Version (optional)</label>
 						<Input
 							id="collection-version"
 							bind:value={collectionVersion}
-							placeholder="e.g., 0.23.1"
+							placeholder="e.g., 0.23.1 (leave empty for latest)"
 							class="w-full"
 						/>
 					</div>
@@ -360,8 +360,8 @@
 			<Button 
 				onclick={handleInstall} 
 				disabled={
-					(installType === 'role' && (!roleName.trim() || !roleVersion.trim())) ||
-					(installType === 'collection' && (!collectionName.trim() || !collectionVersion.trim())) ||
+					(installType === 'role' && !roleName.trim()) ||
+					(installType === 'collection' && !collectionName.trim()) ||
 					(installType === 'file' && !selectedFile)
 				}
 				class="flex items-center gap-2"

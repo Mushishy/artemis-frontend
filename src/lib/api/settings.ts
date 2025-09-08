@@ -32,12 +32,14 @@ export function getApiKey(): string | null {
 		
 		const result = savedApiKey ? decodeURIComponent(savedApiKey) : null;
 		
+		/*
 		console.log('getApiKey() called:', {
 			hasCookies: !!allCookies,
 			foundApiKeyCookie: !!savedApiKey,
 			result: result ? '[FOUND]' : null
 		});
-		
+		*/
+
 		return result;
 	} catch (error) {
 		console.error('Error getting API key:', error);

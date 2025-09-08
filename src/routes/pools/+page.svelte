@@ -112,22 +112,26 @@
         if (!deletingPool) return;
 
         try {
+            // Close the dialog immediately so user doesn't have to wait
+            destroyUsersDialogOpen = false;
+            const poolToDelete = deletingPool;
+            deletingPool = null;
             isDeletingProcess = true;
 
             // Step 3: If SHARED type, unshare the pool first
-            if (deletingPool.type === 'SHARED') {
+            if (poolToDelete.type === 'SHARED') {
                 showAlert('Getting pool details for unsharing...', 'success');
-                const poolDetail = await getPoolDetail(deletingPool.poolId);
+                const poolDetail = await getPoolDetail(poolToDelete.poolId);
                 if (!poolDetail.mainUser) {
                     throw new Error('Cannot unshare pool: mainUser not found');
                 }
                 showAlert('Unsharing pool...', 'success');
-                await unsharePool(deletingPool.poolId, poolDetail.mainUser);
+                await unsharePool(poolToDelete.poolId, poolDetail.mainUser);
             }
 
             // Step 4: Delete users in the pool
             showAlert('Deleting pool users... This process will take a while', 'success');
-            await deletePoolUsers(deletingPool.poolId);
+            await deletePoolUsers(poolToDelete.poolId);
 
             // Step 5: Wait and check if users are deleted (allExist should be false)
             showAlert('Waiting for users to be deleted...', 'success');
@@ -140,28 +144,24 @@
                 attempts++;
                 showAlert(`Checking user deletion progress... (${attempts}/${maxAttempts})`, 'success');
                 
-                const userCheckResponse = await checkUsersExist(deletingPool.poolId);
+                const userCheckResponse = await checkUsersExist(poolToDelete.poolId);
                 
                 if (!userCheckResponse.allExist) {
                     usersDeleted = true;
                     showAlert('All users deleted successfully', 'success');
-                } else {
-                    console.log(`Attempt ${attempts}: Users still exist, waiting...`);
                 }
             }
 
             if (!usersDeleted) {
                 showAlert('Users deletion is taking longer than expected. Please check manually and try again later.', 'error');
-                destroyUsersDialogOpen = false;
-                deletingPool = null;
                 isDeletingProcess = false;
                 return;
             }
 
             // Step 6: Only now delete the pool after all checks pass
             showAlert('Deleting pool...', 'success');
-            await deletePool(deletingPool.poolId);
-            pools = pools.filter((p: Pool) => p.poolId !== deletingPool!.poolId);
+            await deletePool(poolToDelete.poolId);
+            pools = pools.filter((p: Pool) => p.poolId !== poolToDelete.poolId);
             showAlert('Pool and users deleted successfully', 'success');
 
         } catch (error) {
@@ -169,8 +169,6 @@
             showAlert(`Failed during deletion process: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
         }
 
-        destroyUsersDialogOpen = false;
-        deletingPool = null;
         isDeletingProcess = false;
     }
 
@@ -178,32 +176,34 @@
         if (!deletingPool) return;
 
         try {
+            // Close the dialog immediately
+            destroyUsersDialogOpen = false;
+            const poolToDelete = deletingPool;
+            deletingPool = null;
             isDeletingProcess = true;
 
             // Step 3: If SHARED type, unshare the pool first
-            if (deletingPool.type === 'SHARED') {
+            if (poolToDelete.type === 'SHARED') {
                 showAlert('Getting pool details for unsharing...', 'success');
-                const poolDetail = await getPoolDetail(deletingPool.poolId);
+                const poolDetail = await getPoolDetail(poolToDelete.poolId);
                 if (!poolDetail.mainUser) {
                     throw new Error('Cannot unshare pool: mainUser not found');
                 }
                 showAlert('Unsharing pool...', 'success');
-                await unsharePool(deletingPool.poolId, poolDetail.mainUser);
+                await unsharePool(poolToDelete.poolId, poolDetail.mainUser);
                 showAlert('Pool unshared successfully', 'success');
             }
 
             // Step 4: Just delete the pool without deleting users
             showAlert('Deleting pool (preserving users)...', 'success');
-            await deletePool(deletingPool.poolId);
-            pools = pools.filter((p: Pool) => p.poolId !== deletingPool!.poolId);
+            await deletePool(poolToDelete.poolId);
+            pools = pools.filter((p: Pool) => p.poolId !== poolToDelete.poolId);
             showAlert('Pool deleted successfully (users preserved)', 'success');
         } catch (error) {
             console.error('Error deleting pool:', error);
             showAlert(`Failed to delete pool: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
         }
 
-        destroyUsersDialogOpen = false;
-        deletingPool = null;
         isDeletingProcess = false;
     }
 

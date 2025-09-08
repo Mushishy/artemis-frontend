@@ -186,8 +186,11 @@ export async function downloadUserLogs(poolId: string, userId: string): Promise<
             params: { userID: userId, tail: 100, resumeline: 0 }
         });
 
-        const logs = response.data;
-        const blob = new Blob([logs], { type: 'text/plain' });
+        // Extract the actual log content from the response
+        const logs = response.data?.result || response.data;
+        const logContent = typeof logs === 'string' ? logs : JSON.stringify(logs, null, 2);
+        
+        const blob = new Blob([logContent], { type: 'text/plain' });
         const url = window.URL.createObjectURL(blob);
         
         const link = document.createElement('a');

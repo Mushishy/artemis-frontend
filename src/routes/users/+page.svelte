@@ -69,9 +69,16 @@
             await deleteUser(userId);
             showAlert('success', `User "${userName}" deleted successfully`);
             setTimeout(() => window.location.reload(), 1500);
-        } catch (error) {
-            showAlert('error', `User "${userName}" deleted with errors (may still be processing)`);
-            setTimeout(() => window.location.reload(), 3000);
+        } catch (error: any) {
+            console.error('Delete error:', error);
+            
+            // Check for 500 error (user has active range)
+            if (error.response?.status === 500) {
+                showAlert('error', `User "${userName}" cannot be deleted because they have an active range`);
+            } else {
+                showAlert('error', `User "${userName}" deleted with errors (may still be processing)`);
+                setTimeout(() => window.location.reload(), 3000);
+            }
         }
     }
 

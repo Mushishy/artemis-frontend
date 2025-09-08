@@ -197,24 +197,56 @@ export async function removePool(poolId: string): Promise<any> {
 // ============================================================================
 
 
-export async function downloadWireguardConfigs(poolId: string, downloadFileName: string = 'wireguard_configs.zip'): Promise<void> {
+export async function downloadWireguardConfigs(poolId: string, downloadFileName: string = 'wireguard-configs.zip'): Promise<void> {
     try {
         const response = await dulusClient.get('/range/access', {
-            params: { poolId },
-            headers: { 'accept': 'application/zip' },
-            responseType: 'blob'
+            params: { poolId }
+            // No need for responseType: 'arraybuffer' anymore since we're getting JSON
         });
-        const blob = response.data;
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = downloadFileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+        
+        // Extract base64 data from JSON response
+        const { data: base64Data, filename, size } = response.data;
+        
+        if (!base64Data) {
+            throw new Error('No ZIP data received from server');
+        }
+        
+        console.log(`Received ZIP file: ${filename || downloadFileName} (${size} bytes)`);
+        
+        // Decode base64 to binary
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        // Create blob from binary data
+        const blob = new Blob([bytes], { type: 'application/zip' });
+        
+        // Verify blob size matches
+        if (blob.size !== size) {
+            console.warn(`Size mismatch: expected ${size}, got ${blob.size}`);
+        }
+        
+        // Create object URL and trigger download
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename || downloadFileName;
+        a.style.display = 'none';
+        
+        document.body.appendChild(a);
+        a.click();
+        
+        // Cleanup
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        console.log(`Successfully downloaded ${a.download}`);
+        
     } catch (error) {
-        console.error('Error downloading Wireguard configs:', error);
+        console.error('Error downloading Wireguard configs:', error);        
         throw error;
     }
 }

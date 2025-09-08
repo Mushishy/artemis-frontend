@@ -135,7 +135,6 @@
     }
 
     function showAlert(type: 'success' | 'error', message: string) {
-        console.log('Showing alert:', type, message); // Debug log
         alertMessage = { type, message };
         setTimeout(() => {
             alertMessage = null;
@@ -156,19 +155,14 @@
     }
 
     async function checkUsersInOtherPools() {
-        console.log('checkUsersInOtherPools called'); // Debug log
-        
         if (!formData.bulkUserInput.trim()) {
-            console.log('No bulk user input'); // Debug log
             showAlert('error', 'Please enter users first');
             return;
         }
 
         const users = parseBulkUsers(formData.bulkUserInput);
-        console.log('Parsed users:', users); // Debug log
         
         if (users.length === 0) {
-            console.log('No users parsed'); // Debug log
             showAlert('error', 'No valid users found in input');
             return;
         }
@@ -195,25 +189,19 @@
         try {
             // Transform user names to userId format
             let userIds = users.map(u => transformToUserId(u.user));
-            console.log('User IDs to check:', userIds); // Debug log
             
             // For SHARED pools, also include the main user ID
             if (formData.type === 'SHARED' && formData.mainUser) {
                 userIds.push(formData.mainUser);
-                console.log('Added main user, final userIds:', userIds); // Debug log
             }
             
-            console.log('Making API call...'); // Debug log
             const results = await checkUsersInPools(userIds);
-            console.log('API results:', results); // Debug log
             
             const existingUsers = results.filter(r => r.exists);
             if (existingUsers.length > 0) {
                 const userList = existingUsers.map(u => u.userId).join(', ');
-                console.log('Found existing users:', userList); // Debug log
                 showAlert('error', `Users already in other pools:\n${userList}`);
             } else {
-                console.log('All users available'); // Debug log
                 showAlert('success', 'All users are available for use');
             }
         } catch (error: any) {
