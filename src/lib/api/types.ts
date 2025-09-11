@@ -251,3 +251,21 @@ export interface Scenario {
     Name: string;
     Created: string;
 }
+
+export interface ProxmoxStatsResponse {
+    users: number
+    templates: number 
+    vms: number 
+    numberOfTopologies: number
+    numberOfScenarios: number
+    numberOfRoles: number
+    numberOfPools: number
+    cpuUsagePercentage: number
+    maxCpu: number
+    memoryUsedGiB: number
+    memoryTotalGiB: number
+    memoryFreeGiB: number
+    diskUsedGiB: number
+    diskTotalGiB: number
+    uptimeFormatted: string
+}

@@ -97,6 +97,7 @@ export async function createOrUpdateTopology(file: File, topologyId?: string) {
                 'Content-Type': undefined 
             },
         });
+        console.log('Response from createOrUpdateTopology:', response.data);
         return response.data;
     } catch (error) {
         console.error('Error creating/updating topology:', error);

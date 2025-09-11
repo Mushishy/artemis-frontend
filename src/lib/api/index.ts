@@ -4,7 +4,6 @@ export {
     getLudusClient,
     getLudusAdminClient,
     getInternalApiClient,
-    isServerEnvironment
 } from './api-client';
 
 export * from './types';

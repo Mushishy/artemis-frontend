@@ -120,7 +120,7 @@
 			if (editingTopology) {
 				showAlert(`Topology "${editingTopology.Name || 'Unknown'}" updated successfully`, 'success');
 			} else {
-				showAlert(`Topology "${result.Name || 'Unknown'}" created successfully`, 'success');
+				showAlert(`Topology "${result.id || 'Unknown'}" created successfully`, 'success');
 			}
 			
 			closeDialog();

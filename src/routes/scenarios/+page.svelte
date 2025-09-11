@@ -82,7 +82,7 @@
 		try {
 			const result = await createOrUpdateScenario(selectedFile, editingScenario?.ID);
 			const action = editingScenario ? 'updated' : 'created';
-			showAlert('success', `Scenario ${action} successfully`);
+			showAlert( 'success', `Scenariro "${result.id || 'Unknown'}" ${action} successfully`);
 			// Refresh the scenarios list
 			location.reload();
 		} catch (error) {

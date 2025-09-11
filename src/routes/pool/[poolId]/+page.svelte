@@ -44,7 +44,7 @@
     } from '$lib/api/pools.client.js';
 
     import { checkUsersInPools, importMissingUsers } from '$lib/api/users.client.js';
-    import { getTopologies, getTopology } from '$lib/api/topology.client.js';
+    import { getTopologies, getTopology, downloadTopologyFile } from '$lib/api/topology.client.js';
     import { formatDate } from '$lib/utils';
     import type { PageData } from './$types';
 
@@ -328,7 +328,19 @@
 
         try {
             showAlert('Downloading CTFd logins...', 'success');
-            await downloadCtfdLogins(data.poolId);
+            const loginData = await downloadCtfdLogins(data.poolId);
+            
+            // Create and download the CSV file with pool ID as filename
+            const blob = new Blob([loginData], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${data.poolId}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
             showAlert('CTFd logins downloaded successfully', 'success');
         } catch (error: any) {
             console.error('Error downloading CTFd logins:', error);
@@ -563,8 +575,17 @@
             if (error.response?.data) {
                 const responseData = error.response.data;
                 
+                // Handle new error format with errors array
+                if (responseData.errors && Array.isArray(responseData.errors)) {
+                    const errorSummary = `Topology configuration failed:`;
+                    const errorDetails = responseData.errors
+                        .map((errorMsg: string) => `• ${errorMsg}`)
+                        .join('\n');
+                    
+                    errorMessage = `${errorSummary}\n\n${errorDetails}`;
+                }
                 // Handle structured error response with results array
-                if (responseData.results && Array.isArray(responseData.results)) {
+                else if (responseData.results && Array.isArray(responseData.results)) {
                     const errorResults = responseData.results.filter((result: any) => result.response?.error);
                     
                     if (errorResults.length > 0) {
@@ -710,22 +731,15 @@
         }
     }
 
-    function handleDownloadCurrentTopology() {
-        if (!currentTopologyData?.topologyFile) {
-            showAlert('No topology data available to download', 'error');
+    async function handleDownloadCurrentTopology() {
+        if (!poolDetail?.topologyId) {
+            showAlert('No topology ID available to download', 'error');
             return;
         }
 
         try {
-            const blob = new Blob([currentTopologyData.topologyFile], { type: 'text/yaml' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${currentTopologyData.topologyName || currentTopologyData.topologyId}.yaml`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            await downloadTopologyFile(poolDetail.topologyId);
+            showAlert('Topology file downloaded successfully', 'success');
         } catch (error) {
             console.error('Error downloading topology:', error);
             showAlert('Failed to download topology file', 'error');
@@ -1049,10 +1063,7 @@
                 <h1 class="text-3xl font-bold">Pool {data.poolId}</h1>
                 {#if poolDetail}
                     <p class="text-sm text-muted-foreground">
-                        {#if poolDetail.note}
-                            {poolDetail.note} • 
-                        {/if}
-                        {poolDetail.type} • Created by {poolDetail.createdBy} • {formatDate(poolDetail.createdAt)}
+                        {poolDetail.note} • {poolDetail.type} • Created by {poolDetail.createdBy} • {formatDate(poolDetail.createdAt)}
                     </p>
                 {:else}
                     <div class="flex space-x-2 mt-1">
@@ -1150,7 +1161,7 @@
                     Manage Users
                 </Dialog.Title>
                 <Dialog.Description>
-                    Choose what you want to do: import missing users or patch existing users.
+                    Import missing users into Ludus or patch existing users in the pool definition.
                 </Dialog.Description>
             </Dialog.Header>
             
@@ -1161,7 +1172,7 @@
                     <div class="grid grid-cols-2 gap-4">
                         <label class="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer {userActionType === 'import' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}">
                             <input type="radio" bind:group={userActionType} value="import" class="text-primary" />
-                            <span class="text-sm font-medium">Import Missing</span>
+                            <span class="text-sm font-medium">Import</span>
                         </label>
                         <label class="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer {userActionType === 'patch' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}">
                             <input type="radio" bind:group={userActionType} value="patch" class="text-primary" />
@@ -1197,7 +1208,9 @@
                             </p>
                             <textarea
                                 bind:value={patchUserInput}
-                                placeholder="Alice Dan, smurfs&#10;Bob Dylan, gargamel&#10;Dave Smith, smurfs"
+                                placeholder="Alice Dan, smurfs
+Bob Dylan, gargamel
+Dave Smith, smurfs"
                                 class="w-full h-48 px-3 py-2 border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none rounded-md"
                             ></textarea>
                             {#if patchUserInput.trim()}
@@ -1249,7 +1262,7 @@
                     Manage Topology
                 </Dialog.Title>
                 <Dialog.Description>
-                    Choose what you want to do: set topology for all users or change to a different one.
+                    Set topology in Ludus or change topology inside pool definition.
                 </Dialog.Description>
             </Dialog.Header>
             
@@ -1327,7 +1340,7 @@
                                             <Command.Group>
                                                 {#each topologyOptions as topology (topology.value)}
                                                     <Command.Item
-                                                        value={topology.value}
+                                                        value={topology.label}
                                                         onSelect={() => {
                                                             selectedTopologyId = topology.value;
                                                             topologyComboboxOpen = false;
@@ -1425,7 +1438,7 @@
                         <div class="space-y-2">
                             <div class="text-sm font-medium">Redeploy Pool</div>
                             <div class="w-full px-3 py-2 border border-input bg-muted/50 text-sm rounded-md">
-                                <span class="text-muted-foreground">Redeploy the pool with current configuration</span>
+                                <span class="text-muted-foreground">Redeploy the pool after deployment failure</span>
                             </div>
                         </div>
                     </div>
@@ -1485,7 +1498,7 @@
                     Manage Access
                 </Dialog.Title>
                 <Dialog.Description>
-                    Access CTFd data, download logins, or Wireguard configurations.
+                    Create CTFd data for pool, download CTFd users logins, or download users WireGuard configurations.
                 </Dialog.Description>
             </Dialog.Header>
             
@@ -1502,7 +1515,7 @@
                         <span class="text-xs text-muted-foreground">
                             {healthCheck.users?.allExist && healthCheck.topology?.matchPoolTopology && healthCheck.status?.allDeployed 
                                 ? 'Available' 
-                                : 'Requires Users, Topology & Status to be green'}
+                                : 'Requires users, topology and status processes to be finished successfully'}
                         </span>
                     </div>
                 </Button>
@@ -1550,7 +1563,7 @@
                     Manage Sharing
                 </Dialog.Title>
                 <Dialog.Description>
-                    Share or unshare this pool with the main user.
+                    Share or unshare the main user's range.
                 </Dialog.Description>
             </Dialog.Header>
             
@@ -1563,7 +1576,7 @@
                     <Share2 class="h-4 w-4" />
                     <div class="flex flex-col items-start">
                         <span>Share</span>
-                        <span class="text-xs text-muted-foreground">Enable sharing for this pool</span>
+                        <span class="text-xs text-muted-foreground">Share main user's range to the rest of the pool users</span>
                     </div>
                 </Button>
 
@@ -1575,7 +1588,7 @@
                     <X class="h-4 w-4" />
                     <div class="flex flex-col items-start">
                         <span>Unshare</span>
-                        <span class="text-xs text-muted-foreground">Disable sharing for this pool</span>
+                        <span class="text-xs text-muted-foreground">Unhare main user's range to the rest of the pool users</span>
                     </div>
                 </Button>
             </div>

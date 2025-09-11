@@ -676,7 +676,7 @@
         <div>
             <h1 class="text-3xl font-bold">Create CTFd</h1>
             <p class="text-sm text-muted-foreground">
-                Configure new ctfd topology
+                Create a topology with automated CTFd deployment tailored to your new shared CTFd pool
             </p>
         </div>
         <Button variant="outline" onclick={resetForm} class="flex items-center gap-2">

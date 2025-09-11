@@ -226,7 +226,7 @@
             </Button>
             <div>
                 <h1 class="text-3xl font-bold">Logs for {userId}</h1>
-                <p class="text-sm text-muted-foreground">Pool: {poolId}</p>
+                <p class="text-sm text-muted-foreground">Selected Pool {poolId}</p>
             </div>
         </div>
     </div>
@@ -234,17 +234,16 @@
     <!-- Status Navigation Tabs -->
     <div class="mb-6 flex items-center justify-between flex-shrink-0">
         <div class="flex rounded-lg bg-gray-100 dark:bg-zinc-900 p-1 gap-1">
-            <Button variant="outline" class="rounded-lg px-4 py-2 flex items-center gap-2 shadow-sm" disabled>
+            <Button variant="outline" class="rounded-lg px-4 py-2 flex items-center gap-2 shadow-sm">
                 <span class="text-base font-medium">streaming</span>
                 <div class="w-3 h-3 rounded-full {isStreaming ? 'bg-green-500' : 'bg-red-500'}"></div>
             </Button>
-            <Button variant="outline" class="rounded-lg px-4 py-2 flex items-center gap-2 shadow-sm" disabled>
-                <span class="text-base font-medium">playbook</span>
+            <Button variant="outline" class="rounded-lg px-4 py-2 flex items-center gap-2 shadow-sm">
+                <span class="text-base font-medium">playbook completed</span>
                 <div class="w-3 h-3 rounded-full {playbookCompleted ? 'bg-green-500' : 'bg-yellow-500'}"></div>
             </Button>
-            <Button variant="outline" class="rounded-lg px-4 py-2 flex items-center gap-2 shadow-sm w-32" disabled>
-                <span class="text-base font-medium">cursor</span>
-                <span class="text-sm text-muted-foreground font-mono">{logCursor}</span>
+            <Button variant="outline" class="rounded-lg px-4 py-2 flex items-center gap-2 shadow-sm min-w-32">
+                <span class="text-base font-medium whitespace-nowrap">cursor {logCursor}</span>
             </Button>
         </div>
         

@@ -369,7 +369,7 @@
         <div>
             <h1 class="text-3xl font-bold">Create Pool</h1>
             <p class="text-sm text-muted-foreground">
-                Configure and deploy a new training pool
+                Create a pool definition for management of multiple users ranges at once
             </p>
         </div>
         <Button variant="outline" onclick={resetForm} class="flex items-center gap-2">
@@ -403,42 +403,48 @@
     <br>
     <div class="flex-1 min-h-0 w-full overflow-auto pb-20">
         <div class="max-w-7xl mx-auto">
-            <div class="grid grid-cols-1 xl:grid-cols-3 gap-8 min-h-[600px]">
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-8 min-h-[45rem]">
                 <!-- Step 1: Pool Type Selection -->
-                <Card.Root class="h-fit">
+                <Card.Root class="h-fit min-h-[45rem] flex flex-col">
                     <Card.Header class="pb-4">
                         <Card.Title class="text-xl">Step 1: Select Pool Type</Card.Title>
                         <Card.Description class="text-base">Choose the type of pool you want to create</Card.Description>
                     </Card.Header>
-                    <Card.Content class="space-y-4 p-6">
-                        <button
-                            class="w-full p-6 border-2 rounded-lg transition-all {formData.type === 'INDIVIDUAL' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}"
-                            onclick={() => handleTypeChange('INDIVIDUAL')}
-                        >
-                            <div class="text-center">
-                                <h3 class="font-semibold mb-2 text-lg">Individual</h3>
-                                <p class="text-sm text-muted-foreground">One pool per user</p>
-                                {#if formData.type === 'INDIVIDUAL'}
-                                    <Badge class="mt-3">Selected</Badge>
-                                {/if}
-                            </div>
-                        </button>
+                    <Card.Content class="space-y-4 p-6 flex-1 flex flex-col">
+                        <div class="flex-1 space-y-4">
+                            <button
+                                class="w-full p-6 border-2 rounded-lg transition-all min-h-[8.5rem] {formData.type === 'INDIVIDUAL' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}"
+                                onclick={() => handleTypeChange('INDIVIDUAL')}
+                            >
+                                <div class="text-center h-full flex flex-col justify-center">
+                                    <h3 class="font-semibold mb-2 text-lg">Individual</h3>
+                                    <p class="text-sm text-muted-foreground">One range per user</p>
+                                    <div class="mt-3 min-h-[1.5rem] flex items-center justify-center">
+                                        {#if formData.type === 'INDIVIDUAL'}
+                                            <Badge>Selected</Badge>
+                                        {/if}
+                                    </div>
+                                </div>
+                            </button>
 
-                        <button
-                            class="w-full p-6 border-2 rounded-lg transition-all {formData.type === 'SHARED' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}"
-                            onclick={() => handleTypeChange('SHARED')}
-                        >
-                            <div class="text-center">
-                                <h3 class="font-semibold mb-2 text-lg">Shared</h3>
-                                <p class="text-sm text-muted-foreground">Multi-user shared pool</p>
-                                {#if formData.type === 'SHARED'}
-                                    <Badge class="mt-3">Selected</Badge>
-                                {/if}
-                            </div>
-                        </button>
+                            <button
+                                class="w-full p-6 border-2 rounded-lg transition-all min-h-[8.5rem] {formData.type === 'SHARED' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}"
+                                onclick={() => handleTypeChange('SHARED')}
+                            >
+                                <div class="text-center h-full flex flex-col justify-center">
+                                    <h3 class="font-semibold mb-2 text-lg">Shared</h3>
+                                    <p class="text-sm text-muted-foreground">Users share main user's range</p>
+                                    <div class="mt-3 min-h-[1.5rem] flex items-center justify-center">
+                                        {#if formData.type === 'SHARED'}
+                                            <Badge>Selected</Badge>
+                                        {/if}
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
 
-                        <!-- Manage Users Button - always shown -->
-                        <div class="mt-6">
+                        <!-- Manage Users Button - always shown at bottom -->
+                        <div class="mt-auto pt-6">
                             <Button 
                                 variant="outline" 
                                 onclick={navigateToUsers}
@@ -452,47 +458,23 @@
                 </Card.Root>
 
                 <!-- Step 2: Set up users -->
-                <Card.Root class="h-fit {!formData.type ? 'opacity-50 pointer-events-none' : ''}">
+                <Card.Root class="h-fit min-h-[45rem] flex flex-col {!formData.type ? 'opacity-50 pointer-events-none' : ''}">
                     <Card.Header class="pb-4">
                         <Card.Title class="text-xl">Step 2: Select users</Card.Title>
                         <Card.Description class="text-base">
                             {#if formData.type === 'INDIVIDUAL'}
-                                Enter users and teams for individual pools
+                                Enter pool users and teams
                             {:else if formData.type === 'SHARED'}
-                                Select main user and additional users
+                                Enter main user and pool users and teams
                             {:else}
                                 Select a pool type first
                             {/if}
                         </Card.Description>
                     </Card.Header>
-                    <Card.Content class="space-y-6 p-6">
-                        <!-- Users and Teams Input (always first when applicable) -->
-                        {#if formData.type === 'INDIVIDUAL' || formData.type === 'SHARED'}
-                            <div class="space-y-3">
-                                <div class="text-sm font-medium">
-                                    {formData.type === 'INDIVIDUAL' ? 'Users and Teams *' : 'Additional Users and Teams'}
-                                </div>
-                                <p class="text-xs text-muted-foreground">
-                                    Enter one per line "Username, Team" or "Username"
-                                </p>
-                                <textarea
-                                    bind:value={formData.bulkUserInput}
-                                    placeholder="Alice Dan, smurfs
-Bob Dylan, gargamel
-Dave Smith, smurfs"
-                                    class="w-full h-48 px-4 py-3 border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none rounded-md"
-                                ></textarea>
-                                {#if formData.bulkUserInput.trim()}
-                                    <p class="text-xs text-muted-foreground">
-                                        {parseBulkUsers(formData.bulkUserInput).length} user(s) parsed
-                                    </p>
-                                {/if}
-                            </div>
-                        {/if}
-
-                        <!-- Main User Selection (underneath users and teams) -->
+                    <Card.Content class="space-y-3 p-6 flex-1 flex flex-col">
+                        <!-- Main User Selection (first for SHARED pools) -->
                         {#if formData.type === 'SHARED'}
-                            <div class="space-y-3">
+                            <div class="space-y-2 flex-shrink-0">
                                 <div class="text-sm font-medium">Main User *</div>
                                 <Popover.Root bind:open={mainUserOpen}>
                                     <Popover.Trigger bind:ref={mainUserTriggerRef}>
@@ -517,7 +499,7 @@ Dave Smith, smurfs"
                                                 <Command.Group>
                                                     {#each userOptions as user (user.value)}
                                                         <Command.Item
-                                                            value={user.value}
+                                                            value={user.label}
                                                             onSelect={() => {
                                                                 handleMainUserChange(user.value);
                                                                 closeAndFocusMainUserTrigger();
@@ -542,9 +524,35 @@ Dave Smith, smurfs"
                             </div>
                         {/if}
 
-                        <!-- Check Users in Pools Button -->
+                        <!-- Users and Teams Input (second for consistency) -->
                         {#if formData.type === 'INDIVIDUAL' || formData.type === 'SHARED'}
-                            <div class="mt-6 pt-6 border-t">
+                            <div class="flex-1 flex flex-col min-h-0">
+                                <div class="text-sm font-medium mb-1">
+                                    Pool Users and Teams *
+                                </div>
+                                <p class="text-xs text-muted-foreground mb-2">
+                                    Enter one per line "Username, Team" or "Username"
+                                </p>
+                                <textarea
+                                    bind:value={formData.bulkUserInput}
+                                    placeholder="Alice Dan, smurfs
+Bob Dylan, gargamel
+Dave Smith, smurfs"
+                                    class="w-full flex-1 p-4 border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none rounded-md"
+                                ></textarea>
+                                <div class="min-h-[1.25rem] flex items-center mt-1">
+                                    {#if formData.bulkUserInput.trim()}
+                                        <p class="text-xs text-muted-foreground">
+                                            {parseBulkUsers(formData.bulkUserInput).length} user(s) parsed
+                                        </p>
+                                    {/if}
+                                </div>
+                            </div>
+                        {/if}
+
+                        <!-- Check Users in Pools Button -->
+                        <div class="pt-3">
+                            {#if formData.type === 'INDIVIDUAL' || formData.type === 'SHARED'}
                                 <Button 
                                     variant="outline" 
                                     onclick={checkUsersInOtherPools}
@@ -554,15 +562,15 @@ Dave Smith, smurfs"
                                     <Search class="h-4 w-4" />
                                     Check Users in Pools
                                 </Button>
-                            </div>
-                        {/if}
+                            {/if}
+                        </div>
                     </Card.Content>
                 </Card.Root>
 
                 <!-- Step 3: Select Topology & Note -->
-                <Card.Root class="h-fit {!formData.type ? 'opacity-50 pointer-events-none' : ''}">
+                <Card.Root class="h-fit min-h-[45rem] flex flex-col {!formData.type ? 'opacity-50 pointer-events-none' : ''}">
                     <Card.Header class="pb-4">
-                        <Card.Title class="text-xl">Step 3: Topology & Details</Card.Title>
+                        <Card.Title class="text-xl">Step 3: Topology & Note</Card.Title>
                         <Card.Description class="text-base">
                             {#if formData.type}
                                 Choose the topology and add notes for your pool
@@ -571,70 +579,72 @@ Dave Smith, smurfs"
                             {/if}
                         </Card.Description>
                     </Card.Header>
-                    <Card.Content class="space-y-6 p-6">
-                        <div class="space-y-3">
-                            <div class="text-sm font-medium">Topology *</div>
-                            <Popover.Root bind:open={topologyOpen}>
-                                <Popover.Trigger bind:ref={topologyTriggerRef}>
-                                    {#snippet child({ props })}
-                                        <Button
-                                            {...props}
-                                            variant="outline"
-                                            class="w-full justify-between"
-                                            role="combobox"
-                                            aria-expanded={topologyOpen}
-                                        >
-                                            {selectedTopology || "Select topology..."}
-                                            <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                    {/snippet}
-                                </Popover.Trigger>
-                                <Popover.Content class="w-full p-0">
-                                    <Command.Root>
-                                        <Command.Input placeholder="Search topologies..." />
-                                        <Command.List>
-                                            <Command.Empty>No topology found.</Command.Empty>
-                                            <Command.Group>
-                                                {#each topologyOptions as topology (topology.value)}
-                                                    <Command.Item
-                                                        value={topology.value}
-                                                        onSelect={() => {
-                                                            handleTopologyChange(topology.value);
-                                                            closeAndFocusTopologyTrigger();
-                                                        }}
-                                                    >
-                                                        <Check
-                                                            class="mr-2 h-4 w-4 {formData.topologyId !== topology.value && 'text-transparent'}"
-                                                        />
-                                                        <div class="flex flex-col">
-                                                            <span>{topology.label}</span>
-                                                            {#if topology.description}
-                                                                <span class="text-xs text-muted-foreground">{topology.description}</span>
-                                                            {/if}
-                                                        </div>
-                                                    </Command.Item>
-                                                {/each}
-                                            </Command.Group>
-                                        </Command.List>
-                                    </Command.Root>
-                                </Popover.Content>
-                            </Popover.Root>
+                    <Card.Content class="space-y-6 p-6 flex-1 flex flex-col">
+                        <div class="flex-1 space-y-6">
+                            <div class="space-y-3">
+                                <div class="text-sm font-medium">Topology *</div>
+                                <Popover.Root bind:open={topologyOpen}>
+                                    <Popover.Trigger bind:ref={topologyTriggerRef}>
+                                        {#snippet child({ props })}
+                                            <Button
+                                                {...props}
+                                                variant="outline"
+                                                class="w-full justify-between"
+                                                role="combobox"
+                                                aria-expanded={topologyOpen}
+                                            >
+                                                {selectedTopology || "Select topology..."}
+                                                <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        {/snippet}
+                                    </Popover.Trigger>
+                                    <Popover.Content class="w-full p-0">
+                                        <Command.Root>
+                                            <Command.Input placeholder="Search topologies..." />
+                                            <Command.List>
+                                                <Command.Empty>No topology found.</Command.Empty>
+                                                <Command.Group>
+                                                    {#each topologyOptions as topology (topology.value)}
+                                                        <Command.Item
+                                                            value={topology.label}
+                                                            onSelect={() => {
+                                                                handleTopologyChange(topology.value);
+                                                                closeAndFocusTopologyTrigger();
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                class="mr-2 h-4 w-4 {formData.topologyId !== topology.value && 'text-transparent'}"
+                                                            />
+                                                            <div class="flex flex-col">
+                                                                <span>{topology.label}</span>
+                                                                {#if topology.description}
+                                                                    <span class="text-xs text-muted-foreground">{topology.description}</span>
+                                                                {/if}
+                                                            </div>
+                                                        </Command.Item>
+                                                    {/each}
+                                                </Command.Group>
+                                            </Command.List>
+                                        </Command.Root>
+                                    </Popover.Content>
+                                </Popover.Root>
+                            </div>
+
+                            <div class="space-y-3">
+                                <div class="text-sm font-medium">Note * <span class="text-muted-foreground">(maximum 15 characters)</span></div>
+                                <Input
+                                    bind:value={formData.note}
+                                    placeholder="Enter note..."
+                                    maxlength={15}
+                                    class="w-full"
+                                />
+                                <p class="text-xs text-muted-foreground">
+                                    {formData.note.length}/15 characters
+                                </p>
+                            </div>
                         </div>
 
-                        <div class="space-y-3">
-                            <div class="text-sm font-medium">Note * <span class="text-muted-foreground">(required, max 15 chars)</span></div>
-                            <Input
-                                bind:value={formData.note}
-                                placeholder="Enter note..."
-                                maxlength={15}
-                                class="w-full"
-                            />
-                            <p class="text-xs text-muted-foreground">
-                                {formData.note.length}/15 characters
-                            </p>
-                        </div>
-
-                        <div class="space-y-3">
+                        <div class="mt-auto pt-6">
                             <div class="text-xs text-muted-foreground bg-muted/50 p-3 rounded-md">
                                 <strong>Created by:</strong> {createdBy}
                             </div>
@@ -651,7 +661,7 @@ Dave Smith, smurfs"
             onclick={handleSubmit}
             disabled={!isFormValid()}
             size="lg"
-            class="h-16 px-8 text-lg font-semibold shadow-2xl"
+            class="h-16 p-8 text-lg font-semibold shadow-2xl"
         >
             <Save class="h-4 w-4" />
             Save Pool

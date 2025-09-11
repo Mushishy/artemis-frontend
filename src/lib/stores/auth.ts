@@ -73,7 +73,7 @@ export async function validateApiKey(key: string): Promise<boolean> {
 	try {
 		// Test the API key by making a simple request to dulus endpoint via proxy
 		// The proxy handles SSL certificate issues for us
-		const response = await fetch('/api/proxy/dulus/ctfd/scenario', {
+		const response = await fetch('/api/proxy/ludus/', {
 			method: 'GET',
 			headers: {
 				'X-API-Key': key,
