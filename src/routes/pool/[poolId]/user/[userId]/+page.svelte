@@ -1,0 +1,408 @@
+<script lang="ts">
+    import { onMount } from 'svelte';
+    import { goto } from '$app/navigation';
+    import { formatDate } from '$lib/utils';
+    import type { PageData } from './$types';
+    import type { UserRangeVM } from '$lib/api/types';
+    import { Router, HardDrive, ArrowLeftRight, ArrowLeft } from 'lucide-svelte';
+    import { Button } from '$lib/components/ui/button';
+
+    export let data: PageData;
+
+    // Network visualization state
+    let svgElement: SVGSVGElement;
+    let isDragging = false;
+    let dragTarget: SVGElement | null = null;
+    let dragOffset = { x: 0, y: 0 };
+    
+    // Network data processing
+    interface NetworkNode {
+        id: string;
+        label: string;
+        type: 'router' | 'vlan' | 'vm';
+        x: number;
+        y: number;
+        vlan?: number;
+        visible: boolean;
+        vm?: UserRangeVM;
+    }
+
+    interface NetworkLink {
+        source: string;
+        target: string;
+        visible: boolean;
+    }
+
+    let nodes: NetworkNode[] = [];
+    let links: NetworkLink[] = [];
+    let collapsedVlans = new Set<number>();
+
+    // Process VM data into network structure
+    function processNetworkData() {
+        if (!data.userRange?.VMs) {
+            return;
+        }
+
+        const vlans = new Map<number, UserRangeVM[]>();
+        let router: UserRangeVM | undefined;
+
+        // Categorize VMs
+        data.userRange.VMs.forEach((vm: UserRangeVM) => {
+            if (vm.name.toLowerCase().includes('router')) {
+                router = vm;
+            } else {
+                const vlan = parseInt(vm.ip.split('.')[2]);
+                if (!vlans.has(vlan)) {
+                    vlans.set(vlan, []);
+                }
+                vlans.get(vlan)!.push(vm);
+            }
+        });
+
+        // Create nodes
+        nodes = [];
+        links = [];
+
+        // Add router node (always at the top)
+        if (router) {
+            nodes.push({
+                id: 'router',
+                label: `Router`,
+                type: 'router',
+                x: 50, // Center X
+                y: 15, // Top position
+                visible: true,
+                vm: router
+            });
+        }
+
+        // Add VLAN nodes (arranged horizontally in the middle)
+        const vlanArray = Array.from(vlans.keys()).sort();
+        vlanArray.forEach((vlanNumber, vlanIndex) => {
+            const vms = vlans.get(vlanNumber)!;
+            const vlanId = `vlan-${vlanNumber}`;
+            const vlanSpacing = 80 / Math.max(1, vlanArray.length - 1); // Space VLANs evenly
+            const vlanX = vlanArray.length === 1 ? 50 : 10 + (vlanIndex * vlanSpacing);
+            
+            nodes.push({
+                id: vlanId,
+                label: `Vlan ${vlanNumber}`,
+                type: 'vlan',
+                x: vlanX,
+                y: 35, // Middle position
+                vlan: vlanNumber,
+                visible: true
+            });
+
+            // Link VLAN to router
+            if (router) {
+                links.push({
+                    source: 'router',
+                    target: vlanId,
+                    visible: true
+                });
+            }
+
+            // Add VM nodes for this VLAN (arranged vertically below each VLAN)
+            vms.forEach((vm: UserRangeVM, vmIndex: number) => {
+                const vmId = `vm-${vm.ID}`;
+                const vmY = 55 + (vmIndex * 8); // Arrange VMs vertically below VLAN
+                
+                nodes.push({
+                    id: vmId,
+                    label: `VM ${cleanVmName(vm.name)}`,
+                    type: 'vm',
+                    x: vlanX,
+                    y: vmY,
+                    vlan: vlanNumber,
+                    visible: !collapsedVlans.has(vlanNumber),
+                    vm
+                });
+
+                // Link VM to VLAN
+                links.push({
+                    source: vlanId,
+                    target: vmId,
+                    visible: !collapsedVlans.has(vlanNumber)
+                });
+            });
+        });
+    }
+
+    function cleanVmName(name: string): string {
+        const userID = data.userRange?.userID || data.userId || '';
+        return name.replace(userID + '-', '').replace(/-/g, ' ');
+    }
+
+    function toggleVlan(vlanNumber: number) {
+        if (collapsedVlans.has(vlanNumber)) {
+            collapsedVlans.delete(vlanNumber);
+        } else {
+            collapsedVlans.add(vlanNumber);
+        }
+        
+        // Update visibility
+        nodes.forEach(node => {
+            if (node.type === 'vm' && node.vlan === vlanNumber) {
+                node.visible = !collapsedVlans.has(vlanNumber);
+            }
+        });
+        
+        links.forEach(link => {
+            const targetNode = nodes.find(n => n.id === link.target);
+            if (targetNode && targetNode.type === 'vm' && targetNode.vlan === vlanNumber) {
+                link.visible = !collapsedVlans.has(vlanNumber);
+            }
+        });
+        
+        // Trigger reactivity
+        nodes = nodes;
+        links = links;
+    }
+
+    function getNodeColor(type: string): string {
+        switch (type) {
+            case 'router': return '#6b7280'; // Gray for router
+            case 'vlan': return '#3b82f6'; // Blue for VLANs
+            case 'vm': return '#059669'; // Green for VMs
+            default: return '#64748b';
+        }
+    }
+
+    function startDrag(event: MouseEvent, nodeId: string) {
+        isDragging = true;
+        dragTarget = event.target as SVGElement;
+        
+        const node = nodes.find(n => n.id === nodeId);
+        if (node && svgElement) {
+            const rect = svgElement.getBoundingClientRect();
+            const svgX = (event.clientX - rect.left) / rect.width * 100;
+            const svgY = (event.clientY - rect.top) / rect.height * 75;
+            
+            dragOffset.x = svgX - node.x;
+            dragOffset.y = svgY - node.y;
+        }
+        
+        event.preventDefault();
+    }
+
+    function handleMouseMove(event: MouseEvent) {
+        if (isDragging && dragTarget) {
+            const nodeId = dragTarget.getAttribute('data-node-id');
+            const node = nodes.find(n => n.id === nodeId);
+            
+            if (node && svgElement) {
+                const rect = svgElement.getBoundingClientRect();
+                const svgX = (event.clientX - rect.left) / rect.width * 100;
+                const svgY = (event.clientY - rect.top) / rect.height * 75;
+                
+                node.x = svgX - dragOffset.x;
+                node.y = svgY - dragOffset.y;
+                
+                // Keep nodes within bounds
+                node.x = Math.max(5, Math.min(95, node.x));
+                node.y = Math.max(5, Math.min(70, node.y));
+                
+                // Trigger reactivity
+                nodes = nodes;
+            }
+        }
+    }
+
+    function stopDrag() {
+        isDragging = false;
+        dragTarget = null;
+    }
+
+    function goBack() {
+        goto(`/pool/${data.poolId}`);
+    }
+
+    onMount(() => {
+        if (!data.error && data.userRange?.VMs) {
+            processNetworkData();
+        }
+        
+        // Add global mouse event listeners
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', stopDrag);
+        
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', stopDrag);
+        };
+    });
+</script>
+
+<div class="flex h-full w-full flex-1 flex-col p-6">
+    {#if data.error}
+        <!-- Error Display -->
+        <div class="mb-6 flex items-center justify-between flex-shrink-0">
+            <div class="flex items-center gap-4">
+                <Button variant="outline" onclick={goBack} class="flex items-center gap-2">
+                    <ArrowLeft class="h-4 w-4" />
+                    Back
+                </Button>
+                <div>
+                    <h1 class="text-3xl font-bold">User: {data.userId}</h1>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex-1 flex items-center justify-center">
+            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-8 max-w-md text-center">
+                <div class="w-12 h-12 mx-auto mb-4 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                    </svg>
+                </div>
+                <h2 class="text-xl font-semibold text-red-800 dark:text-red-200 mb-2">No Range Found</h2>
+                <p class="text-red-600 dark:text-red-300 mb-4">
+                    User <span class="font-medium">{data.userId}</span> has no range configured.
+                </p>
+                <p class="text-sm text-red-500 dark:text-red-400">
+                    The user may not have been deployed yet or the range may have been deleted.
+                </p>
+            </div>
+        </div>
+    {:else}
+        <!-- Header -->
+        <div class="mb-6 flex items-center justify-between flex-shrink-0">
+            <div class="flex items-center gap-4">
+                <Button variant="outline" onclick={goBack} class="flex items-center gap-2">
+                    <ArrowLeft class="h-4 w-4" />
+                    Back
+                </Button>
+                <div>
+                    <h1 class="text-3xl font-bold">User: {data.userRange?.userID || data.userId}</h1>
+                    {#if data.userRange?.lastDeployment}
+                       <p class="text-sm text-muted-foreground">
+                            Last deployed: {formatDate(data.userRange.lastDeployment)} • 
+                            Status: <span class="font-medium text-{data.userRange.rangeState === 'SUCCESS' ? 'green' : 'red'}-600">
+                                {data.userRange.rangeState}
+                            </span>
+                        </p>
+                    {/if}
+                </div>
+            </div>
+        </div>
+
+    <!-- Network Visualization -->
+    <div class="flex-1 overflow-hidden border rounded-lg shadow-sm mb-6" style="background-color: #1a1a1a;">
+        <svg 
+            bind:this={svgElement}
+            class="w-full h-full cursor-move"
+            viewBox="0 0 100 75"
+            preserveAspectRatio="xMidYMid meet"
+            style="user-select: none;"
+        >
+            <!-- Links -->
+            {#each links as link}
+                {#if link.visible}
+                    {@const sourceNode = nodes.find(n => n.id === link.source)}
+                    {@const targetNode = nodes.find(n => n.id === link.target)}
+                    {#if sourceNode && targetNode}
+                        <line
+                            x1={sourceNode.x}
+                            y1={sourceNode.y}
+                            x2={targetNode.x}
+                            y2={targetNode.y}
+                            stroke="#9ca3af"
+                            stroke-width="0.3"
+                            opacity="0.8"
+                        />
+                    {/if}
+                {/if}
+            {/each}
+
+            <!-- Nodes -->
+            {#each nodes as node}
+                {#if node.visible}
+                    <g
+                        data-node-id={node.id}
+                        style="cursor: move;"
+                        on:mousedown={(e) => startDrag(e, node.id)}
+                        on:dblclick={() => node.type === 'vlan' && node.vlan !== undefined && toggleVlan(node.vlan)}
+                        role="button"
+                        tabindex="0"
+                    >
+                        <!-- Node rectangle -->
+                        <rect
+                            x={node.x - 2.5}
+                            y={node.y - 2.5}
+                            width="5"
+                            height="5"
+                            rx="0.8"
+                            fill={getNodeColor(node.type)}
+                            stroke="#000000"
+                            stroke-width="0.2"
+                            opacity="0.95"
+                            data-node-id={node.id}
+                        />
+                        
+                        <!-- Node icon -->
+                        <foreignObject
+                            x={node.x - 1}
+                            y={node.y - 1}
+                            width="2"
+                            height="2"
+                            data-node-id={node.id}
+                            class="pointer-events-none"
+                            style="z-index: 10;"
+                        >
+                            <div class="flex items-center justify-center w-full h-full">
+                                {#if node.type === 'router'}
+                                    <Router size={12} class="text-white drop-shadow" />
+                                {:else if node.type === 'vlan'}
+                                    <ArrowLeftRight size={12} class="text-white drop-shadow" />
+                                {:else if node.type === 'vm'}
+                                    <HardDrive size={12} class="text-white drop-shadow" />
+                                {/if}
+                            </div>
+                        </foreignObject>
+                        
+                        <!-- Node label -->
+                        <text
+                            x={node.x}
+                            y={node.y + 5.5}
+                            text-anchor="middle"
+                            class="fill-gray-200 font-medium pointer-events-none"
+                            data-node-id={node.id}
+                            style="font-size: 2px;"
+                        >
+                            {node.label}
+                        </text>
+                        
+                        <!-- VM IP address -->
+                        {#if node.type === 'vm' && node.vm}
+                            <text
+                                x={node.x}
+                                y={node.y + 7.5}
+                                text-anchor="middle"
+                                class="fill-gray-400 pointer-events-none"
+                                data-node-id={node.id}
+                                style="font-size: 1.5px;"
+                            >
+                                {node.vm.ip}
+                            </text>
+                        {/if}
+
+                        <!-- Power state indicator for VMs -->
+                        {#if node.type === 'vm' && node.vm}
+                            <circle
+                                cx={node.x + 2.2}
+                                cy={node.y - 2.2}
+                                r="0.8"
+                                fill={node.vm.poweredOn === true? '#10b981' : '#ef4444'}
+                                stroke="#000000"
+                                stroke-width="0.15"
+                                data-node-id={node.id}
+                            />
+                        {/if}
+                    </g>
+                {/if}
+            {/each}
+        </svg>
+    </div>
+    {/if}
+</div>

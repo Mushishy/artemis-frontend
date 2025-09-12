@@ -1,6 +1,6 @@
 import { getDulusClient } from './api-client';
 import { formatDate } from '$lib/utils';
-import type { Topology, TopologyCheckResponse, TopologyDisplay } from './types';
+import type { Topology, TopologyCheckResponse, TopologyDisplay, CtfdTopologyRequest, CtfdTopologyResponse } from './types';
 
 const dulusClient = getDulusClient();
 
@@ -129,6 +129,20 @@ export async function checkPoolTopology(poolId: string): Promise<TopologyCheckRe
         return response.data;
     } catch (error) {
         console.error('Error checking pool topology:', error);
+        throw error;
+    }
+}
+
+// ============================================================================
+// CTFD TOPOLOGY OPERATIONS
+// ============================================================================
+
+export async function createCtfdTopology(config: CtfdTopologyRequest): Promise<CtfdTopologyResponse> {
+    try {
+        const response = await dulusClient.post('/topology/ctfd', config);
+        return response.data;
+    } catch (error) {
+        console.error('Error creating CTFd topology:', error);
         throw error;
     }
 }

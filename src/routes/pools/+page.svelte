@@ -11,7 +11,7 @@
         CheckCircle2, 
         X 
     } from 'lucide-svelte';
-    import type { Pool } from '$lib/api/types';
+    import type { Pool, PoolDetail } from '$lib/api/types';
     import { 
         deletePool,
         updatePoolNote,
@@ -23,12 +23,17 @@
     } from '$lib/api/pools';
     import type { PageData } from './$types';
 
+    // Extended pool type for deletion process
+    type PoolWithDetail = Pool & {
+        poolDetail?: PoolDetail;
+    };
+
     let { data }: { data: PageData } = $props();
     let pools = $state(data?.pools || []);
     let deleteDialogOpen = $state(false);
     let noteDialogOpen = $state(false);
     let destroyUsersDialogOpen = $state(false);
-    let deletingPool: Pool | null = $state(null);
+    let deletingPool: PoolWithDetail | null = $state(null);
     let editingPool: Pool | null = $state(null);
     let noteInputValue = $state('');
     let alertMessage = $state<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -37,7 +42,7 @@
     const headers: { key: keyof Pool; label: string; sortable?: boolean }[] = [
         { key: 'note', label: 'Note', sortable: true },
         { key: 'createdBy', label: 'Created By', sortable: true },
-        { key: 'topologyId', label: 'Topology ID', sortable: true },
+        { key: 'poolId', label: 'Pool ID', sortable: true },
         { key: 'type', label: 'Type', sortable: true }
     ];
 
@@ -74,34 +79,58 @@
         try {
             isDeletingProcess = true;
             
-            // Step 1: Check pool status first - this is critical
+            // Step 1: Get pool details first (we'll need this later anyway)
+            showAlert('Getting pool details...', 'success');
+            const poolDetail = await getPoolDetail(deletingPool.poolId);
+            
+            // Step 2: Check pool status
             showAlert('Checking pool status...', 'success');
             const statusResponse = await checkPoolStatus(deletingPool.poolId);
             
+            // Step 3: Filter results based on pool type
+            let resultsToCheck = statusResponse.results;
+            
+            if (deletingPool.type === 'SHARED' && poolDetail.mainUser) {
+                // For SHARED pools, only check the main user's state
+                resultsToCheck = statusResponse.results.filter(result => 
+                    result.userId === poolDetail.mainUser
+                );
+                showAlert(`Checking main user (${poolDetail.mainUser}) status only for shared pool...`, 'success');
+            }
+            
             // Check if any user has a state that's not DESTROYED, UNKNOWN, or NEVER DEPLOYED
-            const invalidStates = statusResponse.results.filter(result => {
+            const invalidStates = resultsToCheck.filter(result => {
                 const state = result.state.toUpperCase();
                 return !['DESTROYED', 'UNKNOWN', 'NEVER DEPLOYED'].includes(state);
             });
 
             if (invalidStates.length > 0) {
                 const userStates = invalidStates.map(result => `${result.userId}: ${result.state}`).join(', ');
-                showAlert(`Cannot delete pool. Users with active deployments: ${userStates}`, 'error');
+                const message = deletingPool.type === 'SHARED' 
+                    ? `Cannot delete pool. Main user has active deployment: ${userStates}`
+                    : `Cannot delete pool. Users with active deployments: ${userStates}`;
+                showAlert(message, 'error');
                 deleteDialogOpen = false;
                 deletingPool = null;
                 isDeletingProcess = false;
                 return;
             }
 
-            // Step 2: All status checks passed, now ask about user destruction
-            showAlert('Pool status check passed. Ready for deletion.', 'success');
+            // Step 4: All status checks passed, now ask about user destruction
+            const statusMessage = deletingPool.type === 'SHARED'
+                ? 'Main user status check passed. Ready for deletion.'
+                : 'Pool status check passed. Ready for deletion.';
+            showAlert(statusMessage, 'success');
             deleteDialogOpen = false;
             destroyUsersDialogOpen = true;
             isDeletingProcess = false;
 
+            // Store pool detail for later use in the destruction process
+            deletingPool.poolDetail = poolDetail;
+
         } catch (error) {
             console.error('Error in delete process:', error);
-            showAlert('Failed to check pool status', 'error');
+            showAlert('Failed to check pool status or get pool details', 'error');
             deleteDialogOpen = false;
             deletingPool = null;
             isDeletingProcess = false;
@@ -115,14 +144,13 @@
             // Close the dialog immediately so user doesn't have to wait
             destroyUsersDialogOpen = false;
             const poolToDelete = deletingPool;
+            const poolDetail = poolToDelete.poolDetail; // Use already fetched details
             deletingPool = null;
             isDeletingProcess = true;
 
             // Step 3: If SHARED type, unshare the pool first
             if (poolToDelete.type === 'SHARED') {
-                showAlert('Getting pool details for unsharing...', 'success');
-                const poolDetail = await getPoolDetail(poolToDelete.poolId);
-                if (!poolDetail.mainUser) {
+                if (!poolDetail?.mainUser) {
                     throw new Error('Cannot unshare pool: mainUser not found');
                 }
                 showAlert('Unsharing pool...', 'success');
@@ -179,14 +207,13 @@
             // Close the dialog immediately
             destroyUsersDialogOpen = false;
             const poolToDelete = deletingPool;
+            const poolDetail = poolToDelete.poolDetail; // Use already fetched details
             deletingPool = null;
             isDeletingProcess = true;
 
             // Step 3: If SHARED type, unshare the pool first
             if (poolToDelete.type === 'SHARED') {
-                showAlert('Getting pool details for unsharing...', 'success');
-                const poolDetail = await getPoolDetail(poolToDelete.poolId);
-                if (!poolDetail.mainUser) {
+                if (!poolDetail?.mainUser) {
                     throw new Error('Cannot unshare pool: mainUser not found');
                 }
                 showAlert('Unsharing pool...', 'success');
@@ -280,7 +307,7 @@
             maxHeight="calc(100% - 2rem)"
             showActions={true}
             onRowClick={handleRowClick}
-            onNote={handleNote}
+            onEdit={handleNote}
             onDelete={handleDelete}
         />
     </div>

@@ -299,7 +299,7 @@
 											size="sm"
 											onclick={(e) => { e.stopPropagation(); onNote?.(row); }}
 											class="p-1.5 h-7 w-7 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 dark:hover:bg-amber-950 dark:hover:border-amber-700 dark:hover:text-amber-300"
-											title="Edit Note"
+											title="Show Range"
 										>
 											<FileText class="h-3.5 w-3.5" />
 										</Button>

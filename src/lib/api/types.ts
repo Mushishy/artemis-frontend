@@ -42,6 +42,27 @@ export interface UsersCheckResponse {
     missingUserIds: string[];
 }
 
+export interface UserRangeVM {
+    ID: number;
+    proxmoxID: number;
+    rangeNumber: number;
+    name: string;
+    poweredOn: boolean;
+    ip: string;
+}
+
+export interface UserRange {
+    userID: string;
+    rangeNumber: number;
+    lastDeployment: string;
+    numberOfVMs: number;
+    testingEnabled: boolean;
+    VMs: UserRangeVM[];
+    allowedDomains: string[];
+    allowedIPs: string[];
+    rangeState: string;
+}
+
 // ============================================================================
 // LUDUS PLATFORM TYPES
 // ============================================================================
@@ -268,4 +289,37 @@ export interface ProxmoxStatsResponse {
     diskUsedGiB: number
     diskTotalGiB: number
     uptimeFormatted: string
+}
+
+// ============================================================================
+// CTFD TOPOLOGY TYPES
+// ============================================================================
+
+export interface CtfdTopologyRequest {
+    topologyName: string;
+    scenarioId: string;
+    poolId: string;
+    usernameConfig?: string;
+    passwordConfig?: string;
+    adminUsername?: string;
+    adminPassword?: string;
+    ctfName?: string;
+    ctfDescription?: string;
+    challengeVisibility?: 'private' | 'public';
+    accountVisibility?: 'private' | 'public';
+    scoreVisibility?: 'private' | 'public';
+    registrationVisibility?: 'private' | 'public';
+    allowNameChanges?: 'no' | 'yes';
+    allowTeamCreation?: 'no' | 'yes';
+    allowTeamDisbanding?: 'no' | 'yes';
+    confStartTime?: string;
+    confStopTime?: string;
+    timeZone?: string;
+    allowViewingAfter?: 'no' | 'yes';
+}
+
+export interface CtfdTopologyResponse {
+    message: string;
+    topologyId: string;
+    topologyName: string;
 }

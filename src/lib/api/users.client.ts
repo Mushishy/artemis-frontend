@@ -10,7 +10,8 @@ import type {
     UserCheckResponse, 
     UserExistsCheck, 
     UsersCheckResponse, 
-    LudusLogResponse 
+    LudusLogResponse,
+    UserRange
 } from './types';
 
 // API clients
@@ -224,6 +225,19 @@ export async function downloadWireGuardConfig(userID: string): Promise<void> {
         URL.revokeObjectURL(link.href);
     } catch (error) {
         console.error('Error downloading WireGuard config:', error);
+        throw error;
+    }
+}
+
+/**
+ * Get user range information including VMs and network details
+ */
+export async function getUserRange(userID: string): Promise<UserRange> {
+    try {
+        const response = await ludusClient.get(`/range?userID=${userID}`);
+        return response.data;
+    } catch (error) {
+        console.error(`Error fetching range for user ${userID}:`, error);
         throw error;
     }
 }

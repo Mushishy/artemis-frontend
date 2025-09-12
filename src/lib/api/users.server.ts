@@ -10,7 +10,8 @@ import type {
     UserCheckResponse, 
     UserExistsCheck, 
     UsersCheckResponse, 
-    LudusLogResponse 
+    LudusLogResponse,
+    UserRange
 } from './types';
 
 // ============================================================================
@@ -178,6 +179,20 @@ export async function getUserLogs(userId: string, tail: number = 100, resumeline
         return response.data;
     } catch (error) {
         console.error('Error fetching user logs:', error);
+        throw error;
+    }
+}
+
+/**
+ * Get user range information including VMs and network details
+ */
+export async function getUserRange(userID: string): Promise<UserRange> {
+    try {
+        const ludusClient = getServerLudusClient();
+        const response = await ludusClient.get(`/range?userID=${userID}`);
+        return response.data;
+    } catch (error) {
+        console.error(`Error fetching range for user ${userID}:`, error);
         throw error;
     }
 }

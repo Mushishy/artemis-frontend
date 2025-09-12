@@ -702,6 +702,11 @@
         goto(`/pool/${data.poolId}/logs/${userId}`);
     }
 
+    function handleNote(user: any) {
+        const userId = user.userId || user.user;
+        goto(`/pool/${data.poolId}/user/${userId}`);
+    }
+
     // Dialog action handlers
     function handleUsersClick() {
         usersDialogOpen = true;
@@ -1144,6 +1149,8 @@
                 headers={filteredHeaders}
                 maxHeight="calc(100% - 2rem)"
                 onRowClick={handleUserRowClick}
+                showActions={true}
+                onNote={handleNote}
             />
         {:else}
             <div class="flex items-center justify-center h-32">
