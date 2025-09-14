@@ -7,14 +7,15 @@
 	import GamepadIcon from "@lucide/svelte/icons/gamepad-2";
 	import FileTextIcon from "@lucide/svelte/icons/file-text";
 	import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-    import SunIcon from "@lucide/svelte/icons/sun";
-    import MoonIcon from "@lucide/svelte/icons/moon";
 	import UsersIcon from "@lucide/svelte/icons/users";
 	import CalendarIcon from "@lucide/svelte/icons/calendar";
+	import GitlabIcon from "@lucide/svelte/icons/gitlab";
+	import ServerIcon from "@lucide/svelte/icons/server";
+	import TextIcon from "@lucide/svelte/icons/book-open-text";
+	
+	
 
-    import { toggleMode } from "mode-watcher";
-    import { Button } from "$lib/components/ui/button/index.js";
-    import { getApiKey } from "$lib/api/settings";
+    import { getApiKey, API_ENDPOINTS } from "$lib/api/settings";
 
 	// Menu items.
     const menus = [ 
@@ -70,6 +71,24 @@
 			icon: CalendarIcon,
 		},
 	];
+
+	const documentation = [
+		{
+		name: "Proxmox",
+			url: API_ENDPOINTS.ludusProxmox.url,
+			icon: ServerIcon,
+		},	
+		{
+		name: "GitLab",
+			url: API_ENDPOINTS.gitlab.url,
+			icon: GitlabIcon,
+		},	
+		{
+		name: "Documentation",
+			url: API_ENDPOINTS.ludus.server + "/ludus",
+			icon: TextIcon,
+		}
+	]
 
 	let createdBy = "Unknown";
 
@@ -137,6 +156,26 @@
 			<Sidebar.GroupContent>
 				<Sidebar.Menu>
 					{#each items as item (item.name)}
+						<Sidebar.MenuItem>
+							<Sidebar.MenuButton>
+								{#snippet child({ props })}
+									<a href={item.url} {...props}>
+										<item.icon />
+										<span>{item.name}</span>
+									</a>
+								{/snippet}
+							</Sidebar.MenuButton>
+						</Sidebar.MenuItem>
+					{/each}
+				</Sidebar.Menu>
+			</Sidebar.GroupContent>
+		</Sidebar.Group>
+
+		 <Sidebar.Group>
+			<Sidebar.GroupLabel>Management</Sidebar.GroupLabel>
+			<Sidebar.GroupContent>
+				<Sidebar.Menu>
+					{#each documentation as item (item.name)}
 						<Sidebar.MenuItem>
 							<Sidebar.MenuButton>
 								{#snippet child({ props })}

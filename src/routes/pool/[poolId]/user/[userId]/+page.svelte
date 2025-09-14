@@ -340,27 +340,6 @@
                             data-node-id={node.id}
                         />
                         
-                        <!-- Node icon -->
-                        <foreignObject
-                            x={node.x - 1}
-                            y={node.y - 1}
-                            width="2"
-                            height="2"
-                            data-node-id={node.id}
-                            class="pointer-events-none"
-                            style="z-index: 10;"
-                        >
-                            <div class="flex items-center justify-center w-full h-full">
-                                {#if node.type === 'router'}
-                                    <Router size={12} class="text-white drop-shadow" />
-                                {:else if node.type === 'vlan'}
-                                    <ArrowLeftRight size={12} class="text-white drop-shadow" />
-                                {:else if node.type === 'vm'}
-                                    <HardDrive size={12} class="text-white drop-shadow" />
-                                {/if}
-                            </div>
-                        </foreignObject>
-                        
                         <!-- Node label -->
                         <text
                             x={node.x}
@@ -399,6 +378,36 @@
                                 data-node-id={node.id}
                             />
                         {/if}
+
+                        <!-- Node icon - painted last to be on top -->
+                        <g class="pointer-events-none" data-node-id={node.id}>
+                            {#if node.type === 'router'}
+                                <!-- Router icon (Lucide router paths) -->
+                                <g transform="translate({node.x - 1.2}, {node.y - 1.2}) scale(0.1)">
+                                    <rect x="3" y="11" width="18" height="10" rx="2" fill="none" stroke="white" stroke-width="2"/>
+                                    <circle cx="12" cy="5" r="2" fill="none" stroke="white" stroke-width="2"/>
+                                    <path d="m12 7-2 4h4l-2-4Z" fill="white"/>
+                                    <circle cx="6" cy="16" r="1" fill="white"/>
+                                    <circle cx="18" cy="16" r="1" fill="white"/>
+                                </g>
+                            {:else if node.type === 'vlan'}
+                                <!-- ArrowLeftRight icon (Lucide arrow-left-right paths) -->
+                                <g transform="translate({node.x - 1.2}, {node.y - 1.2}) scale(0.1)">
+                                    <path d="M8 3L4 7l4 4" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M4 7h16" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="m16 21 4-4-4-4" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M20 17H4" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </g>
+                            {:else if node.type === 'vm'}
+                                <!-- HardDrive icon (Lucide hard-drive paths) -->
+                                <g transform="translate({node.x - 1.2}, {node.y - 1.2}) scale(0.1)">
+                                    <line x1="22" y1="12" x2="2" y2="12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <circle cx="6" cy="16" r="1" fill="white"/>
+                                    <circle cx="10" cy="16" r="1" fill="white"/>
+                                </g>
+                            {/if}
+                        </g>
                     </g>
                 {/if}
             {/each}

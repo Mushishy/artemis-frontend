@@ -959,7 +959,7 @@
                 
                 return {
                     ...user,
-                    userType: user.userType || 'regular',
+                    userType: user.userType || 'REGULAR',
                     status: userStatus?.state ? userStatus.state.toUpperCase() : 'UNKNOWN'
                 };
             });
@@ -972,8 +972,9 @@
                 const mainUserEntry = {
                     user: poolDetail.mainUser,
                     userId: poolDetail.mainUser,
-                    userType: 'main',
-                    status: mainUserStatus?.state ? mainUserStatus.state.toUpperCase() : 'UNKNOWN'
+                    userType: 'MAIN',
+                    status: mainUserStatus?.state ? mainUserStatus.state.toUpperCase() : 'UNKNOWN',
+                    team: 'N/A' // Main user does not belong to a team
                 };
                 
                 // Add main user at the beginning of the array

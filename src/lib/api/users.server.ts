@@ -25,7 +25,8 @@ export async function getUsers(): Promise<User[]> {
     try {
         const ludusClient = getServerLudusClient();
         const response = await ludusClient.get('/user/all');
-        return response.data;
+        // Filter out the user with username 'root'
+        return response.data.filter((user: User) => user.name !== 'root');
     } catch (error) {
         console.error('Error fetching users:', error);
         throw error;

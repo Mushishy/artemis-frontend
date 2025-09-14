@@ -125,11 +125,11 @@
 	function getTagClass(value: any): string {
 		if (typeof value === 'string') {
 			// Role type tags (blue)
-			if (value === 'role' || value === 'regular' || value === 'DEPLOYING' || value === 'DESTROYING' || value == 'CTFD') {
+			if (value === 'role' || value === 'REGULAR' || value === 'DEPLOYING' || value === 'DESTROYING' || value == 'CTFD') {
 				return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
 			}
 			// Collection type tags (yellow)
-			else if (value === 'collection' || value === 'main' || value === 'SHARED') {
+			else if (value === 'collection' || value === 'MAIN' || value === 'SHARED') {
 				return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
 			}
 			// Status tags - Red (error/failed states)
@@ -161,7 +161,7 @@
 			   value === 'Built' || value === 'Not Built' ||
 			   value === 'True' || value === 'False' ||
 			   value === 'role' || value === 'collection' ||
-			   value === 'regular' || value === 'main' ||
+			   value === 'REGULAR' || value === 'MAIN' ||
 			   value === 'UNKNOWN' || value === 'NEVER DEPLOYED' || value === 'ERROR' || value === 'DESTROYED' || value === 'ABORTED' || value === 'SUCCESS' ||
 			   value === 'DEPLOYED' ||
 			   value === 'DEPLOYING' || value === 'DESTROYING' ||
