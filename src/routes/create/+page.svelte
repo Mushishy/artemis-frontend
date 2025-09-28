@@ -391,7 +391,7 @@
                     {alertMessage.type === 'error' ? 'Error' : 'Success'}
                 </Alert.Title>
                 <Alert.Description class="text-sm flex items-start justify-between pr-2">
-                    <pre class="whitespace-pre-wrap text-wrap break-words text-sm font-mono max-w-full">{alertMessage.message}</pre>
+                    <pre class="whitespace-pre-wrap text-wrap break-words text-sm max-w-full">{alertMessage.message}</pre>
                     <Button variant="ghost" size="sm" onclick={hideAlert} class="h-6 w-6 p-0 ml-2 flex-shrink-0">
                         <X class="h-3 w-3" />
                     </Button>

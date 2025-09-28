@@ -66,7 +66,6 @@
 						bind:value={apiKey}
 						disabled={isLoading}
 						onkeydown={handleKeyPress}
-						class="font-mono"
 					/>
 				</div>
 				
