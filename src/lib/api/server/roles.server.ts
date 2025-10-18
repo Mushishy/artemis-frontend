@@ -1,15 +1,6 @@
-/**
- * Server-side roles/templates API functions
- * Uses server-api-client instead of the universal api-client
- */
-
-import { getServerLudusClient } from './server-api-client';
-import type { LudusRole, LudusTemplate, TemplateDisplay } from './types';
-import { createLudusRole } from './types';
-
-// ============================================================================
-// TEMPLATES & ROLES RETRIEVAL
-// ============================================================================
+import { getServerLudusClient } from '../settings/server-api-client';
+import type { LudusRole, LudusTemplate, TemplateDisplay } from '../types';
+import { createLudusRole } from '../types';
 
 export async function getTemplates(): Promise<LudusTemplate[]> {
     try {
@@ -22,7 +13,6 @@ export async function getTemplates(): Promise<LudusTemplate[]> {
     }
 }
 
-// Get formatted templates for display
 export async function getTemplatesDisplay(): Promise<TemplateDisplay[]> {
     try {
         const response = await getTemplates();
@@ -48,7 +38,6 @@ export async function getAnsibleRoles(): Promise<LudusRole[]> {
     }
 }
 
-// Get normalized ansible roles for display
 export async function getAnsibleRolesNormalized(): Promise<LudusRole[]> {
     try {
         const rawRoles = await getAnsibleRoles();

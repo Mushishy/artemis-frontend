@@ -9,10 +9,9 @@
     import { AlertCircle, CheckCircle2, X, RotateCcw, Check, ChevronsUpDown, Save, Users, Search } from 'lucide-svelte';
     import { tick } from 'svelte';
     import type { PageData } from './$types';
-    import { createPool } from '$lib/api/pools.client';
-    import { checkUsersInPools } from '$lib/api/users.client';
+    import { createPool, checkUsersInPools } from '$lib/api/client/pools.client';
     import type { PoolRequest, PoolUserAndTeam } from '$lib/api/types';
-    import { getApiKey } from '$lib/api/settings';
+    import { getApiKey } from '$lib/api/settings/settings-client';
     import { goto } from '$app/navigation';
 
     let { data }: { data: PageData } = $props();
@@ -372,10 +371,20 @@
                 Create a pool definition for management of multiple users ranges at once
             </p>
         </div>
-        <Button variant="outline" onclick={resetForm} class="flex items-center gap-2">
-            <RotateCcw class="h-4 w-4" />
-            Reset Form
-        </Button>
+        <div class="flex gap-2">
+            <Button variant="outline" onclick={resetForm} class="flex items-center gap-2">
+                <RotateCcw class="h-4 w-4" />
+                Reset Form
+            </Button>
+            <Button 
+                onclick={handleSubmit}
+                disabled={!isFormValid()}
+                class="flex items-center gap-2"
+            >
+                <Save class="h-4 w-4" />
+                Save Pool
+            </Button>
+        </div>
     </div>
 
     <!-- Floating Alert Messages -->
@@ -403,9 +412,9 @@
     <br>
     <div class="flex-1 min-h-0 w-full overflow-auto pb-20">
         <div class="max-w-7xl mx-auto">
-            <div class="grid grid-cols-1 xl:grid-cols-3 gap-8 min-h-[45rem]">
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 <!-- Step 1: Pool Type Selection -->
-                <Card.Root class="h-fit min-h-[45rem] flex flex-col">
+                <Card.Root class="h-full min-h-[39rem] flex flex-col">
                     <Card.Header class="pb-4">
                         <Card.Title class="text-xl">Step 1: Select Pool Type</Card.Title>
                         <Card.Description class="text-base">Choose the type of pool you want to create</Card.Description>
@@ -458,7 +467,7 @@
                 </Card.Root>
 
                 <!-- Step 2: Set up users -->
-                <Card.Root class="h-fit min-h-[45rem] flex flex-col {!formData.type ? 'opacity-50 pointer-events-none' : ''}">
+                <Card.Root class="h-full min-h-[32rem] flex flex-col {!formData.type ? 'opacity-50 pointer-events-none' : ''}">
                     <Card.Header class="pb-4">
                         <Card.Title class="text-xl">Step 2: Select users</Card.Title>
                         <Card.Description class="text-base">
@@ -568,7 +577,7 @@ Dave Smith, smurfs"
                 </Card.Root>
 
                 <!-- Step 3: Select Topology & Note -->
-                <Card.Root class="h-fit min-h-[45rem] flex flex-col {!formData.type ? 'opacity-50 pointer-events-none' : ''}">
+                <Card.Root class="h-full min-h-[32rem] flex flex-col {!formData.type ? 'opacity-50 pointer-events-none' : ''}">
                     <Card.Header class="pb-4">
                         <Card.Title class="text-xl">Step 3: Topology & Note</Card.Title>
                         <Card.Description class="text-base">
@@ -653,18 +662,5 @@ Dave Smith, smurfs"
                 </Card.Root>
             </div>
         </div>
-    </div>
-
-    <!-- Floating Save Button -->
-    <div class="fixed bottom-6 right-6 z-50">
-        <Button
-            onclick={handleSubmit}
-            disabled={!isFormValid()}
-            size="lg"
-            class="h-16 p-8 text-lg font-semibold shadow-2xl"
-        >
-            <Save class="h-4 w-4" />
-            Save Pool
-        </Button>
     </div>
 </div>

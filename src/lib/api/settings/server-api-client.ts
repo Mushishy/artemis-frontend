@@ -1,6 +1,6 @@
 import axios, { type AxiosInstance } from 'axios';
 import https from 'https';
-import { SERVER_API_ENDPOINTS, serverApiKey } from './server-settings';
+import { SERVER_API_ENDPOINTS, serverApiKey } from './settings-server';
 
 // Create HTTPS agent for self-signed certificates (server-side only)
 const httpsAgent = new https.Agent({

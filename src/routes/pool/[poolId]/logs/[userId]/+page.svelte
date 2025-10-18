@@ -13,7 +13,7 @@
         Play,
         Pause
     } from 'lucide-svelte';
-    import { getUserLogs as fetchUserLogs } from '$lib/api/users.client.js';
+    import { getUserLogs as fetchUserLogs } from '$lib/api/client/users.client.js';
 
     let poolId: string = $page.params.poolId!;
     let userId: string = $page.params.userId!;

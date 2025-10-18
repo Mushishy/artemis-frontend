@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { getPoolDetail } from '$lib/api/pools.server.js';
+import { getPoolDetail } from '$lib/api/server/pools.server.js';
 
 export const load: PageServerLoad = async ({ params }) => {
     const { poolId } = params;

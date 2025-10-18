@@ -15,7 +15,7 @@
 	
 	
 
-    import { getApiKey, API_ENDPOINTS } from "$lib/api/settings";
+    import { getApiKey, API_ENDPOINTS } from "$lib/api/settings/settings-client";
 
 	// Menu items.
     const menus = [ 

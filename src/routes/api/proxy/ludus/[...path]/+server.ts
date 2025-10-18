@@ -1,5 +1,5 @@
-import { API_ENDPOINTS } from '$lib/api/settings';
-import { createProxyHandlers } from '$lib/api/proxy';
+import { API_ENDPOINTS } from '$lib/api/settings/settings-client';
+import { createProxyHandlers } from '$lib/api/settings/proxy';
 
 const handlers = createProxyHandlers(API_ENDPOINTS.ludus.server);
 

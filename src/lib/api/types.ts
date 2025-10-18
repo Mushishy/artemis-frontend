@@ -1,21 +1,10 @@
-/**
- * Shared TypeScript interfaces and types for API responses
- * Central location for all API-related type definitions
- */
-
-// ============================================================================
-// CORE API TYPES
-// ============================================================================
-
+// API
 export interface ApiResponse {
     message: string;
     success: boolean;
 }
 
-// ============================================================================
-// USER TYPES
-// ============================================================================
-
+// USER
 export interface User {
     name: string;
     userID: string;
@@ -63,10 +52,7 @@ export interface UserRange {
     rangeState: string;
 }
 
-// ============================================================================
-// LUDUS PLATFORM TYPES
-// ============================================================================
-
+// TEMPLATE
 export interface LudusTemplate {
     name: string;
     built: boolean;
@@ -85,9 +71,6 @@ export interface LudusRole {
     Global: boolean;
 }
 
-/**
- * Factory function to create LudusRole with version normalization
- */
 export function createLudusRole(item: any): LudusRole {
     return {
         Name: item.Name,
@@ -102,10 +85,7 @@ export interface LudusLogResponse {
     cursor: number;
 }
 
-// ============================================================================
-// POOL TYPES
-// ============================================================================
-
+// POOL
 export interface PoolUserAndTeam {
     user: string;
     team?: string;
@@ -192,10 +172,6 @@ export interface PoolStatusResponse {
     allDeployed: boolean;
 }
 
-// ============================================================================
-// STATUS & HEALTH CHECK TYPES
-// ============================================================================
-
 export interface StatusCheckResponse {
     allDeployed: boolean;
     results: Array<{
@@ -204,13 +180,10 @@ export interface StatusCheckResponse {
     }>;
 }
 
+// TOPOLOGY
 export interface TopologyCheckResponse {
     matchPoolTopology: boolean;
 }
-
-// ============================================================================
-// TOPOLOGY TYPES
-// ============================================================================
 
 export interface Topology {
     topologyId: string;
@@ -225,10 +198,7 @@ export interface TopologyDisplay {
     Created: string;
 }
 
-// ============================================================================
-// ANSIBLE ROLE TYPES
-// ============================================================================
-
+// ROLE
 export interface InstallRoleRequest {
     role: string;
     version: string;
@@ -243,10 +213,7 @@ export interface InstallCollectionRequest {
     force: boolean;
 }
 
-// ============================================================================
-// RANGE & SCENARIO TYPES
-// ============================================================================
-
+// RANGE
 export interface RangeRequest {
     name: string;
     description?: string;
@@ -291,10 +258,7 @@ export interface ProxmoxStatsResponse {
     uptimeFormatted: string
 }
 
-// ============================================================================
-// CTFD TOPOLOGY TYPES
-// ============================================================================
-
+// CTFD
 export interface CtfdTopologyRequest {
     topologyName: string;
     scenarioId: string;

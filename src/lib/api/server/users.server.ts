@@ -1,21 +1,6 @@
-/**
- * Server-side user management API functions
- * Uses server-api-client instead of the universal api-client
- */
+import { getServerLudusClient } from '../settings/server-api-client';
+import type { User, UserRange } from '../types';
 
-import { getServerLudusClient } from './server-api-client';
-import type { 
-    User, 
-    UserRange
-} from './types';
-
-// ============================================================================
-// USER MANAGEMENT (Ludus API)
-// ============================================================================
-
-/**
- * Get all users from Ludus
- */
 export async function getUsers(): Promise<User[]> {
     try {
         const ludusClient = getServerLudusClient();
@@ -28,9 +13,6 @@ export async function getUsers(): Promise<User[]> {
     }
 }
 
-/**
- * Get user range information including VMs and network details
- */
 export async function getUserRange(userID: string): Promise<UserRange> {
     try {
         const ludusClient = getServerLudusClient();

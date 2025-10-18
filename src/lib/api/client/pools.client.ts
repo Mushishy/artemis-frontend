@@ -1,4 +1,8 @@
-import { getDulusClient } from './api-client';
+import { getDulusClient } from '../settings/api-client';
+import { checkPoolUsers } from './users.client';
+import { getPoolFlags } from './ctfd.client';
+import { formatDate } from '$lib/utils';
+import type { Pool, UserExistsCheck } from '../types';
 import type { 
     PoolRequest, 
     StatusCheckResponse, 
@@ -7,15 +11,9 @@ import type {
     PoolDetailData,
     PatchUserRequest,
     TopologyCheckResponse
-} from './types';
-
-import { checkPoolUsers } from './users.client';
+} from '../types';
 
 const dulusClient = getDulusClient();
-
-// ============================================================================
-// POOL CREATION & MANAGEMENT
-// ============================================================================
 
 export async function createPool(poolData: PoolRequest) {
     try {
@@ -72,10 +70,6 @@ export async function patchPoolUsers(poolId: string, usersAndTeams: PatchUserReq
     }
 }
 
-// ============================================================================
-// POOL HEALTH & STATUS CHECKING
-// ============================================================================
-
 export async function checkPoolStatus(poolId: string): Promise<StatusCheckResponse> {
     try {
         const response = await dulusClient.get('/range/status', {
@@ -113,10 +107,6 @@ export async function checkPoolHealth(poolId: string): Promise<PoolHealthCheck> 
     }
 }
 
-// ============================================================================
-// POOL TOPOLOGY MANAGEMENT
-// ============================================================================
-
 export async function setPoolTopology(poolId: string): Promise<void> {
     try {
         await dulusClient.post('/range/config', '', {
@@ -138,10 +128,6 @@ export async function changePoolTopology(poolId: string, topologyId: string): Pr
         throw error;
     }
 }
-
-// ============================================================================
-// POOL DEPLOYMENT OPERATIONS
-// ============================================================================
 
 export async function deployPool(poolId: string): Promise<any> {
     try {
@@ -190,11 +176,6 @@ export async function removePool(poolId: string): Promise<any> {
         throw error;
     }
 }
-
-// ============================================================================
-// POOL ACCESS & SHARING
-// ============================================================================
-
 
 export async function downloadWireguardConfigs(poolId: string, downloadFileName: string = 'wireguard-configs.zip'): Promise<void> {
     try {
@@ -279,10 +260,6 @@ export async function unsharePool(poolId: string, targetId: string): Promise<voi
     }
 }
 
-// ============================================================================
-// LEGACY & COMPATIBILITY FUNCTIONS
-// ============================================================================
-
 export async function getPoolTopology(poolId: string): Promise<boolean> {
     try {
         const result = await checkPoolTopology(poolId);
@@ -330,38 +307,6 @@ export async function refreshPoolData(poolId: string): Promise<PoolDetailData> {
     }
 }
 
-// ============================================================================
-// RE-EXPORTS FOR BACKWARD COMPATIBILITY
-// ============================================================================
-
-// Attempts to retrive CTFD data from logs after deployment is successful
-export async function fetchCtfdData(poolId: string): Promise<void> {
-    try {
-        await dulusClient.put('/ctfd/data', '', {
-            params: { poolId }
-        });
-    } catch (error) {
-        console.error('Error fetching CTFd data:', error);
-        throw error;
-    }
-}
-
-export async function getPoolFlags(poolId: string): Promise<boolean> {
-    try {
-        const response = await dulusClient.get('/ctfd/data', {
-            params: { poolId }
-        });
-        return Boolean(response.data?.ctfdData && response.data.ctfdData.length > 0);
-    } catch (error) {
-        console.error('Error loading pool flags:', error);
-        return false;
-    }
-}
-
-// ============================================================================
-// POOL TOPOLOGY CHECKING
-// ============================================================================
-
 export async function checkPoolTopology(poolId: string): Promise<TopologyCheckResponse> {
     try {
         const response = await dulusClient.get('/range/config', {
@@ -374,5 +319,79 @@ export async function checkPoolTopology(poolId: string): Promise<TopologyCheckRe
     }
 }
 
+export async function loadPools(): Promise<Pool[]> {
+    try {
+        const client = getDulusClient();
+        const response = await client.get('/pool');
+        
+        const pools = response.data;
+        const poolsArray = Array.isArray(pools) ? pools : [pools];
+        
+        // Ensure undefined values are converted to appropriate defaults
+        return poolsArray.map(pool => ({
+            ...pool,
+            note: pool.note || "",
+            ctfdData: Boolean(pool.ctfdData),
+            createdAt: pool.createdAt ? formatDate(pool.createdAt) : ""
+        }));
+    } catch (error) {
+        console.error('Error loading pools:', error);
+        throw error;
+    }
+}
 
-export { downloadCtfdLogins } from './ctfd.client';
+// Delete a pool
+export async function deletePool(poolId: string): Promise<void> {
+    try {
+        const client = getDulusClient();
+        await client.delete('/pool', { params: { poolId } });
+    } catch (error) {
+        console.error('Error deleting pool:', error);
+        throw error;
+    }
+}
+
+// Update pool note
+export async function updatePoolNote(poolId: string, note: string): Promise<void> {
+    try {
+        const client = getDulusClient();
+        await client.patch('/pool/note', { note }, { params: { poolId } });
+    } catch (error) {
+        console.error('Error updating pool note:', error);
+        throw error;
+    }
+}
+
+// Unshare a shared pool
+export async function unshareSharedPool(poolId: string, mainUser: string): Promise<void> {
+    try {
+        const client = getDulusClient();
+        
+        // Step 1: Send unshare request
+        await client.post('/range/unshare', '', { 
+            params: { poolId, targetId: mainUser }
+        });
+
+        // Step 2: Verify unshare was successful
+        const checkResponse = await client.get('/range/shared', { 
+            params: { poolId, targetId: mainUser }
+        });
+        
+        if (checkResponse.data.unshared !== true) {
+            throw new Error('Unshare verification failed - pool is still shared');
+        }
+    } catch (error) {
+        console.error('Error unsharing pool:', error);
+        throw error;
+    }
+}
+
+export async function checkUsersInPools(userIds: string[]): Promise<UserExistsCheck[]> {
+    try {
+        const response = await dulusClient.post('/pool/users', { userIds });
+        return response.data;
+    } catch (error) {
+        console.error('Error checking users in pools:', error);
+        throw error;
+    }
+}

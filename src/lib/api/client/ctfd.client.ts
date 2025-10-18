@@ -1,6 +1,6 @@
-import { getDulusClient } from './api-client';
+import { getDulusClient } from '../settings/api-client';
 import { formatDate } from '$lib/utils';
-import type { Scenario } from './types';
+import type { Scenario } from '../types';
 
 const dulusClient = getDulusClient();
 
@@ -15,7 +15,6 @@ export async function getScenario(scenarioID?: string) {
     }
 }
 
-// Get formatted scenarios for display
 export async function getScenariosDisplay(): Promise<Scenario[]> {
     try {
         const response = await getScenario();
@@ -42,7 +41,6 @@ export async function getScenariosDisplay(): Promise<Scenario[]> {
     }
 }
 
-// Download scenario file
 export async function downloadScenarioFile(scenarioID: string): Promise<void> {
     try {
         const response = await getScenario(scenarioID);
@@ -105,5 +103,41 @@ export async function deleteScenario(scenarioID: string) {
     } catch (error) {
         console.error('Error deleting scenario:', error);
         throw error;
+    }
+}
+
+export async function downloadCtfdLogins(poolId: string): Promise<string> {
+    try {
+        const response = await dulusClient.get('/ctfd/data/logins', {
+            params: { poolId },
+            headers: { 'accept': 'text/plain' }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error downloading CTFd logins:', error);
+        throw error;
+    }
+}
+
+export async function fetchCtfdData(poolId: string): Promise<void> {
+    try {
+        await dulusClient.put('/ctfd/data', '', {
+            params: { poolId }
+        });
+    } catch (error) {
+        console.error('Error fetching CTFd data:', error);
+        throw error;
+    }
+}
+
+export async function getPoolFlags(poolId: string): Promise<boolean> {
+    try {
+        const response = await dulusClient.get('/ctfd/data', {
+            params: { poolId }
+        });
+        return Boolean(response.data?.ctfdData && response.data.ctfdData.length > 0);
+    } catch (error) {
+        console.error('Error loading pool flags:', error);
+        return false;
     }
 }

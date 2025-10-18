@@ -11,7 +11,7 @@
 		installRole, 
 		installCollection, 
 		installRoleFromFile
-	} from '$lib/api/roles.client';
+	} from '$lib/api/client/roles.client';
 	import type { InstallRoleRequest, InstallCollectionRequest } from '$lib/api/types';
 
 	let { data }: { data: PageData } = $props();

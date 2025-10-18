@@ -1,11 +1,6 @@
-/**
- * Server-side CTF scenarios API functions
- * Uses server-api-client instead of the universal api-client
- */
-
-import { getServerDulusClient } from './server-api-client';
+import { getServerDulusClient } from '../settings/server-api-client';
 import { formatDate } from '$lib/utils';
-import type { Scenario } from './types';
+import type { Scenario } from '../types';
 
 export async function getScenario(scenarioID?: string) {
     try {
@@ -19,7 +14,6 @@ export async function getScenario(scenarioID?: string) {
     }
 }
 
-// Get formatted scenarios for display
 export async function getScenariosDisplay(): Promise<Scenario[]> {
     try {
         const response = await getScenario();

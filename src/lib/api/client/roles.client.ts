@@ -1,11 +1,7 @@
-import { getLudusClient } from './api-client';
-import type { InstallRoleRequest, InstallCollectionRequest, ApiResponse, LudusRole, LudusTemplate } from './types';
+import { getLudusClient } from '../settings/api-client';
+import type { InstallRoleRequest, InstallCollectionRequest, ApiResponse, LudusRole, LudusTemplate } from '../types';
 
 const ludusClient = getLudusClient();
-
-// ============================================================================
-// TEMPLATES & ROLES RETRIEVAL
-// ============================================================================
 
 export async function getTemplates(): Promise<LudusTemplate[]> {
     try {
@@ -26,10 +22,6 @@ export async function getAnsibleRoles(): Promise<LudusRole[]> {
         throw error;
     }
 }
-
-// ============================================================================
-// ROLES & COLLECTIONS INSTALLATION
-// ============================================================================
 
 export async function installRole(request: InstallRoleRequest): Promise<ApiResponse> {
     try {

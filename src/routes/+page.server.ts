@@ -1,4 +1,4 @@
-import { getProxmoxStats } from '$lib/api/proxmox.server';
+import { getProxmoxStats } from '$lib/api/server/proxmox.server';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {

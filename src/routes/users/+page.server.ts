@@ -1,4 +1,4 @@
-import { getUsers } from '$lib/api/users.server';
+import { getUsers } from '$lib/api/server/users.server';
 import { formatDate } from '$lib/utils';
 import type { PageServerLoad } from './$types';
 

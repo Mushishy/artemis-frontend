@@ -6,7 +6,7 @@
 	import * as Alert from '$lib/components/ui/alert';
 	import { Plus, Upload, AlertCircle, CheckCircle2, X } from 'lucide-svelte';
 	import type { Scenario } from '$lib/api/types';
-	import { createOrUpdateScenario, deleteScenario, downloadScenarioFile } from '$lib/api/ctfd_scenario.client';
+	import { createOrUpdateScenario, deleteScenario, downloadScenarioFile } from '$lib/api/client/ctfd.client';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();

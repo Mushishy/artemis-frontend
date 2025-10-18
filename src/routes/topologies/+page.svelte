@@ -6,7 +6,7 @@
 	import * as Alert from '$lib/components/ui/alert';
 	import { Plus, Upload, AlertCircle, CheckCircle2, X } from 'lucide-svelte';
 	import type { TopologyDisplay } from '$lib/api/types';
-	import { createOrUpdateTopology, deleteTopology, downloadTopologyFile } from '$lib/api/topology.client';
+	import { createOrUpdateTopology, deleteTopology, downloadTopologyFile } from '$lib/api/client/topology.client';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();

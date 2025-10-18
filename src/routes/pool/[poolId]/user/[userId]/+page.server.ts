@@ -1,4 +1,4 @@
-import { getUserRange } from '$lib/api/users.server';
+import { getUserRange } from '$lib/api/server/users.server';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
@@ -18,7 +18,7 @@ export const load: PageServerLoad = async ({ params }) => {
 
         // Check if userRange has VMs array and if all VMs are powered off
         if (userRange.VMs && userRange.VMs.length > 0) {
-            const allVmsPoweredOff = userRange.VMs.every(vm => !vm.poweredOn);
+            const allVmsPoweredOff = userRange.VMs.every(vm=> !vm.poweredOn);
             if (allVmsPoweredOff) {
                 return {
                     error: true,

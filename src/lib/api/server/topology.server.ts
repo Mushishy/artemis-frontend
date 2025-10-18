@@ -1,15 +1,6 @@
-/**
- * Server-side topology API functions
- * Uses server-api-client instead of the universal api-client
- */
-
-import { getServerDulusClient } from './server-api-client';
+import { getServerDulusClient } from '../settings/server-api-client';
 import { formatDate } from '$lib/utils';
-import type { TopologyDisplay } from './types';
-
-// ============================================================================
-// TOPOLOGY DATA RETRIEVAL
-// ============================================================================
+import type { TopologyDisplay } from '../types';
 
 export async function getTopology(topologyId?: string) {
     try {
@@ -23,7 +14,6 @@ export async function getTopology(topologyId?: string) {
     }
 }
 
-// Get formatted topologies for display
 export async function getTopologiesDisplay(): Promise<TopologyDisplay[]> {
     try {
         const response = await getTopology();

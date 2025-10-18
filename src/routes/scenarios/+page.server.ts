@@ -1,4 +1,4 @@
-import { getScenariosDisplay } from '$lib/api/ctfd_scenario.server';
+import { getScenariosDisplay } from '$lib/api/server/ctfd.server';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {

@@ -7,9 +7,9 @@
     import { RotateCcw, AlertCircle, CheckCircle2, X, Send, ChevronsUpDown, Check } from 'lucide-svelte';
     import * as Command from '$lib/components/ui/command';
     import * as Popover from '$lib/components/ui/popover';
-    import { createCtfdTopology } from '$lib/api/topology.client';
-    import { getScenariosDisplay } from '$lib/api/ctfd_scenario.client';
-    import { loadPools as loadPoolsAPI } from '$lib/api/pools';
+    import { createCtfdTopology } from '$lib/api/client/topology.client';
+    import { getScenariosDisplay } from '$lib/api/client/ctfd.client';
+    import { loadPools as loadPoolsAPI } from '$lib/api/client/pools.client';
 
     // Form state with default values
     let config = $state({

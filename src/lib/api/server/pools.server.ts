@@ -1,13 +1,7 @@
-/**
- * Server-side pools API functions
- * Uses server-api-client instead of the universal api-client
- */
-
-import { getServerDulusClient } from './server-api-client';
+import { getServerDulusClient } from '../settings/server-api-client';
 import { formatDate } from '$lib/utils';
-import type { Pool } from './types';
+import type { Pool } from '../types';
 
-// Load pools from API
 export async function loadPools(): Promise<Pool[]> {
     try {
         const dulusClient = getServerDulusClient();
@@ -29,7 +23,6 @@ export async function loadPools(): Promise<Pool[]> {
     }
 }
 
-// Get pool details (including mainUser)
 export async function getPoolDetail(poolId: string): Promise<any> {
     try {
         const dulusClient = getServerDulusClient();

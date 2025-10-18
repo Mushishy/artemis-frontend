@@ -2,7 +2,7 @@ import axios, { type AxiosInstance } from 'axios';
 import {
     API_ENDPOINTS,
     getApiKey
-} from './settings';
+} from './settings-client';
 
 /**
  * Client-side API client factory for Dulus and Ludus APIs

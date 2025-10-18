@@ -13,6 +13,7 @@
         CheckCircle2, 
         X,
         Download,
+        Hand,
         Users,
         Network,
         Check,
@@ -21,7 +22,9 @@
         FileText,
         Search,
         Share2,
-        ArrowLeft
+        ArrowLeft,
+        GlobeLock,
+        Flag
     } from 'lucide-svelte';
     import type { PoolDetail, PoolDetailData, PoolHealthCheck, PatchUserRequest } from '$lib/api/types.js';
     import { 
@@ -31,8 +34,6 @@
         checkPoolHealth,
         setPoolTopology,
         changePoolTopology,
-        fetchCtfdData,
-        downloadCtfdLogins,
         deployPool,
         redeployPool,
         abortPool,
@@ -40,11 +41,14 @@
         patchPoolUsers,
         checkSharingStatus as checkSharingStatusAPI,
         sharePool,
-        unsharePool
-    } from '$lib/api/pools.client.js';
+        unshareSharedPool,
+        checkUsersInPools
+    } from '$lib/api/client/pools.client.js';
 
-    import { checkUsersInPools, importMissingUsers } from '$lib/api/users.client.js';
-    import { getTopologies, getTopology, downloadTopologyFile } from '$lib/api/topology.client.js';
+    import { downloadCtfdLogins, fetchCtfdData } from '$lib/api/client/ctfd.client.js';
+
+    import { importMissingUsers } from '$lib/api/client/users.client.js';
+    import { getTopologies, getTopology, downloadTopologyFile } from '$lib/api/client/topology.client.js';
     import { formatDate } from '$lib/utils';
     import type { PageData } from './$types';
 
@@ -812,7 +816,7 @@
         
         try {
             showAlert('Sending unsharing request...', 'success');
-            await unsharePool(data.poolId, poolDetail.mainUser);
+            await unshareSharedPool(data.poolId, poolDetail.mainUser);
             
             // Check if unsharing was successful by verifying shared status
             showAlert('Verifying unshare status...', 'success');
@@ -1502,7 +1506,7 @@ Dave Smith, smurfs"
         <Dialog.Content class="max-w-lg">
             <Dialog.Header>
                 <Dialog.Title class="flex items-center gap-2">
-                    <Download class="h-5 w-5" />
+                    <Hand class="h-5 w-5" />
                     Manage Access
                 </Dialog.Title>
                 <Dialog.Description>
@@ -1517,7 +1521,7 @@ Dave Smith, smurfs"
                     variant="outline"
                     disabled={!(healthCheck.users?.allExist && healthCheck.topology?.matchPoolTopology && healthCheck.status?.allDeployed)}
                 >
-                    <FileText class="h-4 w-4" />
+                    <Flag class="h-4 w-4" />
                     <div class="flex flex-col items-start">
                         <span>Fetch CTFd Data to Pool</span>
                         <span class="text-xs text-muted-foreground">
@@ -1534,7 +1538,7 @@ Dave Smith, smurfs"
                     variant="outline"
                     disabled={!poolDetail?.ctfdData}
                 >
-                    <Download class="h-4 w-4" />
+                    <FileText class="h-4 w-4" />
                     <div class="flex flex-col items-start">
                         <span>Download CTFd Logins</span>
                         <span class="text-xs text-muted-foreground">
@@ -1548,10 +1552,10 @@ Dave Smith, smurfs"
                     class="w-full justify-start gap-3 h-12"
                     variant="outline"
                 >
-                    <Download class="h-4 w-4" />
+                    <GlobeLock class="h-4 w-4" />
                     <div class="flex flex-col items-start">
                         <span>Download Wireguard</span>
-                        <span class="text-xs text-muted-foreground">Always available</span>
+                        <span class="text-xs text-muted-foreground">Available</span>
                     </div>
                 </Button>
             </div>

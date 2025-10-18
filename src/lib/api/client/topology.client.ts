@@ -1,12 +1,8 @@
-import { getDulusClient } from './api-client';
+import { getDulusClient } from '../settings/api-client';
 import { formatDate } from '$lib/utils';
-import type { Topology, TopologyDisplay, CtfdTopologyRequest, CtfdTopologyResponse } from './types';
+import type { Topology, TopologyDisplay, CtfdTopologyRequest, CtfdTopologyResponse } from '../types';
 
 const dulusClient = getDulusClient();
-
-// ============================================================================
-// TOPOLOGY DATA RETRIEVAL
-// ============================================================================
 
 export async function getTopology(topologyId?: string) {
     try {
@@ -29,7 +25,6 @@ export async function getTopologies(): Promise<Topology[]> {
     }
 }
 
-// Get formatted topologies for display
 export async function getTopologiesDisplay(): Promise<TopologyDisplay[]> {
     try {
         const response = await getTopology();
@@ -56,10 +51,6 @@ export async function getTopologiesDisplay(): Promise<TopologyDisplay[]> {
     }
 }
 
-// ============================================================================
-// TOPOLOGY FILE OPERATIONS
-// ============================================================================
-
 export async function downloadTopologyFile(topologyId: string): Promise<void> {
     try {
         const response = await dulusClient.get(`/topology?topologyId=${topologyId}`);
@@ -79,10 +70,6 @@ export async function downloadTopologyFile(topologyId: string): Promise<void> {
         throw error;
     }
 }
-
-// ============================================================================
-// TOPOLOGY MANAGEMENT
-// ============================================================================
 
 export async function createOrUpdateTopology(file: File, topologyId?: string) {
     try {
@@ -115,10 +102,6 @@ export async function deleteTopology(topologyId: string) {
         throw error;
     }
 }
-
-// ============================================================================
-// CTFD TOPOLOGY OPERATIONS
-// ============================================================================
 
 export async function createCtfdTopology(config: CtfdTopologyRequest): Promise<CtfdTopologyResponse> {
     try {

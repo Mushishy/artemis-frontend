@@ -1,5 +1,5 @@
-import { getServerDulusClient } from './server-api-client';
-import type { ProxmoxStatsResponse } from './types';
+import { getServerDulusClient } from '../settings/server-api-client';
+import type { ProxmoxStatsResponse } from '../types';
 
 export async function getProxmoxStats(): Promise<ProxmoxStatsResponse> {
     try {

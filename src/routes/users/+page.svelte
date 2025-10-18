@@ -11,8 +11,8 @@
         deleteUser, 
         deleteMultipleUsers, 
         createUser 
-    } from '$lib/api/users.client';
-    import { checkUsersInPools } from '$lib/api/users.client';
+    } from '$lib/api/client/users.client';
+    import { checkUsersInPools } from '$lib/api/client/pools.client';
     import type { PageData } from './$types';
 
     let { data }: { data: PageData } = $props();

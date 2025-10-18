@@ -16,11 +16,13 @@
         deletePool,
         updatePoolNote,
         checkPoolStatus,
-        unsharePool,
-        deletePoolUsers,
-        checkUsersExist,
+        unshareSharedPool,
         getPoolDetail
-    } from '$lib/api/pools';
+    } from '$lib/api/client/pools.client';
+    import { 
+        checkUsersExist,
+        deletePoolUsers
+     } from '$lib/api/client/users.client';
     import type { PageData } from './$types';
 
     // Extended pool type for deletion process
@@ -154,7 +156,7 @@
                     throw new Error('Cannot unshare pool: mainUser not found');
                 }
                 showAlert('Unsharing pool...', 'success');
-                await unsharePool(poolToDelete.poolId, poolDetail.mainUser);
+                await unshareSharedPool(poolToDelete.poolId, poolDetail.mainUser);
             }
 
             // Step 4: Delete users in the pool
@@ -217,7 +219,7 @@
                     throw new Error('Cannot unshare pool: mainUser not found');
                 }
                 showAlert('Unsharing pool...', 'success');
-                await unsharePool(poolToDelete.poolId, poolDetail.mainUser);
+                await unshareSharedPool(poolToDelete.poolId, poolDetail.mainUser);
                 showAlert('Pool unshared successfully', 'success');
             }
 
