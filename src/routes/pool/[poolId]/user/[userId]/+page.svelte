@@ -250,18 +250,32 @@
         </div>
         
         <div class="flex-1 flex items-center justify-center">
-            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-8 max-w-md text-center">
+            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-8 max-w-2xl w-full text-center">
                 <div class="w-12 h-12 mx-auto mb-4 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
                     <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
                     </svg>
                 </div>
-                <h2 class="text-xl font-semibold text-red-800 dark:text-red-200 mb-2">No Range Found</h2>
+                <h2 class="text-xl font-semibold text-red-800 dark:text-red-200 mb-2">Error</h2>
                 <p class="text-red-600 dark:text-red-300 mb-4">
-                    User <span class="font-medium">{data.userId}</span> has no range configured.
+                    {#if data.message}
+                        {data.message}
+                    {:else}
+                        User <span class="font-medium">{data.userId}</span> has no range configured.
+                    {/if}
                 </p>
                 <p class="text-sm text-red-500 dark:text-red-400">
-                    The user may not have been deployed yet or the range may have been deleted.
+                    {#if data.errorType === 'RANGE_STOPPED'}
+                        You can start the VMs from the pool management interface.
+                    {:else if data.errorType === 'NO_RANGE'}
+                        The user may not have been deployed yet or the range may have been deleted.
+                    {:else if data.errorType === 'NO_VMS'}
+                        You can redeploy the range from the pool management interface.
+                    {:else if data.errorType === 'ACCESS_DENIED'}
+                        Contact your administrator to request access.
+                    {:else}
+                        Please check the configuration and try again.
+                    {/if}
                 </p>
             </div>
         </div>

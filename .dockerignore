@@ -1,3 +1,14 @@
+# Git
+.git
+.gitignore
+README.md
+.gitattributes
+
+# Documentation
+*.md
+docs/
+documentation/
+
 # Dependencies
 node_modules
 npm-debug.log*
@@ -10,6 +21,21 @@ yarn-error.log*
 build
 dist
 
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.example
+
 # OS generated files
 .DS_Store
 .DS_Store?
@@ -18,13 +44,6 @@ dist
 .Trashes
 ehthumbs.db
 Thumbs.db
-
-# IDE files
-.vscode
-.idea
-*.swp
-*.swo
-*~
 
 # Logs
 logs

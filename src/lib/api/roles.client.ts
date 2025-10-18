@@ -1,6 +1,5 @@
 import { getLudusClient } from './api-client';
-import type { InstallRoleRequest, InstallCollectionRequest, ApiResponse, LudusRole, LudusTemplate, TemplateDisplay } from './types';
-import { createLudusRole } from './types';
+import type { InstallRoleRequest, InstallCollectionRequest, ApiResponse, LudusRole, LudusTemplate } from './types';
 
 const ludusClient = getLudusClient();
 
@@ -18,21 +17,6 @@ export async function getTemplates(): Promise<LudusTemplate[]> {
     }
 }
 
-// Get formatted templates for display
-export async function getTemplatesDisplay(): Promise<TemplateDisplay[]> {
-    try {
-        const response = await getTemplates();
-        
-        return response.map(item => ({
-            name: item.name,
-            status: item.built
-        }));
-    } catch (error) {
-        console.error('Error loading formatted templates:', error);
-        return [];
-    }
-}
-
 export async function getAnsibleRoles(): Promise<LudusRole[]> {
     try {
         const response = await ludusClient.get('/ansible');
@@ -40,17 +24,6 @@ export async function getAnsibleRoles(): Promise<LudusRole[]> {
     } catch (error) {
         console.error('Error fetching ansible roles:', error);
         throw error;
-    }
-}
-
-// Get normalized ansible roles for display
-export async function getAnsibleRolesNormalized(): Promise<LudusRole[]> {
-    try {
-        const rawRoles = await getAnsibleRoles();
-        return rawRoles.map(item => createLudusRole(item));
-    } catch (error) {
-        console.error('Error loading normalized roles:', error);
-        return [];
     }
 }
 

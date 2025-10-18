@@ -45,37 +45,3 @@ export async function getScenariosDisplay(): Promise<Scenario[]> {
         return [];
     }
 }
-
-export async function createOrUpdateScenario(file: File, scenarioID?: string) {
-    try {
-        const dulusClient = getServerDulusClient();
-        const formData = new FormData();
-        formData.append('file', file);
-        
-        const params = scenarioID ? { scenarioID } : {};
-        const response = await dulusClient.put('/ctfd/scenario', formData, {
-            params,
-            headers: { 
-                // Don't set Content-Type - let axios/browser set it with boundary
-                'Content-Type': undefined 
-            },
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Error creating/updating scenario:', error);
-        throw error;
-    }
-}
-
-export async function deleteScenario(scenarioID: string) {
-    try {
-        const dulusClient = getServerDulusClient();
-        const response = await dulusClient.delete('/ctfd/scenario', {
-            params: { scenarioId: scenarioID },
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Error deleting scenario:', error);
-        throw error;
-    }
-}

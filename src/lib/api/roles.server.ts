@@ -4,7 +4,7 @@
  */
 
 import { getServerLudusClient } from './server-api-client';
-import type { InstallRoleRequest, InstallCollectionRequest, ApiResponse, LudusRole, LudusTemplate, TemplateDisplay } from './types';
+import type { LudusRole, LudusTemplate, TemplateDisplay } from './types';
 import { createLudusRole } from './types';
 
 // ============================================================================
@@ -56,65 +56,5 @@ export async function getAnsibleRolesNormalized(): Promise<LudusRole[]> {
     } catch (error) {
         console.error('Error loading normalized roles:', error);
         return [];
-    }
-}
-
-// ============================================================================
-// ROLES & COLLECTIONS INSTALLATION
-// ============================================================================
-
-export async function installRole(request: InstallRoleRequest): Promise<ApiResponse> {
-    try {
-        const ludusClient = getServerLudusClient();
-        const response = await ludusClient.post('/ansible/role', request);
-        return response.data;
-    } catch (error) {
-        console.error('Error installing role:', error);
-        throw error;
-    }
-}
-
-export async function installCollection(request: InstallCollectionRequest): Promise<ApiResponse> {
-    try {
-        const ludusClient = getServerLudusClient();
-        const response = await ludusClient.post('/ansible/collection', request);
-        return response.data;
-    } catch (error) {
-        console.error('Error installing collection:', error);
-        throw error;
-    }
-}
-
-export async function installRoleFromFile(file: File, force: boolean = false, global: boolean = true): Promise<ApiResponse> {
-    try {
-        if (!file) {
-            throw new Error('No file provided');
-        }
-
-        const ludusClient = getServerLudusClient();
-
-        // Remove .tar extension from filename for API compatibility
-        let filename = file.name;
-        if (filename.endsWith('.tar')) {
-            filename = filename.slice(0, -4);
-        }
-        
-        const modifiedFile = new File([file], filename, { type: file.type });
-        
-        const formData = new FormData();
-        formData.append('file', modifiedFile);
-        formData.append('force', force.toString());
-        formData.append('global', global.toString());
-
-        const response = await ludusClient.put('/ansible/role/fromtar', formData, {
-            headers: { 
-                // Don't set Content-Type - let axios/browser set it with boundary
-                'Content-Type': undefined 
-            }
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Error installing role from file:', error);
-        throw error;
     }
 }

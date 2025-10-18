@@ -6,11 +6,10 @@ import type {
     PoolHealthCheck,
     PoolDetailData,
     PatchUserRequest,
+    TopologyCheckResponse
 } from './types';
 
 import { checkPoolUsers } from './users.client';
-import { checkPoolTopology } from './topology.client';
-import { getPoolFlags } from './ctfd.client';
 
 const dulusClient = getDulusClient();
 
@@ -211,8 +210,6 @@ export async function downloadWireguardConfigs(poolId: string, downloadFileName:
             throw new Error('No ZIP data received from server');
         }
         
-        console.log(`Received ZIP file: ${filename || downloadFileName} (${size} bytes)`);
-        
         // Decode base64 to binary
         const binaryString = atob(base64Data);
         const bytes = new Uint8Array(binaryString.length);
@@ -242,9 +239,6 @@ export async function downloadWireguardConfigs(poolId: string, downloadFileName:
         // Cleanup
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
-        console.log(`Successfully downloaded ${a.download}`);
-        
     } catch (error) {
         console.error('Error downloading Wireguard configs:', error);        
         throw error;
@@ -340,6 +334,45 @@ export async function refreshPoolData(poolId: string): Promise<PoolDetailData> {
 // RE-EXPORTS FOR BACKWARD COMPATIBILITY
 // ============================================================================
 
-export { checkUsersInPools, checkPoolUsers, importMissingUsers, downloadUserLogs } from './users.client';
-export { getTopologies, checkPoolTopology } from './topology.client';
-export { fetchCtfdData, downloadCtfdLogins, getPoolFlags } from './ctfd.client';
+// Attempts to retrive CTFD data from logs after deployment is successful
+export async function fetchCtfdData(poolId: string): Promise<void> {
+    try {
+        await dulusClient.put('/ctfd/data', '', {
+            params: { poolId }
+        });
+    } catch (error) {
+        console.error('Error fetching CTFd data:', error);
+        throw error;
+    }
+}
+
+export async function getPoolFlags(poolId: string): Promise<boolean> {
+    try {
+        const response = await dulusClient.get('/ctfd/data', {
+            params: { poolId }
+        });
+        return Boolean(response.data?.ctfdData && response.data.ctfdData.length > 0);
+    } catch (error) {
+        console.error('Error loading pool flags:', error);
+        return false;
+    }
+}
+
+// ============================================================================
+// POOL TOPOLOGY CHECKING
+// ============================================================================
+
+export async function checkPoolTopology(poolId: string): Promise<TopologyCheckResponse> {
+    try {
+        const response = await dulusClient.get('/range/config', {
+            params: { poolId }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error checking pool topology:', error);
+        throw error;
+    }
+}
+
+
+export { downloadCtfdLogins } from './ctfd.client';

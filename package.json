@@ -11,7 +11,8 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
-		"lint": "prettier --check ."
+		"lint": "prettier --check .",
+		"prod": "vite build && vite preview --host 0.0.0.0 --port 5173"
 	},
 	"devDependencies": {
 		"@internationalized/date": "^3.9.0",

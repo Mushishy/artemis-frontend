@@ -15,6 +15,29 @@ export const load: PageServerLoad = async ({ params }) => {
         }
 
         const userRange = await getUserRange(userId);
+
+        // Check if userRange has VMs array and if all VMs are powered off
+        if (userRange.VMs && userRange.VMs.length > 0) {
+            const allVmsPoweredOff = userRange.VMs.every(vm => !vm.poweredOn);
+            if (allVmsPoweredOff) {
+                return {
+                    error: true,
+                    errorType: 'RANGE_STOPPED',
+                    userId,
+                    poolId,
+                    message: `User range ${userId} is stopped. All VMs are powered off.`
+                };
+            }
+        } else {
+            // Range exists but has no VMs
+            return {
+                error: true,
+                errorType: 'NO_VMS',
+                userId,
+                poolId,
+                message: `User range ${userId} has no VMs configured.`
+            };
+        }
         
         return {
             userRange,
@@ -25,15 +48,28 @@ export const load: PageServerLoad = async ({ params }) => {
         console.error('Error loading user range:', err);
         
         if (err.response?.status === 404) {
-            // Return error state instead of throwing
+            // User has no range or range was destroyed
             return {
                 error: true,
+                errorType: 'NO_RANGE',
                 userId: params.userId,
                 poolId: params.poolId,
-                message: err.response?.data?.error || `User ${params.userId} has no range`
+                message: `User ${params.userId} has no range. The range may not have been deployed yet or has been destroyed.`
             };
         }
         
-        throw error(500, 'Failed to load user range data');
+        if (err.response?.status === 403) {
+            // Access forbidden
+            return {
+                error: true,
+                errorType: 'ACCESS_DENIED',
+                userId: params.userId,
+                poolId: params.poolId,
+                message: `Access denied for user ${params.userId}. You may not have permission to view this range.`
+            };
+        }
+        
+        // Other server errors
+        throw error(500, `Failed to load user range data: ${err.message || 'Unknown error'}`);
     }
 };

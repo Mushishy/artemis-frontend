@@ -7,11 +7,9 @@ import { getLudusClient, getDulusClient, getLudusAdminClient } from './api-clien
 import { cleanUsername } from '$lib/utils';
 import type { 
     User, 
-    UserCheckResponse, 
     UserExistsCheck, 
     UsersCheckResponse, 
     LudusLogResponse,
-    UserRange
 } from './types';
 
 // API clients
@@ -22,19 +20,6 @@ const dulusClient = getDulusClient();
 // ============================================================================
 // USER MANAGEMENT (Ludus API)
 // ============================================================================
-
-/**
- * Get all users from Ludus
- */
-export async function getUsers(): Promise<User[]> {
-    try {
-        const response = await ludusClient.get('/user/all');
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching users:', error);
-        throw error;
-    }
-}
 
 /**
  * Create a new user in Ludus
@@ -89,19 +74,6 @@ export async function deleteMultipleUsers(userIDs: string[]): Promise<void> {
 // ============================================================================
 
 /**
- * Check if users exist in Dulus
- */
-export async function checkUsers(userIds: string[]): Promise<UserCheckResponse> {
-    try {
-        const response = await dulusClient.post('/users/check', { userIds });
-        return response.data;
-    } catch (error) {
-        console.error('Error checking users:', error);
-        throw error;
-    }
-}
-
-/**
  * Check if users exist in pools/topologies
  */
 export async function checkUsersInPools(userIds: string[]): Promise<UserExistsCheck[]> {
@@ -147,18 +119,6 @@ export async function importMissingUsers(poolId: string): Promise<void> {
     }
 }
 
-/**
- * Create/import users using Dulus API
- */
-export async function importUsers(userIds: string[]): Promise<void> {
-    try {
-        await dulusClient.post('/users/import', { userIds });
-    } catch (error) {
-        console.error('Error importing users:', error);
-        throw error;
-    }
-}
-
 // ============================================================================
 // USER LOGS & CONFIGURATIONS
 // ============================================================================
@@ -174,35 +134,6 @@ export async function getUserLogs(userId: string, tail: number = 100, resumeline
         return response.data;
     } catch (error) {
         console.error('Error fetching user logs:', error);
-        throw error;
-    }
-}
-
-/**
- * Download user logs as file
- */
-export async function downloadUserLogs(poolId: string, userId: string): Promise<void> {
-    try {
-        const response = await ludusClient.get('/range/logs', {
-            params: { userID: userId, tail: 100, resumeline: 0 }
-        });
-
-        // Extract the actual log content from the response
-        const logs = response.data?.result || response.data;
-        const logContent = typeof logs === 'string' ? logs : JSON.stringify(logs, null, 2);
-        
-        const blob = new Blob([logContent], { type: 'text/plain' });
-        const url = window.URL.createObjectURL(blob);
-        
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${userId}_logs.txt`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-    } catch (error) {
-        console.error('Error downloading user logs:', error);
         throw error;
     }
 }
@@ -228,18 +159,3 @@ export async function downloadWireGuardConfig(userID: string): Promise<void> {
         throw error;
     }
 }
-
-/**
- * Get user range information including VMs and network details
- */
-export async function getUserRange(userID: string): Promise<UserRange> {
-    try {
-        const response = await ludusClient.get(`/range?userID=${userID}`);
-        return response.data;
-    } catch (error) {
-        console.error(`Error fetching range for user ${userID}:`, error);
-        throw error;
-    }
-}
-
-

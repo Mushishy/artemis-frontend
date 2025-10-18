@@ -1,11 +1,9 @@
-FROM node:24-alpine3.20
+FROM node:25-alpine3.21
 
 WORKDIR /app
-COPY package*.json ./
+COPY . .
+
 RUN npm install --legacy-peer-deps
 
-COPY . .
-RUN npm run build
-
-EXPOSE 4173
-CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0"]
+EXPOSE 5173
+CMD ["npm", "run", "prod"]

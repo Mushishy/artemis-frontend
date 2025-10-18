@@ -1,6 +1,6 @@
 import { getDulusClient } from './api-client';
 import { formatDate } from '$lib/utils';
-import type { Topology, TopologyCheckResponse, TopologyDisplay, CtfdTopologyRequest, CtfdTopologyResponse } from './types';
+import type { Topology, TopologyDisplay, CtfdTopologyRequest, CtfdTopologyResponse } from './types';
 
 const dulusClient = getDulusClient();
 
@@ -97,7 +97,6 @@ export async function createOrUpdateTopology(file: File, topologyId?: string) {
                 'Content-Type': undefined 
             },
         });
-        console.log('Response from createOrUpdateTopology:', response.data);
         return response.data;
     } catch (error) {
         console.error('Error creating/updating topology:', error);
@@ -113,22 +112,6 @@ export async function deleteTopology(topologyId: string) {
         return response.data;
     } catch (error) {
         console.error('Error deleting topology:', error);
-        throw error;
-    }
-}
-
-// ============================================================================
-// POOL TOPOLOGY CHECKING
-// ============================================================================
-
-export async function checkPoolTopology(poolId: string): Promise<TopologyCheckResponse> {
-    try {
-        const response = await dulusClient.get('/range/config', {
-            params: { poolId }
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Error checking pool topology:', error);
         throw error;
     }
 }
