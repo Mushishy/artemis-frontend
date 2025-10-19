@@ -1,9 +1,10 @@
-import { getServerLudusClient } from '../settings/server-api-client';
+import { createServerLudusClient } from '../settings/server-api-client';
+import { serverApiKey } from '../settings/settings-server';
 import type { User, UserRange } from '../types';
 
 export async function getUsers(): Promise<User[]> {
     try {
-        const ludusClient = getServerLudusClient();
+        const ludusClient = createServerLudusClient(serverApiKey || '');
         const response = await ludusClient.get('/user/all');
         // Filter out the user with username 'root'
         return response.data.filter((user: User) => user.name !== 'root');
@@ -15,7 +16,7 @@ export async function getUsers(): Promise<User[]> {
 
 export async function getUserRange(userID: string): Promise<UserRange> {
     try {
-        const ludusClient = getServerLudusClient();
+        const ludusClient = createServerLudusClient(serverApiKey || '');
         const response = await ludusClient.get(`/range?userID=${userID}`);
         return response.data;
     } catch (error) {

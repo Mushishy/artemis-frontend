@@ -5,6 +5,7 @@
 
 	let { data }: { data: PageData } = $props();
 
+	// TABLE
 	const headers: { key: keyof TemplateDisplay; label: string; sortable?: boolean }[] = [
 		{ key: 'name', label: 'Template Name', sortable: true },
 		{ key: 'status', label: 'Built', sortable: true }

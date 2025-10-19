@@ -4,7 +4,7 @@
     import { formatDate } from '$lib/utils';
     import type { PageData } from './$types';
     import type { UserRangeVM } from '$lib/api/types';
-    import { Router, HardDrive, ArrowLeftRight, ArrowLeft } from 'lucide-svelte';
+    import { ArrowLeft } from 'lucide-svelte';
     import { Button } from '$lib/components/ui/button';
 
     export let data: PageData;
@@ -199,9 +199,9 @@
                 node.x = svgX - dragOffset.x;
                 node.y = svgY - dragOffset.y;
                 
-                // Keep nodes within bounds
-                node.x = Math.max(5, Math.min(95, node.x));
-                node.y = Math.max(5, Math.min(70, node.y));
+                // Keep nodes within bounds - allow almost full canvas
+                node.x = Math.max(0.5, Math.min(99.5, node.x));
+                node.y = Math.max(3, Math.min(65, node.y));
                 
                 // Trigger reactivity
                 nodes = nodes;
@@ -302,13 +302,13 @@
         </div>
 
     <!-- Network Visualization -->
-    <div class="flex-1 overflow-hidden border rounded-lg shadow-sm mb-6" style="background-color: #1a1a1a;">
+    <div class="flex-1 overflow-hidden border rounded-lg shadow-sm" style="background-color: #1a1a1a;">
         <svg 
             bind:this={svgElement}
             class="w-full h-full cursor-move"
             viewBox="0 0 100 75"
             preserveAspectRatio="xMidYMid meet"
-            style="user-select: none;"
+            style="user-select: text; display: block;"
         >
             <!-- Links -->
             {#each links as link}
@@ -372,9 +372,11 @@
                                 x={node.x}
                                 y={node.y + 7.5}
                                 text-anchor="middle"
-                                class="fill-gray-400 pointer-events-none"
-                                data-node-id={node.id}
-                                style="font-size: 1.5px;"
+                                class="fill-gray-400 cursor-text"
+                                style="font-size: 1.5px; user-select: text; pointer-events: auto;"
+                                on:mousedown|stopPropagation
+                                role="button"
+                                tabindex="0"
                             >
                                 {node.vm.ip}
                             </text>

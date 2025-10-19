@@ -6,12 +6,7 @@
     import { Input } from '$lib/components/ui/input';
     import { AlertCircle, CheckCircle2, X, Trash2, Users, Plus, UserPlus, Search } from 'lucide-svelte';
     import type { User } from '$lib/api/types';
-    import { 
-        downloadWireGuardConfig, 
-        deleteUser, 
-        deleteMultipleUsers, 
-        createUser 
-    } from '$lib/api/client/users.client';
+    import { downloadWireGuardConfig, deleteUser, deleteMultipleUsers, createUser } from '$lib/api/client/users.client';
     import { checkUsersInPools } from '$lib/api/client/pools.client';
     import type { PageData } from './$types';
 
@@ -40,6 +35,7 @@
         { key: 'dateCreated', label: 'Created', sortable: true }
     ];
 
+    // Action Function
     async function handleDownload(user: User) {
         try {
             await downloadWireGuardConfig(user.userID);
@@ -70,8 +66,6 @@
             showAlert('success', `User "${userName}" deleted successfully`);
             setTimeout(() => window.location.reload(), 1500);
         } catch (error: any) {
-            console.error('Delete error:', error);
-            
             // Check for 500 error (user has active range)
             if (error.response?.status === 500) {
                 showAlert('error', `User "${userName}" cannot be deleted because they have an active range`);
@@ -213,19 +207,19 @@
         </div>
         <div class="flex items-center gap-2">
             <Button 
+                onclick={handleMassDelete}
+                variant="outline"
+                class="flex items-center gap-2"
+            >
+            <Trash2 class="h-4 w-4" />
+                Delete Users
+            </Button>
+            <Button 
                 onclick={handleAddUser}
                 class="flex items-center gap-2"
             >
             <Plus class="h-4 w-4" />
                 Add User
-            </Button>
-            <Button 
-                onclick={handleMassDelete}
-                variant="outline"
-                class="flex items-center gap-2"
-            >
-                <Trash2 class="h-4 w-4" />
-                Delete Users
             </Button>
         </div>
     </div>
@@ -380,6 +374,7 @@
             <div class="space-y-4">
                 <div class="space-y-2">
                     <label for="username" class="text-sm font-medium">Username</label>
+                    <p class="text-xs text-muted-foreground">If you want to create BATCHuser, you have to input the whole name</p>
                     <Input
                         id="username"
                         bind:value={newUserName}

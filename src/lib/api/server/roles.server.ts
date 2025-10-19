@@ -1,10 +1,11 @@
-import { getServerLudusClient } from '../settings/server-api-client';
+import { createServerLudusClient } from '../settings/server-api-client';
+import { serverApiKey } from '../settings/settings-server';
 import type { LudusRole, LudusTemplate, TemplateDisplay } from '../types';
 import { createLudusRole } from '../types';
 
 export async function getTemplates(): Promise<LudusTemplate[]> {
     try {
-        const ludusClient = getServerLudusClient();
+        const ludusClient = createServerLudusClient(serverApiKey || '');
         const response = await ludusClient.get('/templates');
         return response.data;
     } catch (error) {
@@ -29,7 +30,7 @@ export async function getTemplatesDisplay(): Promise<TemplateDisplay[]> {
 
 export async function getAnsibleRoles(): Promise<LudusRole[]> {
     try {
-        const ludusClient = getServerLudusClient();
+        const ludusClient = createServerLudusClient(serverApiKey || '');
         const response = await ludusClient.get('/ansible');
         return response.data;
     } catch (error) {

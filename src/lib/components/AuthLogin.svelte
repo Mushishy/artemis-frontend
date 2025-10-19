@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { setApiKey, validateApiKey } from '$lib/stores/auth';
+	import { login } from '$lib/stores/auth';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Card from '$lib/components/ui/card';
@@ -21,13 +21,12 @@
 		error = '';
 
 		try {
-			const isValid = await validateApiKey(apiKey.trim());
+			const result = await login(apiKey.trim());
 
-			if (isValid) {
-				setApiKey(apiKey.trim());
-			} else {
-				error = 'Invalid API key. Please check your key and try again.';
+			if (!result.success) {
+				error = result.error || 'Invalid API key. Please check your key and try again.';
 			}
+			// If successful, the login function will update the stores automatically
 		} catch (err) {
 			error = 'Failed to validate API key. Please check your connection.';
 		}

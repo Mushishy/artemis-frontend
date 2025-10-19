@@ -7,11 +7,7 @@
 	import { Plus, AlertCircle, CheckCircle2, X, Download } from 'lucide-svelte';
 	import type { LudusRole } from "$lib/api/types";
 	import type { PageData } from './$types';
-	import { 
-		installRole, 
-		installCollection, 
-		installRoleFromFile
-	} from '$lib/api/client/roles.client';
+	import { installRole, installCollection, installRoleFromFile } from '$lib/api/client/roles.client';
 	import type { InstallRoleRequest, InstallCollectionRequest } from '$lib/api/types';
 
 	let { data }: { data: PageData } = $props();
@@ -31,7 +27,8 @@
 	let collectionVersion = $state('');
 	let forceInstall = $state(true);
 	let globalInstall = $state(true);
-
+	
+	// TABLE
 	const headers: { key: keyof LudusRole; label: string; sortable?: boolean }[] = [
 		{ key: 'Name', label: 'Role Name', sortable: true },
 		{ key: 'Version', label: 'Role Version', sortable: true },
@@ -39,6 +36,7 @@
 		{ key: 'Global', label: 'Global Role', sortable: true }
 	];
 
+	// Action Functions
 	function showAlert(message: string, type: 'success' | 'error') {
 		alertMessage = { message, type };
 		setTimeout(() => {
@@ -142,8 +140,6 @@
 			// Refresh the roles list
 			location.reload();
 		} catch (error) {
-			console.error('Failed to install:', error);
-			
 			// Extract meaningful error message from the API response
 			let errorMessage = 'Installation failed';
 			

@@ -10,63 +10,58 @@ const httpsAgent = new https.Agent({
 /**
  * Server-side API client factory for Dulus and Ludus APIs
  * This is exclusively for server-side usage (in .server.ts files)
- * Handles self-signed HTTPS certificates and uses server API keys
+ * Handles self-signed HTTPS certificates and uses user's session API keys
  */
-class ServerApiClientFactory {
-    private static dulusClient: AxiosInstance | null = null;
-    private static ludusClient: AxiosInstance | null = null;
-    private static ludusAdminClient: AxiosInstance | null = null;
 
-    static getDulusClient(): AxiosInstance {
-        if (!this.dulusClient) {
-            const config = {
-                baseURL: SERVER_API_ENDPOINTS.dulus.server,
-                headers: {
-                    'Accept': 'application/json',
-                    'X-API-Key': serverApiKey
-                },
-                httpsAgent
-            };
+export function createServerDulusClient(apiKey: string): AxiosInstance {
+    const config = {
+        baseURL: SERVER_API_ENDPOINTS.dulus.server,
+        headers: {
+            'Accept': 'application/json',
+            'X-API-Key': apiKey
+        },
+        httpsAgent
+    };
 
-            this.dulusClient = axios.create(config);
-        }
-        return this.dulusClient;
-    }
-
-    static getLudusClient(): AxiosInstance {
-        if (!this.ludusClient) {
-            const config = {
-                baseURL: SERVER_API_ENDPOINTS.ludus.server,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-API-Key': serverApiKey
-                },
-                httpsAgent
-            };
-
-            this.ludusClient = axios.create(config);
-        }
-        return this.ludusClient;
-    }
-
-    static getLudusAdminClient(): AxiosInstance {
-        if (!this.ludusAdminClient) {
-            const config = {
-                baseURL: SERVER_API_ENDPOINTS.ludusAdmin.server,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-API-Key': serverApiKey
-                },
-                httpsAgent
-            };
-
-            this.ludusAdminClient = axios.create(config);
-        }
-        return this.ludusAdminClient;
-    }
+    return axios.create(config);
 }
 
-// Export simplified functions for server-side usage
-export const getServerDulusClient = () => ServerApiClientFactory.getDulusClient();
-export const getServerLudusClient = () => ServerApiClientFactory.getLudusClient();
-export const getServerLudusAdminClient = () => ServerApiClientFactory.getLudusAdminClient();
+export function createServerLudusClient(apiKey: string): AxiosInstance {
+    const config = {
+        baseURL: SERVER_API_ENDPOINTS.ludus.server,
+        headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': apiKey
+        },
+        httpsAgent
+    };
+
+    return axios.create(config);
+}
+
+export function createServerLudusAdminClient(apiKey: string): AxiosInstance {
+    const config = {
+        baseURL: SERVER_API_ENDPOINTS.ludusAdmin.server,
+        headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': apiKey
+        },
+        httpsAgent
+    };
+
+    return axios.create(config);
+}
+
+// Legacy functions - deprecated, but kept for backward compatibility
+// These will use a fallback API key from environment if available
+export const getServerDulusClient = () => {
+    return createServerDulusClient(serverApiKey || '');
+};
+
+export const getServerLudusClient = () => {
+    return createServerLudusClient(serverApiKey || '');
+};
+
+export const getServerLudusAdminClient = () => {
+    return createServerLudusAdminClient(serverApiKey || '');
+};

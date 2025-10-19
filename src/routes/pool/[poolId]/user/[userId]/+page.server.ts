@@ -1,10 +1,14 @@
 import { getUserRange } from '$lib/api/server/users.server';
+import { requireAuth } from '$lib/utils/auth-guard';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async (event) => {
+    // Require authentication - will redirect to / if not authenticated
+    requireAuth(event);
+    
     try {
-        const { userId, poolId } = params;
+        const { userId, poolId } = event.params;
         
         if (!userId) {
             throw error(400, 'User ID is required');
@@ -52,9 +56,9 @@ export const load: PageServerLoad = async ({ params }) => {
             return {
                 error: true,
                 errorType: 'NO_RANGE',
-                userId: params.userId,
-                poolId: params.poolId,
-                message: `User ${params.userId} has no range. The range may not have been deployed yet or has been destroyed.`
+                userId: event.params.userId,
+                poolId: event.params.poolId,
+                message: `User ${event.params.userId} has no range. The range may not have been deployed yet or has been destroyed.`
             };
         }
         
@@ -63,9 +67,9 @@ export const load: PageServerLoad = async ({ params }) => {
             return {
                 error: true,
                 errorType: 'ACCESS_DENIED',
-                userId: params.userId,
-                poolId: params.poolId,
-                message: `Access denied for user ${params.userId}. You may not have permission to view this range.`
+                userId: event.params.userId,
+                poolId: event.params.poolId,
+                message: `Access denied for user ${event.params.userId}. You may not have permission to view this range.`
             };
         }
         

@@ -19,23 +19,14 @@
 	let fileInput = $state<HTMLInputElement>();
 	let alertMessage = $state<{ message: string; type: 'success' | 'error' } | null>(null);
 
+	// TABLE
 	const headers: { key: keyof TopologyDisplay; label: string; sortable?: boolean }[] = [
 		{ key: 'Name', label: 'Topology Name', sortable: true },
 		{ key: 'ID', label: 'Topology ID', sortable: true },
 		{ key: 'Created', label: 'Created', sortable: true }
 	];
 
-	function showAlert(message: string, type: 'success' | 'error') {
-		alertMessage = { message, type };
-		setTimeout(() => {
-			alertMessage = null;
-		}, 5000);
-	}
-
-	function hideAlert() {
-		alertMessage = null;
-	}
-
+	// Action Functions
 	function handleEdit(topology: TopologyDisplay) {
 		editingTopology = topology;
 		uploadDialogOpen = true;
@@ -65,8 +56,6 @@
 			topologies = topologies.filter(t => t.ID !== topologyId);
 			showAlert(`Topology "${topologyName}" deleted successfully`, 'success');
 		} catch (error: any) {
-			console.error('Failed to delete topology:', error);
-			
 			let errorMessage = `Failed to delete topology "${topologyName}"`;
 			if (error.response?.data?.error) {
 				errorMessage = error.response.data.error;
@@ -83,8 +72,6 @@
 			await downloadTopologyFile(topology.ID);
 			showAlert(`Topology "${topology.Name}" downloaded successfully`, 'success');
 		} catch (error: any) {
-			console.error('Failed to download topology:', error);
-			
 			let errorMessage = `Failed to download topology "${topology.Name}"`;
 			if (error.response?.data?.error) {
 				errorMessage = error.response.data.error;
@@ -127,8 +114,6 @@
 			// Refresh the topologies list
 			location.reload();
 		} catch (error: any) {
-			console.error('Failed to upload topology:', error);
-			
 			// Check for 400 error (topology being used by pool)
 			if (error.response?.status === 400) {
 				showAlert('Topology cannot be edited because it is being used by an active pool', 'error');
@@ -156,6 +141,17 @@
 		if (fileInput) {
 			fileInput.value = '';
 		}
+	}
+
+	function showAlert(message: string, type: 'success' | 'error') {
+		alertMessage = { message, type };
+		setTimeout(() => {
+			alertMessage = null;
+		}, 5000);
+	}
+
+	function hideAlert() {
+		alertMessage = null;
 	}
 </script>
 

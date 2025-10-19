@@ -64,7 +64,6 @@
                 startLogStreaming(userId);
             }
         } catch (error: any) {
-            console.error('Error loading user logs:', error);
             logError = error.message || 'Failed to load logs';
             logContent = '';
         } finally {
@@ -158,7 +157,6 @@
                 startLogStreaming(userId);
             }
         } catch (error: any) {
-            console.error('Error loading more logs:', error);
             showAlert('Failed to load more logs', 'error');
             
             // Resume streaming even on error if it was active
@@ -187,7 +185,6 @@
             
             showAlert(`Logs for ${userId} downloaded successfully`, 'success');
         } catch (error) {
-            console.error('Error downloading user logs:', error);
             showAlert(`Failed to download logs for ${userId}`, 'error');
         }
     }
@@ -236,7 +233,7 @@
         <div class="flex rounded-lg bg-gray-100 dark:bg-zinc-900 p-1 gap-1">
             <Button variant="outline" class="rounded-lg px-4 py-2 flex items-center gap-2 shadow-sm">
                 <span class="text-base font-medium">streaming</span>
-                <div class="w-3 h-3 rounded-full {isStreaming ? 'bg-green-500' : 'bg-red-500'}"></div>
+                <div class="w-3 h-3 rounded-full {isStreaming ? 'bg-green-500' : 'bg-grey-500'}"></div>
             </Button>
             <Button variant="outline" class="rounded-lg px-4 py-2 flex items-center gap-2 shadow-sm">
                 <span class="text-base font-medium">playbook completed</span>

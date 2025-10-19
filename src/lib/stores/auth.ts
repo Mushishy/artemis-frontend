@@ -1,87 +1,99 @@
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
+import { getApiKeyFromCookie } from '$lib/utils/crypto-client';
 
 export const apiKeyStore = writable<string | null>(null);
 export const isAuthenticated = writable<boolean>(false);
 
-// Load API key from cookie on app start
+// Check authentication status on app start
 if (browser) {
-	const savedApiKey = document.cookie
-		.split('; ')
-		.find(row => row.startsWith('api_key='))
-		?.split('=')[1];
-	
-	if (savedApiKey) {
-		const decodedKey = decodeURIComponent(savedApiKey);
-		apiKeyStore.set(decodedKey);
-		isAuthenticated.set(true);
+	checkAuthStatus();
+}
+
+async function checkAuthStatus() {
+	try {
+		// Check if we have a valid session
+		const response = await fetch('/api/auth/validate');
+		const { authenticated } = await response.json();
+		
+		if (authenticated) {
+			// Get the decrypted API key from cookie
+			const apiKey = getApiKeyFromCookie();
+			if (apiKey) {
+				apiKeyStore.set(apiKey);
+				isAuthenticated.set(true);
+			} else {
+				// Session valid but no API key cookie - logout
+				await logout();
+			}
+		} else {
+			// Not authenticated - clear any stale data
+			apiKeyStore.set(null);
+			isAuthenticated.set(false);
+		}
+	} catch (error) {
+		console.error('Auth status check failed:', error);
+		isAuthenticated.set(false);
 	}
 }
 
-export function setApiKey(key: string) {
-	apiKeyStore.set(key);
-	isAuthenticated.set(true);
-	
-	// Save to cookie (7 days)
-	// Only use secure flag in production (HTTPS)
-	if (browser) {
-		const isSecure = window.location.protocol === 'https:';
-		const secureFlag = isSecure ? '; secure' : '';
-		
-		// Note: We cannot use HttpOnly because we need JavaScript access for API calls
-		// SameSite=Strict provides good CSRF protection
-		// Consider SameSite=Lax if you need cross-site functionality
-		const cookieString = `api_key=${encodeURIComponent(key)}; max-age=${7 * 24 * 60 * 60}${secureFlag}; samesite=strict; path=/`;
-		
-		/*
-		console.log('Setting API key cookie:', {
-			isSecure,
-			protocol: window.location.protocol,
-			cookieString: cookieString.replace(encodeURIComponent(key), '[REDACTED]')
+export async function login(key: string): Promise<{ success: boolean; error?: string }> {
+	try {
+		const response = await fetch('/api/auth/login', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ apiKey: key })
 		});
-		*/
 
-		document.cookie = cookieString;
-		
-		// Verify cookie was set
-		setTimeout(() => {
-			const savedApiKey = document.cookie
-				.split('; ')
-				.find(row => row.startsWith('api_key='))
-				?.split('=')[1];
-			
-			/*
-			console.log('Cookie verification:', {
-				cookieFound: !!savedApiKey,
-				keyMatches: savedApiKey ? decodeURIComponent(savedApiKey) === key : false
-			});
-			*/
-		}, 100);
+		const result = await response.json();
+
+		if (response.ok && result.success) {
+			// Get the decrypted API key from the cookie that was just set
+			const apiKey = getApiKeyFromCookie();
+			if (apiKey) {
+				apiKeyStore.set(apiKey);
+				isAuthenticated.set(true);
+				return { success: true };
+			} else {
+				return { success: false, error: 'Failed to retrieve encrypted API key' };
+			}
+		} else {
+			return { success: false, error: result.error || 'Login failed' };
+		}
+	} catch (error) {
+		console.error('Login error:', error);
+		return { success: false, error: 'Network error occurred' };
 	}
 }
 
-export function logout() {
-	apiKeyStore.set(null);
-	isAuthenticated.set(false);
-	
-	if (browser) {
-		document.cookie = 'api_key=; max-age=0; path=/';
+// Legacy function for backward compatibility
+export function setApiKey(key: string) {
+	// This is now handled by the login function
+	console.warn('setApiKey is deprecated, use login() instead');
+}
+
+export async function logout(): Promise<void> {
+	try {
+		// Call server endpoint to clear HTTP-only cookies
+		await fetch('/api/auth/logout', {
+			method: 'POST'
+		});
+	} catch (error) {
+		console.error('Logout error:', error);
+	} finally {
+		// Clear client state regardless of server response
+		apiKeyStore.set(null);
+		isAuthenticated.set(false);
 	}
 }
 
 export async function validateApiKey(key: string): Promise<boolean> {
 	try {
-		// Test the API key by making a simple request to dulus endpoint via proxy
-		// The proxy handles SSL certificate issues for us
-		const response = await fetch('/api/proxy/ludus/', {
-			method: 'GET',
-			headers: {
-				'X-API-Key': key,
-				'Accept': 'application/json'
-			}
-		});
-
-		return response.ok;
+		// Use the new login endpoint for validation
+		const result = await login(key);
+		return result.success;
 	} catch (error) {
 		console.error('API key validation failed:', error);
 		return false;

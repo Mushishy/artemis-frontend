@@ -19,12 +19,14 @@
 	let fileInput = $state<HTMLInputElement>();
 	let alertMessage = $state<{ type: 'success' | 'error'; message: string } | null>(null);
 
+	// TABLE
 	const headers: { key: keyof Scenario; label: string; sortable?: boolean }[] = [
 		{ key: 'Name', label: 'Scenario Name', sortable: true },
 		{ key: 'ID', label: 'Scenario ID', sortable: true },
 		{ key: 'Created', label: 'Created', sortable: true }
 	];
 
+	// Action Functions
 	function handleEdit(scenario: Scenario) {
 		editingScenario = scenario;
 		uploadDialogOpen = true;

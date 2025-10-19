@@ -204,7 +204,6 @@
                 showAlert('success', 'All users are available for use');
             }
         } catch (error: any) {
-            console.error('Error checking users:', error);
             showAlert('error', 'Failed to check users in pools');
         }
     }
@@ -306,8 +305,6 @@
             // Clear form after successful submission
             resetForm();
         } catch (error: any) {
-            console.error('Error creating pool:', error);
-            
             // Try to extract detailed error message from API response
             let errorMessage = 'Failed to create pool';
             if (error.response?.data) {

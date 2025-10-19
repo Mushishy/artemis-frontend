@@ -1,6 +1,26 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+
+// Function to create SVG arc path for pie chart (stroke-based, no fill)
+export function createPieArc(percentage: number, radius: number = 40, centerX: number = 50, centerY: number = 50): string {
+    if (percentage === 0) return '';
+    if (percentage >= 100) {
+        // Full circle
+        return `M ${centerX - radius} ${centerY} A ${radius} ${radius} 0 1 1 ${centerX + radius} ${centerY} A ${radius} ${radius} 0 1 1 ${centerX - radius} ${centerY}`;
+    }
+    
+    const angle = (percentage / 100) * 2 * Math.PI;
+    const x1 = centerX + radius * Math.cos(-Math.PI / 2);
+    const y1 = centerY + radius * Math.sin(-Math.PI / 2);
+    const x2 = centerX + radius * Math.cos(-Math.PI / 2 + angle);
+    const y2 = centerY + radius * Math.sin(-Math.PI / 2 + angle);
+    
+    const largeArcFlag = angle > Math.PI ? 1 : 0;
+    
+    return `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`;
+}
+
 export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }

@@ -1,10 +1,11 @@
-import { getServerDulusClient } from '../settings/server-api-client';
+import { createServerDulusClient } from '../settings/server-api-client';
+import { serverApiKey } from '../settings/settings-server';
 import { formatDate } from '$lib/utils';
 import type { Scenario } from '../types';
 
 export async function getScenario(scenarioID?: string) {
     try {
-        const dulusClient = getServerDulusClient();
+        const dulusClient = createServerDulusClient(serverApiKey || '');
         const params = scenarioID ? { scenarioID } : {};
         const response = await dulusClient.get('/ctfd/scenario', { params });
         return response.data;

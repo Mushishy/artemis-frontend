@@ -1,8 +1,12 @@
 import { getTopologiesDisplay } from '$lib/api/server/topology.server';
 import { getUsers } from '$lib/api/server/users.server';
+import { requireAuth } from '$lib/utils/auth-guard';
 import type { PageServerLoad } from './$types.js';
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async (event) => {
+    // Require authentication - will redirect to / if not authenticated
+    requireAuth(event);
+    
     try {
         const [topologies, usersResponse] = await Promise.all([
             getTopologiesDisplay(),
@@ -20,7 +24,7 @@ export const load: PageServerLoad = async () => {
             users
         };
     } catch (error) {
-        console.error('Error loading range data:', error);
+        console.error('Error:', error);
         return {
             topologies: [],
             users: []

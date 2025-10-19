@@ -1,15 +1,18 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { getPoolDetail } from '$lib/api/server/pools.server.js';
+import { requireAuth } from '$lib/utils/auth-guard';
 
-export const load: PageServerLoad = async ({ params }) => {
-    const { poolId } = params;
+export const load: PageServerLoad = async (event) => {
+    // Require authentication - will redirect to / if not authenticated
+    requireAuth(event);
+    
+    const { poolId } = event.params;
     
     if (!poolId) {
         throw error(404, 'Pool not found');
     }
     
-    // Load pool detail on server side to eliminate white blink
     try {
         const poolDetail = await getPoolDetail(poolId);
         return {
@@ -17,8 +20,7 @@ export const load: PageServerLoad = async ({ params }) => {
             poolDetail
         };
     } catch (err) {
-        console.error('Server-side error loading pool detail:', err);
-        // Return poolId anyway, let client handle the error
+        console.error('Error:', err);
         return {
             poolId,
             poolDetail: null

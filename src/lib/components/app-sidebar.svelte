@@ -12,6 +12,9 @@
 	import GitlabIcon from "@lucide/svelte/icons/gitlab";
 	import ServerIcon from "@lucide/svelte/icons/server";
 	import TextIcon from "@lucide/svelte/icons/book-open-text";
+	import LogOutIcon from "@lucide/svelte/icons/log-out";
+	import { logout } from "$lib/stores/auth";
+	import { Button } from "$lib/components/ui/button";
 	
 	
 
@@ -96,6 +99,10 @@
     	const apiKey = getApiKey();
         createdBy = apiKey ? apiKey.split(".")[0] : "Unknown";
     }
+
+	async function handleLogout() {
+		await logout();
+	}
 </script>
 
 <Sidebar.Root>
@@ -195,10 +202,18 @@
 	
 	<Sidebar.Footer>
         <div class="flex flex-col items-start p-4 space-y-2">
-
             <div class="flex items-center justify-between w-full">
 				<span class="text-sm font-medium text-muted-foreground">User: {createdBy}</span>
             </div>
+			<Button 
+				variant="outline" 
+				size="sm" 
+				onclick={handleLogout}
+				class="w-full flex items-center gap-2"
+			>
+				<LogOutIcon class="h-4 w-4" />
+				Sign Out
+			</Button>
         </div>
     </Sidebar.Footer>
 	

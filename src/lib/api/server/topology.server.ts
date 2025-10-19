@@ -1,10 +1,11 @@
-import { getServerDulusClient } from '../settings/server-api-client';
+import { createServerDulusClient } from '../settings/server-api-client';
+import { serverApiKey } from '../settings/settings-server';
 import { formatDate } from '$lib/utils';
 import type { TopologyDisplay } from '../types';
 
 export async function getTopology(topologyId?: string) {
     try {
-        const dulusClient = getServerDulusClient();
+        const dulusClient = createServerDulusClient(serverApiKey || '');
         const params = topologyId ? { topologyId } : {};
         const response = await dulusClient.get('/topology', { params });
         return response.data;

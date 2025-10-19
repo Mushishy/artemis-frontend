@@ -1,38 +1,10 @@
 <script lang="ts">
+	import { GamepadIcon, UsersIcon, FileTextIcon, LayersIcon, CpuIcon, HardDriveIcon, ClockIcon, MemoryStickIcon, MapIcon, SwordsIcon, BookIcon }  from 'lucide-svelte';
 	import type { PageData } from './$types';
-	import UsersIcon from "@lucide/svelte/icons/users";
-	import FileTextIcon from "@lucide/svelte/icons/file-text";
-	import LayersIcon from "@lucide/svelte/icons/layers";
-	import CpuIcon from "@lucide/svelte/icons/cpu";
-	import HardDriveIcon from "@lucide/svelte/icons/hard-drive";
-	import ClockIcon from "@lucide/svelte/icons/clock";
-	import MemoryStickIcon from "@lucide/svelte/icons/memory-stick";
-	import MapIcon from "@lucide/svelte/icons/map";
-	import SwordsIcon from "@lucide/svelte/icons/swords";
-	import BookIcon from "@lucide/svelte/icons/book-user";
-	import GamepadIcon from "@lucide/svelte/icons/gamepad-2";
+	import { createPieArc } from '$lib/utils';
 
 	export let data: PageData;
 	$: ({ proxmoxStats } = data);
-
-	// Function to create SVG arc path for pie chart (stroke-based, no fill)
-	function createPieArc(percentage: number, radius: number = 40, centerX: number = 50, centerY: number = 50): string {
-		if (percentage === 0) return '';
-		if (percentage >= 100) {
-			// Full circle
-			return `M ${centerX - radius} ${centerY} A ${radius} ${radius} 0 1 1 ${centerX + radius} ${centerY} A ${radius} ${radius} 0 1 1 ${centerX - radius} ${centerY}`;
-		}
-		
-		const angle = (percentage / 100) * 2 * Math.PI;
-		const x1 = centerX + radius * Math.cos(-Math.PI / 2);
-		const y1 = centerY + radius * Math.sin(-Math.PI / 2);
-		const x2 = centerX + radius * Math.cos(-Math.PI / 2 + angle);
-		const y2 = centerY + radius * Math.sin(-Math.PI / 2 + angle);
-		
-		const largeArcFlag = angle > Math.PI ? 1 : 0;
-		
-		return `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`;
-	}
 </script>
 
 <div class="min-h-[100vh] flex-1 rounded-xl md:min-h-min">

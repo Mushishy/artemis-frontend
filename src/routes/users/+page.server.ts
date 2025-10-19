@@ -1,8 +1,12 @@
 import { getUsers } from '$lib/api/server/users.server';
+import { requireAuth } from '$lib/utils/auth-guard';
 import { formatDate } from '$lib/utils';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async (event) => {
+    // Require authentication - will redirect to / if not authenticated
+    requireAuth(event);
+    
     try {
         const response = await getUsers();
         
@@ -17,7 +21,7 @@ export const load: PageServerLoad = async () => {
             users
         };
     } catch (error) {
-        console.error('Error loading users:', error);
+        console.error('Error:', error);
         return {
             users: []
         };

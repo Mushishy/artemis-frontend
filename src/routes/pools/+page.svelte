@@ -5,32 +5,19 @@
     import * as AlertDialog from '$lib/components/ui/alert-dialog';
     import * as Dialog from '$lib/components/ui/dialog';
     import { Input } from '$lib/components/ui/input';
-    import { 
-        Shield, 
-        AlertCircle, 
-        CheckCircle2, 
-        X 
-    } from 'lucide-svelte';
+    import { Shield, AlertCircle, CheckCircle2, X } from 'lucide-svelte';
     import type { Pool, PoolDetail } from '$lib/api/types';
-    import { 
-        deletePool,
-        updatePoolNote,
-        checkPoolStatus,
-        unshareSharedPool,
-        getPoolDetail
-    } from '$lib/api/client/pools.client';
-    import { 
-        checkUsersExist,
-        deletePoolUsers
-     } from '$lib/api/client/users.client';
+    import { deletePool, updatePoolNote, checkPoolStatus, unshareSharedPool, getPoolDetail } from '$lib/api/client/pools.client';
+    import { checkUsersExist, deletePoolUsers } from '$lib/api/client/users.client';
     import type { PageData } from './$types';
+
+    let { data }: { data: PageData } = $props();
 
     // Extended pool type for deletion process
     type PoolWithDetail = Pool & {
         poolDetail?: PoolDetail;
     };
 
-    let { data }: { data: PageData } = $props();
     let pools = $state(data?.pools || []);
     let deleteDialogOpen = $state(false);
     let noteDialogOpen = $state(false);
@@ -41,6 +28,7 @@
     let alertMessage = $state<{ message: string; type: 'success' | 'error' } | null>(null);
     let isDeletingProcess = $state(false);
 
+    // TABLE
     const headers: { key: keyof Pool; label: string; sortable?: boolean }[] = [
         { key: 'note', label: 'Note', sortable: true },
         { key: 'createdBy', label: 'Created By', sortable: true },
@@ -48,6 +36,7 @@
         { key: 'type', label: 'Type', sortable: true }
     ];
 
+    // Action Functions
     function showAlert(message: string, type: 'success' | 'error') {
         alertMessage = { message, type };
         setTimeout(() => {
@@ -131,7 +120,6 @@
             deletingPool.poolDetail = poolDetail;
 
         } catch (error) {
-            console.error('Error in delete process:', error);
             showAlert('Failed to check pool status or get pool details', 'error');
             deleteDialogOpen = false;
             deletingPool = null;
@@ -195,7 +183,6 @@
             showAlert('Pool and users deleted successfully', 'success');
 
         } catch (error) {
-            console.error('Error in destroy users process:', error);
             showAlert(`Failed during deletion process: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
         }
 
@@ -229,7 +216,6 @@
             pools = pools.filter((p: Pool) => p.poolId !== poolToDelete.poolId);
             showAlert('Pool deleted successfully (users preserved)', 'success');
         } catch (error) {
-            console.error('Error deleting pool:', error);
             showAlert(`Failed to delete pool: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
         }
 
@@ -252,7 +238,6 @@
             editingPool = null;
             noteInputValue = '';
         } catch (error) {
-            console.error('Error updating pool note:', error);
             showAlert('Failed to update pool note', 'error');
         }
     }
