@@ -388,10 +388,49 @@ export async function unshareSharedPool(poolId: string, mainUser: string): Promi
 
 export async function checkUsersInPools(userIds: string[]): Promise<UserExistsCheck[]> {
     try {
-        const response = await dulusClient.post('/pool/users', { userIds });
+        const response = await dulusClient.get('/pool/users/exists', {
+            params: { userIds: userIds.join(',') }
+        });
         return response.data;
     } catch (error) {
         console.error('Error checking users in pools:', error);
+        throw error;
+    }
+}
+
+// Testing API functions
+export async function getTestingStatus(poolId: string): Promise<{ allSame: boolean; testingEnabled: boolean }> {
+    try {
+        const response = await dulusClient.get('/range/testing/status', {
+            params: { poolId }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error getting testing status:', error);
+        throw error;
+    }
+}
+
+export async function startTesting(poolId: string): Promise<{ results: Array<{ userId: string; response: { status: string } }> }> {
+    try {
+        const response = await dulusClient.put('/range/testing/start', '', {
+            params: { poolId }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error starting testing:', error);
+        throw error;
+    }
+}
+
+export async function stopTesting(poolId: string): Promise<{ results: Array<{ userId: string; response: { status: string } }> }> {
+    try {
+        const response = await dulusClient.put('/range/testing/stop', '', {
+            params: { poolId }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error stopping testing:', error);
         throw error;
     }
 }

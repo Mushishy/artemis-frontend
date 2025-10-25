@@ -6,7 +6,7 @@
     import * as Alert from '$lib/components/ui/alert';
     import { AlertCircle, CheckCircle2, X, ArrowLeft } from 'lucide-svelte';
     import type { PoolDetail, PoolDetailData, PoolHealthCheck, PatchUserRequest } from '$lib/api/types.js';
-    import { getPoolDetail, refreshPoolData, checkPoolHealth, checkSharingStatus as checkSharingStatusAPI } from '$lib/api/client/pools.client.js';
+    import { getPoolDetail, refreshPoolData, checkPoolHealth, checkSharingStatus as checkSharingStatusAPI, getTestingStatus, startTesting, stopTesting } from '$lib/api/client/pools.client.js';
     import { getTopologies, getTopology, downloadTopologyFile } from '$lib/api/client/topology.client.js';
     import { formatDate } from '$lib/utils';
     import type { PageData } from './$types';
@@ -18,6 +18,7 @@
     import StatusDialog from '$lib/components/pool/StatusDialog.svelte';
     import AccessDialog from '$lib/components/pool/AccessDialog.svelte';
     import SharingDialog from '$lib/components/pool/SharingDialog.svelte';
+    import TestingDialog from '$lib/components/pool/TestingDialog.svelte';
     import StatusTabs from '$lib/components/pool/StatusTabs.svelte';
 
     let { data }: { data: PageData } = $props();
@@ -40,6 +41,7 @@
     let isRefreshing = $state(false);
     let alertMessage = $state<{ message: string; type: 'success' | 'error' } | null>(null);
     let sharingStatus = $state<{ shared: boolean; isLoading: boolean }>({ shared: false, isLoading: false });
+    let testingStatus = $state<{ allSame: boolean; testingEnabled: boolean; isLoading: boolean }>({ allSame: false, testingEnabled: false, isLoading: false });
     // Remove initial loading - always show UI immediately
     
     // Dialog states
@@ -48,6 +50,7 @@
     let statusDialogOpen = $state(false);
     let sharingDialogOpen = $state(false);
     let accessDialogOpen = $state(false);
+    let testingDialogOpen = $state(false);
     
     // Topology state
     let topologyOptions = $state<any[]>([]);
@@ -117,6 +120,11 @@
                         console.error('❌ Error checking sharing status:', error);
                     });
                 }
+                
+                // Load testing status after other data
+                checkTestingStatus().catch(error => {
+                    console.error('❌ Error checking testing status:', error);
+                });
             });
         } catch (error) {
             console.error('❌ Error loading additional data:', error);
@@ -159,6 +167,11 @@
                         console.error('❌ Error checking sharing status:', error);
                     });
                 }
+                
+                // Load testing status after other data
+                checkTestingStatus().catch(error => {
+                    console.error('❌ Error checking testing status:', error);
+                });
             });
         } catch (error) {
             console.error('❌ Critical error loading pool data:', error);
@@ -184,6 +197,9 @@
             if (poolDetail?.type === 'SHARED') {
                 await checkSharingStatus();
             }
+
+            // Also refresh testing status
+            await checkTestingStatus();
 
             showAlert('Pool data refreshed successfully', 'success');
         } catch (error) {
@@ -222,6 +238,21 @@
             sharingStatus.shared = false;
         } finally {
             sharingStatus.isLoading = false;
+        }
+    }
+
+    async function checkTestingStatus() {
+        testingStatus.isLoading = true;
+        try {
+            const responseData = await getTestingStatus(data.poolId);
+            
+            testingStatus.allSame = responseData.allSame;
+            testingStatus.testingEnabled = responseData.testingEnabled;
+        } catch (error) {
+            testingStatus.allSame = false;
+            testingStatus.testingEnabled = false;
+        } finally {
+            testingStatus.isLoading = false;
         }
     }
 
@@ -375,6 +406,51 @@
         }
     }
 
+    // Testing handlers
+    async function handleStartTesting() {
+        const canStart = healthCheck.users?.allExist && 
+                        healthCheck.topology?.matchPoolTopology && 
+                        healthCheck.status?.allDeployed &&
+                        testingStatus.allSame && 
+                        !testingStatus.testingEnabled;
+        
+        if (!canStart) {
+            showAlert('Testing can only be started when Users, Topology, and Status are all green and testing is disabled consistently across all users', 'error');
+            return;
+        }
+
+        try {
+            await startTesting(data.poolId);
+            showAlert('Testing start request sent successfully', 'success');
+            await checkTestingStatus();
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to start testing';
+            showAlert(errorMessage, 'error');
+        }
+    }
+
+    async function handleStopTesting() {
+        const canStop = healthCheck.users?.allExist && 
+                       healthCheck.topology?.matchPoolTopology && 
+                       healthCheck.status?.allDeployed &&
+                       testingStatus.allSame && 
+                       testingStatus.testingEnabled;
+        
+        if (!canStop) {
+            showAlert('Testing can only be stopped when Users, Topology, and Status are all green and testing is enabled consistently across all users', 'error');
+            return;
+        }
+
+        try {
+            await stopTesting(data.poolId);
+            showAlert('Testing stop request sent successfully', 'success');
+            await checkTestingStatus();
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to stop testing';
+            showAlert(errorMessage, 'error');
+        }
+    }
+
     // Data processing - using $effect for runes mode
     let processedUserData: any[] = $state([]);
     let filteredHeaders: { key: string; label: string; sortable?: boolean }[] = $state([]);
@@ -458,12 +534,14 @@
         poolType={poolDetail?.type}
         ctfdData={poolDetail?.ctfdData}
         {sharingStatus}
+        {testingStatus}
         {isRefreshing}
         onUsersClick={() => usersDialogOpen = true}
         onTopologyClick={() => { topologyDialogOpen = true; loadCurrentTopologyData(); }}
         onStatusClick={() => statusDialogOpen = true}
         onSharingClick={poolDetail?.type === 'SHARED' ? () => sharingDialogOpen = true : undefined}
         onAccessClick={() => accessDialogOpen = true}
+        onTestingClick={() => testingDialogOpen = true}
         onRefresh={handleRefresh}
     />
 
@@ -552,5 +630,14 @@
         onShare={handleSharePool}
         onUnshare={handleUnsharePool}
         onClose={() => sharingDialogOpen = false}
+    />
+
+    <TestingDialog
+        bind:open={testingDialogOpen}
+        {healthCheck}
+        {testingStatus}
+        onStartTesting={handleStartTesting}
+        onStopTesting={handleStopTesting}
+        onClose={() => testingDialogOpen = false}
     />
 </div>

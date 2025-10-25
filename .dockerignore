@@ -119,7 +119,9 @@ Dockerfile
 .dockerignore
 
 # Development files
-note.md
 *.md
 !package.json
 !package-lock.json
+
+nginx.conf
+docker-compose.yml

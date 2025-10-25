@@ -8,12 +8,14 @@
         poolType?: string;
         ctfdData?: boolean;
         sharingStatus?: { shared: boolean; isLoading: boolean };
+        testingStatus?: { allSame: boolean; testingEnabled: boolean; isLoading: boolean };
         isRefreshing: boolean;
         onUsersClick: () => void;
         onTopologyClick: () => void;
         onStatusClick: () => void;
         onSharingClick?: () => void;
         onAccessClick: () => void;
+        onTestingClick: () => void;
         onRefresh: () => void;
     }
 
@@ -22,12 +24,14 @@
         poolType, 
         ctfdData, 
         sharingStatus, 
+        testingStatus,
         isRefreshing, 
         onUsersClick, 
         onTopologyClick, 
         onStatusClick, 
         onSharingClick, 
         onAccessClick, 
+        onTestingClick,
         onRefresh 
     }: Props = $props();
 
@@ -35,6 +39,12 @@
         if (isLoading) return 'bg-gray-400';
         if (status === null || status === undefined) return 'bg-gray-400';
         return status ? 'bg-green-500' : 'bg-red-500';
+    }
+
+    function getTestingStatusColor(testingStatus?: { allSame: boolean; testingEnabled: boolean; isLoading: boolean }): string {
+        if (!testingStatus || testingStatus.isLoading) return 'bg-gray-400';
+        if (!testingStatus.allSame) return 'bg-gray-400';
+        return testingStatus.testingEnabled ? 'bg-green-500' : 'bg-red-500';
     }
 </script>
 
@@ -65,6 +75,11 @@
         <Button variant="outline" onclick={onAccessClick} class="rounded-lg px-4 py-2 flex items-center gap-2 shadow-sm">
             <span class="text-base font-medium">access</span>
             <div class="w-3 h-3 rounded-full {getStatusColor(ctfdData)}"></div>
+        </Button>
+
+        <Button variant="outline" onclick={onTestingClick} class="rounded-lg px-4 py-2 flex items-center gap-2 shadow-sm">
+            <span class="text-base font-medium">testing</span>
+            <div class="w-3 h-3 rounded-full {getTestingStatusColor(testingStatus)}"></div>
         </Button>
     </div>
     

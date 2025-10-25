@@ -8,5 +8,8 @@ export default defineConfig({
 		fs: {
 			allow: ['..']
 		}
+	},
+	preview: {
+		allowedHosts: ['artemis-frontend', 'localhost']
 	}
 });
