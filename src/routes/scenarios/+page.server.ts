@@ -3,11 +3,10 @@ import { requireAuth } from '$lib/utils/auth-guard';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
-    // Require authentication - will redirect to / if not authenticated
-    requireAuth(event);
+    const apiKey = await requireAuth(event);
     
     try {
-        const scenarios = await getScenariosDisplay();
+        const scenarios = await getScenariosDisplay(apiKey);
         return {
             scenarios
         };

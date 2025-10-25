@@ -118,7 +118,6 @@
 			if (error.response?.status === 400) {
 				showAlert('Topology cannot be edited because it is being used by an active pool', 'error');
 			} else {
-				// Extract error message from API response
 				let errorMessage = 'Failed to upload topology';
 				if (error.response?.data) {
 					if (typeof error.response.data === 'string') {
@@ -147,7 +146,7 @@
 		alertMessage = { message, type };
 		setTimeout(() => {
 			alertMessage = null;
-		}, 5000);
+		}, 10000);
 	}
 
 	function hideAlert() {

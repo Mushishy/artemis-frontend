@@ -6,6 +6,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import * as Alert from '$lib/components/ui/alert';
 	import { AlertCircle, Key } from 'lucide-svelte';
+	import { goto } from '$app/navigation';
 	
 	let apiKey = $state('');
 	let isLoading = $state(false);
@@ -25,8 +26,12 @@
 
 			if (!result.success) {
 				error = result.error || 'Invalid API key. Please check your key and try again.';
+			} else {
+				// Give a tiny delay to ensure auth state is properly set
+				setTimeout(async () => {
+					await goto('/');
+				}, 100);
 			}
-			// If successful, the login function will update the stores automatically
 		} catch (err) {
 			error = 'Failed to validate API key. Please check your connection.';
 		}

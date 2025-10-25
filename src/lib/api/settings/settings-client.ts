@@ -1,6 +1,6 @@
 import { env } from '$env/dynamic/public';
 import { browser } from '$app/environment';
-import { getApiKeyFromCookie } from '$lib/utils/crypto-client';
+import { getAuthHeaders } from '$lib/utils/jwt-client';
 
 export const API_ENDPOINTS = {
 	dulus: {
@@ -23,16 +23,16 @@ export const API_ENDPOINTS = {
 	}
 } as const;
 
-// Dynamic API key getter - now uses encrypted cookie
-export function getApiKey(): string | null {
+// Get authentication headers for API requests (JWT-based)
+export function getApiAuthHeaders(): Record<string, string> {
 	if (!browser) {
-		return null;
+		return {};
 	}
 	
 	try {
-		return getApiKeyFromCookie();
+		return getAuthHeaders();
 	} catch (error) {
-		console.error('Error getting API key:', error);
-		return null;
+		console.error('Error getting auth headers:', error);
+		return {};
 	}
 }

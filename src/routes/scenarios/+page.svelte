@@ -85,8 +85,8 @@
 			const result = await createOrUpdateScenario(selectedFile, editingScenario?.ID);
 			const action = editingScenario ? 'updated' : 'created';
 			showAlert( 'success', `Scenariro "${result.id || 'Unknown'}" ${action} successfully`);
-			// Refresh the scenarios list
-			location.reload();
+			// Refresh data by calling server load function again
+			window.location.reload();
 		} catch (error) {
 			showAlert('error', `Failed to ${editingScenario ? 'update' : 'create'} scenario`);
 		}
@@ -103,10 +103,9 @@
 
 	function showAlert(type: 'success' | 'error', message: string) {
 		alertMessage = { type, message };
-		// Auto-hide after 5 seconds
 		setTimeout(() => {
 			alertMessage = null;
-		}, 5000);
+		}, 10000);
 	}
 
 	function hideAlert() {

@@ -3,7 +3,7 @@ import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
     // Require authentication - will redirect to / if not authenticated
-    requireAuth(event);
+    await requireAuth(event);
     
     return {};
 };

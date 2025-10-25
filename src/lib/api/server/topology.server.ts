@@ -1,11 +1,10 @@
 import { createServerDulusClient } from '../settings/server-api-client';
-import { serverApiKey } from '../settings/settings-server';
 import { formatDate } from '$lib/utils';
 import type { TopologyDisplay } from '../types';
 
-export async function getTopology(topologyId?: string) {
+export async function getTopology(apiKey: string, topologyId?: string) {
     try {
-        const dulusClient = createServerDulusClient(serverApiKey || '');
+        const dulusClient = createServerDulusClient(apiKey);
         const params = topologyId ? { topologyId } : {};
         const response = await dulusClient.get('/topology', { params });
         return response.data;
@@ -15,9 +14,9 @@ export async function getTopology(topologyId?: string) {
     }
 }
 
-export async function getTopologiesDisplay(): Promise<TopologyDisplay[]> {
+export async function getTopologiesDisplay(apiKey: string): Promise<TopologyDisplay[]> {
     try {
-        const response = await getTopology();
+        const response = await getTopology(apiKey);
         
         // Handle both single topology and array of topologies
         if (Array.isArray(response)) {

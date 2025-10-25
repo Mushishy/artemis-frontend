@@ -1,7 +1,6 @@
 import axios, { type AxiosInstance } from 'axios';
 import {
     API_ENDPOINTS,
-    getApiKey
 } from './settings-client';
 
 /**
@@ -26,14 +25,7 @@ export class ApiClientFactory {
 
             this.dulusClient = axios.create(config);
 
-            // Add API key interceptor for dynamic keys
-            this.dulusClient.interceptors.request.use((config) => {
-                const apiKey = getApiKey();
-                if (apiKey) {
-                    config.headers['X-API-Key'] = apiKey;
-                }
-                return config;
-            });
+            // No need for client-side auth headers - server proxy handles JWT → API key conversion
         }
         return this.dulusClient;
     }
@@ -49,14 +41,7 @@ export class ApiClientFactory {
 
             this.ludusClient = axios.create(config);
 
-            // Add API key interceptor for dynamic keys
-            this.ludusClient.interceptors.request.use((config) => {
-                const apiKey = getApiKey();
-                if (apiKey) {
-                    config.headers['X-API-Key'] = apiKey;
-                }
-                return config;
-            });
+            // No need for client-side auth headers - server proxy handles JWT → API key conversion
         }
         return this.ludusClient;
     }
@@ -72,14 +57,7 @@ export class ApiClientFactory {
 
             this.ludusAdminClient = axios.create(config);
 
-            // Add API key interceptor for dynamic keys
-            this.ludusAdminClient.interceptors.request.use((config) => {
-                const apiKey = getApiKey();
-                if (apiKey) {
-                    config.headers['X-API-Key'] = apiKey;
-                }
-                return config;
-            });
+            // No need for client-side auth headers - server proxy handles JWT → API key conversion
         }
         return this.ludusAdminClient;
     }

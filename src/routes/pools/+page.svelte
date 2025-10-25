@@ -41,7 +41,7 @@
         alertMessage = { message, type };
         setTimeout(() => {
             alertMessage = null;
-        }, 5000);
+        }, 10000);
     }
 
     function hideAlert() {

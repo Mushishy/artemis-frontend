@@ -64,14 +64,14 @@
         try {
             await deleteUser(userId);
             showAlert('success', `User "${userName}" deleted successfully`);
-            setTimeout(() => window.location.reload(), 1500);
+            setTimeout(() => window.location.href = window.location.pathname, 1500);
         } catch (error: any) {
             // Check for 500 error (user has active range)
             if (error.response?.status === 500) {
                 showAlert('error', `User "${userName}" cannot be deleted because they have an active range`);
             } else {
                 showAlert('error', `User "${userName}" deleted with errors (may still be processing)`);
-                setTimeout(() => window.location.reload(), 3000);
+                setTimeout(() => window.location.href = window.location.pathname, 3000);
             }
         }
     }
@@ -147,7 +147,6 @@
             showAlert('success', `User "${userName}" created successfully`);
             setTimeout(() => window.location.reload(), 1500);
         } catch (error: any) {
-            // Extract meaningful error message from the API response
             let errorMessage = 'Unknown error occurred';
             
             if (error.response?.data) {
@@ -189,7 +188,7 @@
 
     function showAlert(type: 'success' | 'error', message: string) {
         alertMessage = { type, message };
-        setTimeout(() => alertMessage = null, 5000);
+        setTimeout(() => alertMessage = null, 10000);
     }
 
     function hideAlert() {

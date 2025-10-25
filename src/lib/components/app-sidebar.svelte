@@ -13,12 +13,12 @@
 	import ServerIcon from "@lucide/svelte/icons/server";
 	import TextIcon from "@lucide/svelte/icons/book-open-text";
 	import LogOutIcon from "@lucide/svelte/icons/log-out";
-	import { logout } from "$lib/stores/auth";
+	import { logout, userStore } from "$lib/stores/auth";
 	import { Button } from "$lib/components/ui/button";
 	
 	
 
-    import { getApiKey, API_ENDPOINTS } from "$lib/api/settings/settings-client";
+    import { API_ENDPOINTS } from "$lib/api/settings/settings-client";
 
 	// Menu items.
     const menus = [ 
@@ -96,8 +96,7 @@
 	let createdBy = "Unknown";
 
     $: {
-    	const apiKey = getApiKey();
-        createdBy = apiKey ? apiKey.split(".")[0] : "Unknown";
+        createdBy = $userStore?.username || "Unknown";
     }
 
 	async function handleLogout() {

@@ -23,7 +23,7 @@ const noProxmoxStats: ProxmoxStatsResponse = {
 
 export const load: PageServerLoad = async (event) => {
     // Only load stats if user is authenticated
-    const apiKey = getAuthenticatedApiKey(event);
+    const apiKey = await getAuthenticatedApiKey(event);
     
     if (!apiKey) {
         return {
@@ -33,7 +33,7 @@ export const load: PageServerLoad = async (event) => {
     }
 
     try {
-        const proxmoxStats = await getProxmoxStats();
+        const proxmoxStats = await getProxmoxStats(apiKey);
         return {
             proxmoxStats,
             authenticated: true

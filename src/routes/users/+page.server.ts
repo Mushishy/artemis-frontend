@@ -4,11 +4,10 @@ import { formatDate } from '$lib/utils';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
-    // Require authentication - will redirect to / if not authenticated
-    requireAuth(event);
+    const apiKey = await requireAuth(event);
     
     try {
-        const response = await getUsers();
+        const response = await getUsers(apiKey);
         
         const users = response.map(item => ({
             name: item.name,

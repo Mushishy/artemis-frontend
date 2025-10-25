@@ -5,7 +5,7 @@ import { requireAuth } from '$lib/utils/auth-guard';
 
 export const load: PageServerLoad = async (event) => {
     // Require authentication - will redirect to / if not authenticated
-    requireAuth(event);
+    const apiKey = await requireAuth(event);
     
     const { poolId } = event.params;
     
@@ -14,13 +14,13 @@ export const load: PageServerLoad = async (event) => {
     }
     
     try {
-        const poolDetail = await getPoolDetail(poolId);
+        const poolDetail = await getPoolDetail(apiKey, poolId);
         return {
             poolId,
             poolDetail
         };
     } catch (err) {
-        console.error('Error:', err);
+        console.error('Error loading pool detail:', err);
         return {
             poolId,
             poolDetail: null

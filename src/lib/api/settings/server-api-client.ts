@@ -1,8 +1,8 @@
 import axios, { type AxiosInstance } from 'axios';
 import https from 'https';
-import { SERVER_API_ENDPOINTS, serverApiKey } from './settings-server';
+import { SERVER_API_ENDPOINTS } from './settings-server';
 
-// Create HTTPS agent for self-signed certificates (server-side only)
+// Create HTTPS agent for self-signed certificates (always ignore)
 const httpsAgent = new https.Agent({
     rejectUnauthorized: false
 });
@@ -52,16 +52,4 @@ export function createServerLudusAdminClient(apiKey: string): AxiosInstance {
     return axios.create(config);
 }
 
-// Legacy functions - deprecated, but kept for backward compatibility
-// These will use a fallback API key from environment if available
-export const getServerDulusClient = () => {
-    return createServerDulusClient(serverApiKey || '');
-};
 
-export const getServerLudusClient = () => {
-    return createServerLudusClient(serverApiKey || '');
-};
-
-export const getServerLudusAdminClient = () => {
-    return createServerLudusAdminClient(serverApiKey || '');
-};

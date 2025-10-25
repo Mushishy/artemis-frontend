@@ -1,13 +1,8 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
-import { dev } from '$app/environment';
-import { activeSessions } from '$lib/server/sessions';
-import { randomBytes } from 'crypto';
 import { SERVER_API_ENDPOINTS } from '$lib/api/settings/settings-server';
-
-// Generate a secure random session ID
-function generateSessionId(): string {
-    return randomBytes(32).toString('hex');
-}
+import { createTokenPair, createSecureCookieOptions } from '$lib/utils/jwt-auth';
+import { createHash, createCipheriv, randomBytes } from 'crypto';
+import { env as privateEnv } from '$env/dynamic/private';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
     try {
@@ -17,40 +12,34 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
             return json({ error: 'API key is required' }, { status: 400 });
         }
 
-        // Handle potential URL encoding in API key
-        let cleanApiKey = apiKey.trim();
-        try {
-            const decodedKey = decodeURIComponent(cleanApiKey);
-            if (decodedKey !== cleanApiKey) {
-                cleanApiKey = decodedKey;
-            }
-        } catch (e) {
-            // If decoding fails, use original key
-        }
+        // Simple validation - API keys shouldn't need URL decoding
+        const cleanApiKey = apiKey.trim();
 
-        // Validate the API key by making a request to the Ludus API using axios
+        // Validate the API key by making a request to the Ludus API
         const ludusUrl = SERVER_API_ENDPOINTS.ludus.server;
         
         let validationResponse;
         try {
-            // Use axios for better SSL handling
+            // Use axios with proper SSL validation
             const axios = (await import('axios')).default;
-            const https = await import('https');
-            
-            const httpsAgent = new https.Agent({
-                rejectUnauthorized: false // Allow self-signed certificates
-            });
+            const https = (await import('https')).default;
             
             validationResponse = await axios.get(ludusUrl, {
                 headers: {
                     'X-API-Key': cleanApiKey,
                     'Accept': 'application/json'
                 },
-                httpsAgent: ludusUrl.startsWith('https:') ? httpsAgent : undefined,
-                timeout: 10000 // 10 second timeout
+                timeout: 10000, // 10 second timeout
+                // Always ignore self-signed certificates
+                httpsAgent: new https.Agent({
+                    rejectUnauthorized: false
+                })
             });
 
         } catch (validationError: any) {
+            // Log the full error for debugging on the server (don't leak details to client)
+            console.error('Ludus validation request failed:', validationError?.message || validationError, validationError?.stack || '');
+
             // Check if it's a network/SSL error vs API key error
             if (validationError.response) {
                 // Server responded with error status
@@ -65,45 +54,44 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
             return json({ error: `Invalid API key (${validationResponse.status})` }, { status: 401 });
         }
 
-        // Generate session ID and encrypt the API key for client access
-        const sessionId = generateSessionId();
-        
-        // Simple client-side compatible encryption
-        const key = 'artemis-frontend-2024-key';
-        let encrypted = '';
-        for (let i = 0; i < cleanApiKey.length; i++) {
-            encrypted += String.fromCharCode(
-                cleanApiKey.charCodeAt(i) ^ key.charCodeAt(i % key.length)
-            );
+        // Extract username from API key (first part until the first dot)
+        const username = cleanApiKey.split('.')[0] || 'ludus_user';
+
+        // ENCRYPT the API key before putting it in JWT using AES-256-GCM!
+        const encryptionSecret = privateEnv.PRIVATE_JWT_SECRET;
+        if (!encryptionSecret) {
+            return json({ error: 'Server configuration error' }, { status: 500 });
         }
-        const encryptedApiKey = Buffer.from(encrypted).toString('base64');
+        const encryptionKey = createHash('sha256').update(encryptionSecret).digest();
         
-        // Store session (7 days expiry)
-        const expires = Date.now() + (7 * 24 * 60 * 60 * 1000);
-        activeSessions.set(sessionId, {
-            apiKey: cleanApiKey,
-            expires
-        });
+        // Generate random IV for each encryption
+        const iv = randomBytes(16);
+        const cipher = createCipheriv('aes-256-gcm', encryptionKey, iv);
+        
+        let encryptedData = cipher.update(cleanApiKey, 'utf8', 'hex');
+        encryptedData += cipher.final('hex');
+        const authTag = cipher.getAuthTag();
+        
+        // Combine IV + auth tag + encrypted data
+        const encryptedApiKey = iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encryptedData;
+        
+        // Create JWT token pair with ENCRYPTED API key embedded ONLY in access token (SECURE!)
+        const { accessToken, refreshToken } = await createTokenPair(username, encryptedApiKey);
+        
+        // Set secure HTTP-only cookies for tokens ONLY
+        const accessCookieOptions = createSecureCookieOptions(60 * 60); // 1 hour
+        const refreshCookieOptions = createSecureCookieOptions(7 * 24 * 60 * 60); // 7 days
+        
+        cookies.set('access_token', accessToken, accessCookieOptions);
+        cookies.set('refresh_token', refreshToken, refreshCookieOptions);
+        
+        // DO NOT STORE API KEY IN COOKIES - IT'S NOW IN JWT PAYLOAD!
 
-        // Set HTTP-only cookie with encrypted session
-        cookies.set('session_id', sessionId, {
-            httpOnly: true,
-            secure: !dev,
-            sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60, // 7 days
-            path: '/'
+        return json({ 
+            success: true,
+            user: { username }
+            // Tokens are securely stored in HTTP-only cookies only
         });
-
-        // Set encrypted API key cookie (readable by client for API calls)
-        cookies.set('api_key', encryptedApiKey, {
-            httpOnly: false, // Accessible by JavaScript for API calls
-            secure: !dev,
-            sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60, // 7 days
-            path: '/'
-        });
-
-        return json({ success: true });
 
     } catch (error) {
         console.error('Login error:', error);

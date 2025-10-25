@@ -41,7 +41,7 @@
 		alertMessage = { message, type };
 		setTimeout(() => {
 			alertMessage = null;
-		}, 5000);
+		}, 10000);
 	}
 
 	function hideAlert() {
@@ -110,7 +110,7 @@
 			}
 			
 			installName = selectedFile.name;
-			fileToUpload = selectedFile; // Store reference before dialog closes
+			fileToUpload = selectedFile;
 		}
 		
 		// Close dialog immediately
@@ -320,19 +320,16 @@
 					<div class="space-y-2">
 						<label for="file-upload" class="text-sm font-medium">Select Role Archive</label>
 						<p class="text-xs text-muted-foreground">
-							Upload TAR files containing the role
+							Upload .zip file containing the role
 						</p>
 						<input
 							bind:this={fileInput}
 							id="file-upload"
 							type="file"
-							accept=".tar"
+							accept=".zip"
 							onchange={handleFileSelect}
 							class="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground file:border-0 file:bg-transparent file:text-sm file:font-medium"
 						/>
-						<div class="text-xs text-muted-foreground">
-							<p>Supported format: TAR files (.tar)</p>
-						</div>
 					</div>
 					<div class="flex items-center space-x-4">
 						<label class="flex items-center space-x-2">

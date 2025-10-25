@@ -1,5 +1,6 @@
 import { getLudusClient } from '../settings/api-client';
 import type { InstallRoleRequest, InstallCollectionRequest, ApiResponse, LudusRole, LudusTemplate } from '../types';
+import { convertZipToTar } from '$lib/utils/file-conversion';
 
 const ludusClient = getLudusClient();
 
@@ -43,19 +44,27 @@ export async function installCollection(request: InstallCollectionRequest): Prom
     }
 }
 
+
 export async function installRoleFromFile(file: File, force: boolean = false, global: boolean = true): Promise<ApiResponse> {
     try {
         if (!file) {
             throw new Error('No file provided');
         }
 
+        let processedFile = file;
+        
+        // Convert ZIP to TAR if needed
+        if (file.name.toLowerCase().endsWith('.zip')) {
+            processedFile = await convertZipToTar(file);
+        }
+
         // Remove .tar extension from filename for API compatibility
-        let filename = file.name;
+        let filename = processedFile.name;
         if (filename.endsWith('.tar')) {
             filename = filename.slice(0, -4);
         }
         
-        const modifiedFile = new File([file], filename, { type: file.type });
+        const modifiedFile = new File([processedFile], filename, { type: processedFile.type });
         
         const formData = new FormData();
         formData.append('file', modifiedFile);

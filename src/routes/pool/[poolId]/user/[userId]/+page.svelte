@@ -141,7 +141,6 @@
             collapsedVlans.add(vlanNumber);
         }
         
-        // Update visibility
         nodes.forEach(node => {
             if (node.type === 'vm' && node.vlan === vlanNumber) {
                 node.visible = !collapsedVlans.has(vlanNumber);

@@ -4,13 +4,13 @@ import { requireAuth } from '$lib/utils/auth-guard';
 import type { PageServerLoad } from './$types.js';
 
 export const load: PageServerLoad = async (event) => {
-    // Require authentication - will redirect to / if not authenticated
-    requireAuth(event);
+    // Require authentication - will redirect to / if not authenticated and get API key from JWT
+    const apiKey = await requireAuth(event);
     
     try {
         const [topologies, usersResponse] = await Promise.all([
-            getTopologiesDisplay(),
-            getUsers()
+            getTopologiesDisplay(apiKey),
+            getUsers(apiKey)
         ]);
         
         const users = usersResponse.map(item => ({

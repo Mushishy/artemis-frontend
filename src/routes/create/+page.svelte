@@ -11,7 +11,7 @@
     import type { PageData } from './$types';
     import { createPool, checkUsersInPools } from '$lib/api/client/pools.client';
     import type { PoolRequest, PoolUserAndTeam } from '$lib/api/types';
-    import { getApiKey } from '$lib/api/settings/settings-client';
+    import { userStore } from '$lib/stores/auth';
     import { goto } from '$app/navigation';
 
     let { data }: { data: PageData } = $props();
@@ -72,13 +72,12 @@
         userOptions.find((u) => u.value === formData.mainUser)?.label
     );
 
-    // Extract createdBy from API key (first part until dot)
+    // Extract createdBy from user store
     let createdBy = $state('Unknown');
     
-    // Update createdBy when component mounts or API key changes
+    // Update createdBy when user changes
     $effect(() => {
-        const apiKey = getApiKey();
-        createdBy = apiKey ? apiKey.split('.')[0] : 'Unknown';
+        createdBy = $userStore?.username || 'Unknown';
     });
 
     // Filter users based on pool type
@@ -137,7 +136,7 @@
         alertMessage = { type, message };
         setTimeout(() => {
             alertMessage = null;
-        }, 10000); // Increased from 5000 to 10000 (10 seconds)
+        }, 10000);
     }
 
     function hideAlert() {

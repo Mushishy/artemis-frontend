@@ -1,11 +1,10 @@
 import { createServerLudusClient } from '../settings/server-api-client';
-import { serverApiKey } from '../settings/settings-server';
 import type { LudusRole, LudusTemplate, TemplateDisplay } from '../types';
 import { createLudusRole } from '../types';
 
-export async function getTemplates(): Promise<LudusTemplate[]> {
+export async function getTemplates(apiKey: string): Promise<LudusTemplate[]> {
     try {
-        const ludusClient = createServerLudusClient(serverApiKey || '');
+        const ludusClient = createServerLudusClient(apiKey);
         const response = await ludusClient.get('/templates');
         return response.data;
     } catch (error) {
@@ -14,9 +13,9 @@ export async function getTemplates(): Promise<LudusTemplate[]> {
     }
 }
 
-export async function getTemplatesDisplay(): Promise<TemplateDisplay[]> {
+export async function getTemplatesDisplay(apiKey: string): Promise<TemplateDisplay[]> {
     try {
-        const response = await getTemplates();
+        const response = await getTemplates(apiKey);
         
         return response.map(item => ({
             name: item.name,
@@ -28,9 +27,9 @@ export async function getTemplatesDisplay(): Promise<TemplateDisplay[]> {
     }
 }
 
-export async function getAnsibleRoles(): Promise<LudusRole[]> {
+export async function getAnsibleRoles(apiKey: string): Promise<LudusRole[]> {
     try {
-        const ludusClient = createServerLudusClient(serverApiKey || '');
+        const ludusClient = createServerLudusClient(apiKey);
         const response = await ludusClient.get('/ansible');
         return response.data;
     } catch (error) {
@@ -39,9 +38,9 @@ export async function getAnsibleRoles(): Promise<LudusRole[]> {
     }
 }
 
-export async function getAnsibleRolesNormalized(): Promise<LudusRole[]> {
+export async function getAnsibleRolesNormalized(apiKey: string): Promise<LudusRole[]> {
     try {
-        const rawRoles = await getAnsibleRoles();
+        const rawRoles = await getAnsibleRoles(apiKey);
         return rawRoles.map(item => createLudusRole(item));
     } catch (error) {
         console.error('Error loading normalized roles:', error);

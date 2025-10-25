@@ -1,11 +1,10 @@
 import { createServerDulusClient } from '../settings/server-api-client';
-import { serverApiKey } from '../settings/settings-server';
 import { formatDate } from '$lib/utils';
 import type { Scenario } from '../types';
 
-export async function getScenario(scenarioID?: string) {
+export async function getScenario(apiKey: string, scenarioID?: string) {
     try {
-        const dulusClient = createServerDulusClient(serverApiKey || '');
+        const dulusClient = createServerDulusClient(apiKey);
         const params = scenarioID ? { scenarioID } : {};
         const response = await dulusClient.get('/ctfd/scenario', { params });
         return response.data;
@@ -15,9 +14,9 @@ export async function getScenario(scenarioID?: string) {
     }
 }
 
-export async function getScenariosDisplay(): Promise<Scenario[]> {
+export async function getScenariosDisplay(apiKey: string): Promise<Scenario[]> {
     try {
-        const response = await getScenario();
+        const response = await getScenario(apiKey);
         
         // Handle both single scenario and array of scenarios
         if (Array.isArray(response)) {

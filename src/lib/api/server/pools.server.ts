@@ -1,11 +1,10 @@
 import { createServerDulusClient } from '../settings/server-api-client';
-import { serverApiKey } from '../settings/settings-server';
 import { formatDate } from '$lib/utils';
 import type { Pool } from '../types';
 
-export async function loadPools(): Promise<Pool[]> {
+export async function loadPools(apiKey: string): Promise<Pool[]> {
     try {
-        const dulusClient = createServerDulusClient(serverApiKey || '');
+        const dulusClient = createServerDulusClient(apiKey);
         const response = await dulusClient.get('/pool');
         
         const pools = response.data;
@@ -24,15 +23,21 @@ export async function loadPools(): Promise<Pool[]> {
     }
 }
 
-export async function getPoolDetail(poolId: string): Promise<any> {
+export async function getPoolDetail(apiKey: string, poolId: string): Promise<any> {
     try {
-        const dulusClient = createServerDulusClient(serverApiKey || '');
+        const dulusClient = createServerDulusClient(apiKey);
         const response = await dulusClient.get('/pool', { 
             params: { poolId, userIds: false }
         });
         return response.data;
-    } catch (error) {
-        console.error('Error getting pool details:', error);
+    } catch (error: any) {
+        console.error('❌ getPoolDetail: Error getting pool details:', {
+            message: error.message,
+            status: error.response?.status,
+            data: error.response?.data,
+            url: error.config?.url,
+            params: error.config?.params
+        });
         throw error;
     }
 }

@@ -4,8 +4,8 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
-    // Require authentication - will redirect to / if not authenticated
-    requireAuth(event);
+    // Require authentication - will redirect to / if not authenticated and return API key
+    const apiKey = await requireAuth(event);
     
     try {
         const { userId, poolId } = event.params;
@@ -18,7 +18,7 @@ export const load: PageServerLoad = async (event) => {
             throw error(400, 'Pool ID is required');
         }
 
-        const userRange = await getUserRange(userId);
+        const userRange = await getUserRange(userId, apiKey);
 
         // Check if userRange has VMs array and if all VMs are powered off
         if (userRange.VMs && userRange.VMs.length > 0) {

@@ -3,11 +3,10 @@ import { requireAuth } from '$lib/utils/auth-guard';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
-	// Require authentication - will redirect to / if not authenticated
-	requireAuth(event);
+	const apiKey = await requireAuth(event);
 	
 	try {
-		const templates = await getTemplatesDisplay();
+		const templates = await getTemplatesDisplay(apiKey);
 		return {
 			templates
 		};
