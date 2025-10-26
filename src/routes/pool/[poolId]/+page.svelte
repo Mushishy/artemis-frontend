@@ -98,14 +98,14 @@
                 refreshPoolData(data.poolId).then(result => {
                     poolData = result;
                 }).catch(error => {
-                    console.error('❌ Error refreshing pool data:', error);
+                    console.error('Error refreshing pool data:', error);
                 }),
                 
                 // Load health checks quietly in background
                 checkPoolHealth(data.poolId).then(result => {
                     healthCheck = result;
                 }).catch(error => {
-                    console.error('❌ Error checking pool health:', error);
+                    console.error('Error checking pool health:', error);
                     healthCheck = {
                         users: null,
                         topology: null,
@@ -117,17 +117,17 @@
                 // Load sharing status for SHARED pools after other data
                 if (poolDetail?.type === 'SHARED') {
                     checkSharingStatus().catch(error => {
-                        console.error('❌ Error checking sharing status:', error);
+                        console.error('Error checking sharing status:', error);
                     });
                 }
                 
                 // Load testing status after other data
                 checkTestingStatus().catch(error => {
-                    console.error('❌ Error checking testing status:', error);
+                    console.error('Error checking testing status:', error);
                 });
             });
         } catch (error) {
-            console.error('❌ Error loading additional data:', error);
+            console.error('Error loading additional data:', error);
         }
     }
     
@@ -137,7 +137,7 @@
             try {
                 poolDetail = await getPoolDetail(data.poolId);
             } catch (error) {
-                console.error('❌ Error loading pool detail:', error);
+                console.error('Error loading pool detail:', error);
                 // Don't show error screen, just log it
                 return;
             }
@@ -147,13 +147,13 @@
                 refreshPoolData(data.poolId).then(result => {
                     poolData = result;
                 }).catch(error => {
-                    console.error('❌ Error refreshing pool data:', error);
+                    console.error('Error refreshing pool data:', error);
                 }),
                 
                 checkPoolHealth(data.poolId).then(result => {
                     healthCheck = result;
                 }).catch(error => {
-                    console.error('❌ Error checking pool health:', error);
+                    console.error('Error checking pool health:', error);
                     healthCheck = {
                         users: null,
                         topology: null,
@@ -164,17 +164,17 @@
             ]).finally(() => {
                 if (poolDetail?.type === 'SHARED') {
                     checkSharingStatus().catch(error => {
-                        console.error('❌ Error checking sharing status:', error);
+                        console.error('Error checking sharing status:', error);
                     });
                 }
                 
                 // Load testing status after other data
                 checkTestingStatus().catch(error => {
-                    console.error('❌ Error checking testing status:', error);
+                    console.error('Error checking testing status:', error);
                 });
             });
         } catch (error) {
-            console.error('❌ Critical error loading pool data:', error);
+            console.error('Critical error loading pool data:', error);
         }
     }
 
@@ -410,45 +410,29 @@
     async function handleStartTesting() {
         const canStart = healthCheck.users?.allExist && 
                         healthCheck.topology?.matchPoolTopology && 
-                        healthCheck.status?.allDeployed &&
-                        testingStatus.allSame && 
-                        !testingStatus.testingEnabled;
+                        healthCheck.status?.allDeployed;
         
         if (!canStart) {
-            showAlert('Testing can only be started when Users, Topology, and Status are all green and testing is disabled consistently across all users', 'error');
+            showAlert('Testing can only be started when Users, Topology, and Status are all green', 'error');
             return;
         }
 
-        try {
-            await startTesting(data.poolId);
-            showAlert('Testing start request sent successfully', 'success');
-            await checkTestingStatus();
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Failed to start testing';
-            showAlert(errorMessage, 'error');
-        }
+        await handlers.startTesting();
+        await checkTestingStatus();
     }
 
     async function handleStopTesting() {
         const canStop = healthCheck.users?.allExist && 
                        healthCheck.topology?.matchPoolTopology && 
-                       healthCheck.status?.allDeployed &&
-                       testingStatus.allSame && 
-                       testingStatus.testingEnabled;
+                       healthCheck.status?.allDeployed;
         
         if (!canStop) {
-            showAlert('Testing can only be stopped when Users, Topology, and Status are all green and testing is enabled consistently across all users', 'error');
+            showAlert('Testing can only be stopped when Users, Topology, and Status are all green', 'error');
             return;
         }
 
-        try {
-            await stopTesting(data.poolId);
-            showAlert('Testing stop request sent successfully', 'success');
-            await checkTestingStatus();
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Failed to stop testing';
-            showAlert(errorMessage, 'error');
-        }
+        await handlers.stopTesting();
+        await checkTestingStatus();
     }
 
     // Data processing - using $effect for runes mode
@@ -516,7 +500,7 @@
                 <h1 class="text-3xl font-bold">Pool {data.poolId}</h1>
                 {#if poolDetail}
                     <p class="text-sm text-muted-foreground">
-                        {poolDetail.note} • {poolDetail.type} • Created by {poolDetail.createdBy} • {formatDate(poolDetail.createdAt)}
+                        {poolDetail.note} • Type {poolDetail.type} • Created by {poolDetail.createdBy} • Created at {formatDate(poolDetail.createdAt)}
                     </p>
                 {:else}
                     <div class="flex space-x-2 mt-1">
@@ -635,7 +619,6 @@
     <TestingDialog
         bind:open={testingDialogOpen}
         {healthCheck}
-        {testingStatus}
         onStartTesting={handleStartTesting}
         onStopTesting={handleStopTesting}
         onClose={() => testingDialogOpen = false}

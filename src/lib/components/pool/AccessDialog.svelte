@@ -47,57 +47,49 @@
             </Dialog.Description>
         </Dialog.Header>
         
-        <div class="space-y-4 py-4">
-            <!-- Fetch CTFd Data Section -->
-            <button 
-                class="w-full p-4 border rounded-lg text-left hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!canFetchCtfd}
+        <div class="space-y-4">
+            <Button 
                 onclick={onFetchCtfdData}
+                disabled={!canFetchCtfd}
+                variant="outline"
+                class="w-full justify-start gap-3 h-12"
             >
-                <div class="flex items-center gap-3 mb-2">
-                    <Flag class="h-5 w-5" />
-                    <h3 class="font-medium">Fetch CTFd Data to Pool</h3>
+                <Flag class="h-4 w-4" />
+                <div class="flex flex-col items-start">
+                    <span>Fetch CTFd Data to Pool</span>
+                    <span class="text-xs text-muted-foreground">Requires users, topology and status processes to be finished</span>
                 </div>
-                <p class="text-sm text-muted-foreground">
-                    Requires users, topology and status processes to be finished successfully
-                </p>
-            </button>
+            </Button>
 
-            <!-- Download CTFd Logins Section -->
-            <button 
-                class="w-full p-4 border rounded-lg text-left hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!canDownloadLogins}
+            <Button 
                 onclick={onDownloadCtfdLogins}
+                disabled={!canDownloadLogins}
+                variant="outline"
+                class="w-full justify-start gap-3 h-12"
             >
-                <div class="flex items-center gap-3 mb-2">
-                    <FileText class="h-5 w-5" />
-                    <h3 class="font-medium">Download CTFd Logins</h3>
+                <FileText class="h-4 w-4" />
+                <div class="flex flex-col items-start">
+                    <span>Download CTFd Logins</span>
+                    <span class="text-xs text-muted-foreground">Requires CTFd data to be fetched first</span>
                 </div>
-                <p class="text-sm text-muted-foreground">
-                    Requires CTFd data to be fetched first
-                </p>
-            </button>
+            </Button>
 
-            <!-- Download Wireguard Section -->
-            <button 
-                class="w-full p-4 border rounded-lg text-left hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!canDownloadWireguard}
+            <Button 
                 onclick={onDownloadWireguard}
+                disabled={!canDownloadWireguard}
+                variant="outline"
+                class="w-full justify-start gap-3 h-12"
             >
-                <div class="flex items-center gap-3 mb-2">
-                    <Globe class="h-5 w-5" />
-                    <h3 class="font-medium">Download Wireguard</h3>
+                <Globe class="h-4 w-4" />
+                <div class="flex flex-col items-start">
+                    <span>Download Wireguard</span>
+                    <span class="text-xs text-muted-foreground">Requires all users to exist</span>
                 </div>
-                <p class="text-sm text-muted-foreground">
-                    Requires all users to exist
-                </p>
-            </button>
+            </Button>
         </div>
 
-        <Dialog.Footer>
-            <Button variant="outline" onclick={onClose}>
-                Close
-            </Button>
+        <Dialog.Footer class="gap-2">
+            <Button variant="outline" onclick={onClose}>Close</Button>
         </Dialog.Footer>
     </Dialog.Content>
 </Dialog.Root>

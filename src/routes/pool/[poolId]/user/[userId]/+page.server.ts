@@ -25,6 +25,7 @@ export const load: PageServerLoad = async (event) => {
             const allVmsPoweredOff = userRange.VMs.every(vm=> !vm.poweredOn);
             if (allVmsPoweredOff) {
                 return {
+                    userRange,
                     error: true,
                     errorType: 'RANGE_STOPPED',
                     userId,
@@ -35,6 +36,7 @@ export const load: PageServerLoad = async (event) => {
         } else {
             // Range exists but has no VMs
             return {
+                userRange,
                 error: true,
                 errorType: 'NO_VMS',
                 userId,
@@ -49,7 +51,6 @@ export const load: PageServerLoad = async (event) => {
             poolId
         };
     } catch (err: any) {
-        console.error('Error loading user range:', err);
         
         if (err.response?.status === 404) {
             // User has no range or range was destroyed
@@ -58,7 +59,7 @@ export const load: PageServerLoad = async (event) => {
                 errorType: 'NO_RANGE',
                 userId: event.params.userId,
                 poolId: event.params.poolId,
-                message: `User ${event.params.userId} has no range. The range may not have been deployed yet or has been destroyed.`
+                message: `User ${event.params.userId} has no range`
             };
         }
         

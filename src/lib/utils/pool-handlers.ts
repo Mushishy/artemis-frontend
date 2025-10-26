@@ -8,8 +8,11 @@ import {
     abortPool,
     removePool as destroyPool,
     sharePool,
+    unsharePool,
     unshareSharedPool,
-    checkSharingStatus as checkSharingStatusAPI
+    checkSharingStatus as checkSharingStatusAPI,
+    startTesting,
+    stopTesting
 } from '$lib/api/client/pools.client.js';
 
 import { importMissingUsers } from '$lib/api/client/users.client.js';
@@ -189,9 +192,9 @@ export class PoolHandlers {
 
     async sharePool(mainUser: string) {
         try {
-            this.showAlert('Sending sharing request', 'success');
-            await sharePool(this.poolId, mainUser);
-            this.showAlert('Sharing request sent', 'success');
+            this.showAlert('Sending sharing request...', 'success');
+            const response = await sharePool(this.poolId, mainUser);
+            this.handleSharingResponse(response, 'Sharing request completed');
         } catch (error: any) {
             this.handleError('Failed to share pool', error);
         }
@@ -200,18 +203,14 @@ export class PoolHandlers {
     async unsharePool(mainUser: string) {
         try {
             this.showAlert('Sending unsharing request...', 'success');
-            await unshareSharedPool(this.poolId, mainUser);
+            const response = await unsharePool(this.poolId, mainUser);
             
-            this.showAlert('Verifying unshare status...', 'success');
+            // Handle detailed response similar to sharing
+            this.handleUnsharingResponse(response, 'Unsharing request completed');
+            
+            // Still verify the status for consistency
             const checkData = await checkSharingStatusAPI(this.poolId, mainUser);
-            
-            if (checkData.shared === false) {
-                this.showAlert('Pool unshared successfully', 'success');
-                return true;
-            } else {
-                this.showAlert('Unshare failed - pool is still shared', 'error');
-                return false;
-            }
+            return checkData.shared === false;
         } catch (error: any) {
             this.handleError('Failed to unshare pool', error);
             return false;
@@ -303,6 +302,119 @@ export class PoolHandlers {
         }
         
         this.showAlert(errorMessage, 'error');
+    }
+
+    private handleSharingResponse(response: any, successMessage: string) {
+        if (response?.results && Array.isArray(response.results)) {
+            const successResults = response.results.filter((result: any) => result.response?.result);
+            const errorResults = response.results.filter((result: any) => result.response?.error);
+            
+            let message = '';
+            
+            if (successResults.length > 0) {
+                const successDetails = successResults
+                    .map((result: any) => `${result.userId}: ${result.response.result}`)
+                    .join('\n');
+                message += `Successfully shared with ${successResults.length} user(s):\n\n${successDetails}`;
+            }
+            
+            if (errorResults.length > 0) {
+                const errorDetails = errorResults
+                    .map((result: any) => `${result.userId}: ${result.response.error}`)
+                    .join('\n');
+                
+                if (message) message += '\n\n';
+                message += `Failed to share with ${errorResults.length} user(s):\n\n${errorDetails}`;
+            }
+            
+            // Show success if any succeeded, error if all failed
+            const type = successResults.length > 0 ? 'success' : 'error';
+            this.showAlert(message || successMessage, type);
+        } else {
+            this.showAlert(successMessage, 'success');
+        }
+    }
+
+    private handleUnsharingResponse(response: any, successMessage: string) {
+        if (response?.results && Array.isArray(response.results)) {
+            const successResults = response.results.filter((result: any) => result.response?.result);
+            const errorResults = response.results.filter((result: any) => result.response?.error);
+            
+            let message = '';
+            
+            if (successResults.length > 0) {
+                const successDetails = successResults
+                    .map((result: any) => `${result.userId}: ${result.response.result}`)
+                    .join('\n');
+                message += `Successfully unshared from ${successResults.length} user(s):\n\n${successDetails}`;
+            }
+            
+            if (errorResults.length > 0) {
+                const errorDetails = errorResults
+                    .map((result: any) => `${result.userId}: ${result.response.error}`)
+                    .join('\n');
+                
+                if (message) message += '\n\n';
+                message += `Failed to unshare from ${errorResults.length} user(s):\n\n${errorDetails}`;
+            }
+            
+            // Show success if any succeeded, error if all failed
+            const type = successResults.length > 0 ? 'success' : 'error';
+            this.showAlert(message || successMessage, type);
+        } else {
+            this.showAlert(successMessage, 'success');
+        }
+    }
+
+    async startTesting() {
+        try {
+            this.showAlert('Sending testing start request...', 'success');
+            const response = await startTesting(this.poolId);
+            this.handleTestingResponse(response, 'Testing start request completed');
+        } catch (error: any) {
+            this.handleError('Failed to start testing', error);
+        }
+    }
+
+    async stopTesting() {
+        try {
+            this.showAlert('Sending testing stop request...', 'success');
+            const response = await stopTesting(this.poolId);
+            this.handleTestingResponse(response, 'Testing stop request completed');
+        } catch (error: any) {
+            this.handleError('Failed to stop testing', error);
+        }
+    }
+
+    private handleTestingResponse(response: any, successMessage: string) {
+        if (response?.results && Array.isArray(response.results)) {
+            const successResults = response.results.filter((result: any) => result.response?.status === 'ok' || result.response?.result);
+            const errorResults = response.results.filter((result: any) => result.response?.status !== 'ok' && result.response?.error);
+            
+            let message = '';
+            
+            if (successResults.length > 0) {
+                const successDetails = successResults
+                    .map((result: any) => `${result.userId}: ${result.response.status || result.response.result || 'Success'}`)
+                    .join('\n');
+                message += `Testing operation succeeded for ${successResults.length} user(s):\n\n${successDetails}`;
+            }
+            
+            if (errorResults.length > 0) {
+                const errorDetails = errorResults
+                    .map((result: any) => `${result.userId}: ${result.response.error || result.response.status || 'Unknown error'}`)
+                    .join('\n');
+                
+                if (message) message += '\n\n';
+                message += `Testing operation failed for ${errorResults.length} user(s):\n\n${errorDetails}`;
+            }
+            
+            // Show success if any succeeded, error if all failed
+            const type = successResults.length > 0 ? 'success' : 'error';
+            this.showAlert(message || successMessage, type);
+        } else {
+            this.showAlert(successMessage, 'success');
+        }
     }
 
     private handleError(baseMessage: string, error: any) {

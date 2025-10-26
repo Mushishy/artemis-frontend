@@ -14,12 +14,28 @@ export async function getUsers(apiKey: string): Promise<User[]> {
 }
 
 export async function getUserRange(userID: string, apiKey: string): Promise<UserRange> {
-    try {
-        const ludusClient = createServerLudusClient(apiKey);
-        const response = await ludusClient.get(`/range?userID=${userID}`);
-        return response.data;
-    } catch (error) {
-        console.error(`Error fetching range for user ${userID}:`, error);
-        throw error;
+    const maxRetries = 2;
+    let lastError: any;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const ludusClient = createServerLudusClient(apiKey);
+            const response = await ludusClient.get(`/range?userID=${userID}`);
+            return response.data;
+        } catch (error: any) {
+            lastError = error;
+            
+            // If it's not a connection error, don't retry
+            if (error.code !== 'ECONNRESET' && error.code !== 'ECONNREFUSED' && error.code !== 'ETIMEDOUT') {
+                break;
+            }
+            
+            // If this is the last attempt, don't wait
+            if (attempt < maxRetries) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
     }
+    
+    throw lastError;
 }

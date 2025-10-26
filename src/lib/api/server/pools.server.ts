@@ -31,7 +31,7 @@ export async function getPoolDetail(apiKey: string, poolId: string): Promise<any
         });
         return response.data;
     } catch (error: any) {
-        console.error('❌ getPoolDetail: Error getting pool details:', {
+        console.error('getPoolDetail: Error getting pool details:', {
             message: error.message,
             status: error.response?.status,
             data: error.response?.data,

@@ -233,7 +233,7 @@
         <div class="flex rounded-lg bg-gray-100 dark:bg-zinc-900 p-1 gap-1">
             <Button variant="outline" class="rounded-lg px-4 py-2 flex items-center gap-2 shadow-sm">
                 <span class="text-base font-medium">streaming</span>
-                <div class="w-3 h-3 rounded-full {isStreaming ? 'bg-green-500' : 'bg-grey-500'}"></div>
+                <div class="w-3 h-3 rounded-full {isStreaming ? 'bg-green-500' : 'bg-yellow-500'}"></div>
             </Button>
             <Button variant="outline" class="rounded-lg px-4 py-2 flex items-center gap-2 shadow-sm">
                 <span class="text-base font-medium">playbook completed</span>

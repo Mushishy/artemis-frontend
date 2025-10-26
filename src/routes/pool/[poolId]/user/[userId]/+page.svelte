@@ -43,11 +43,26 @@
             return;
         }
 
+        // Clear existing data to prevent duplicates
+        nodes = [];
+        links = [];
+        
         const vlans = new Map<number, UserRangeVM[]>();
         let router: UserRangeVM | undefined;
+        const processedVmIds = new Set<string>(); // Track processed VM IDs to prevent duplicates
 
-        // Categorize VMs
+        // Create a map to deduplicate VMs by name (keep the first occurrence)
+        const uniqueVMs = new Map<string, UserRangeVM>();
         data.userRange.VMs.forEach((vm: UserRangeVM) => {
+            if (!uniqueVMs.has(vm.name)) {
+                uniqueVMs.set(vm.name, vm);
+            }
+        });
+
+        // Categorize unique VMs
+        uniqueVMs.forEach((vm: UserRangeVM) => {
+            processedVmIds.add(vm.ID.toString());
+            
             if (vm.name.toLowerCase().includes('router')) {
                 router = vm;
             } else {
@@ -58,10 +73,6 @@
                 vlans.get(vlan)!.push(vm);
             }
         });
-
-        // Create nodes
-        nodes = [];
-        links = [];
 
         // Add router node (always at the top)
         if (router) {
@@ -103,16 +114,27 @@
                 });
             }
 
-            // Add VM nodes for this VLAN (arranged vertically below each VLAN)
+            // Add VM nodes for this VLAN (arranged horizontally next to each other)
             vms.forEach((vm: UserRangeVM, vmIndex: number) => {
                 const vmId = `vm-${vm.ID}`;
-                const vmY = 55 + (vmIndex * 8); // Arrange VMs vertically below VLAN
+                
+                // Double-check for duplicate nodes (shouldn't happen with the earlier check, but just in case)
+                if (nodes.find(n => n.id === vmId)) {
+                    console.warn(`Attempted to create duplicate node: ${vmId} (${vm.name})`);
+                    return;
+                }
+                
+                // Calculate horizontal spacing for VMs under each VLAN
+                const vmSpacing = vms.length === 1 ? 0 : 15 / Math.max(1, vms.length - 1); // 15% width spread
+                const vmStartX = vlanX - (vms.length === 1 ? 0 : 7.5); // Center the group under VLAN
+                const vmX = vmStartX + (vmIndex * vmSpacing);
+                const vmY = 55; // Fixed Y position below VLAN (same level for all VMs)
                 
                 nodes.push({
                     id: vmId,
                     label: `VM ${cleanVmName(vm.name)}`,
                     type: 'vm',
-                    x: vlanX,
+                    x: vmX,
                     y: vmY,
                     vlan: vlanNumber,
                     visible: !collapsedVlans.has(vlanNumber),
@@ -217,6 +239,8 @@
         goto(`/pool/${data.poolId}`);
     }
 
+
+
     onMount(() => {
         if (!data.error && data.userRange?.VMs) {
             processNetworkData();
@@ -244,6 +268,12 @@
                 </Button>
                 <div>
                     <h1 class="text-3xl font-bold">User: {data.userId}</h1>
+                    <p class="text-sm text-muted-foreground">
+                        Last deployed {data.userRange?.lastDeployment ? formatDate(data.userRange.lastDeployment) : 'N/A'} • 
+                        Status: <span class="font-medium text-{data.userRange?.rangeState === 'SUCCESS' ? 'green' : 'red'}-600">
+                            {data.userRange?.rangeState || 'Unknown'}
+                        </span>
+                    </p>
                 </div>
             </div>
         </div>
@@ -290,7 +320,7 @@
                     <h1 class="text-3xl font-bold">User: {data.userRange?.userID || data.userId}</h1>
                     {#if data.userRange?.lastDeployment}
                        <p class="text-sm text-muted-foreground">
-                            Last deployed: {formatDate(data.userRange.lastDeployment)} • 
+                            Last deployed {formatDate(data.userRange.lastDeployment)} • 
                             Status: <span class="font-medium text-{data.userRange.rangeState === 'SUCCESS' ? 'green' : 'red'}-600">
                                 {data.userRange.rangeState}
                             </span>

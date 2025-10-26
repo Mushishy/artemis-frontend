@@ -238,22 +238,24 @@ export async function checkSharingStatus(poolId: string, targetId: string): Prom
     }
 }
 
-export async function sharePool(poolId: string, targetId: string): Promise<void> {
+export async function sharePool(poolId: string, targetId: string): Promise<{ results: Array<{ userId: string; response: { result?: string; error?: string } }> }> {
     try {
-        await dulusClient.post('/range/share', '', {
+        const response = await dulusClient.post('/range/share', '', {
             params: { poolId, targetId }
         });
+        return response.data;
     } catch (error) {
         console.error('Error sharing pool:', error);
         throw error;
     }
 }
 
-export async function unsharePool(poolId: string, targetId: string): Promise<void> {
+export async function unsharePool(poolId: string, targetId: string): Promise<{ results: Array<{ userId: string; response: { result?: string; error?: string } }> }> {
     try {
-        await dulusClient.post('/range/unshare', '', {
+        const response = await dulusClient.post('/range/unshare', '', {
             params: { poolId, targetId }
         });
+        return response.data;
     } catch (error) {
         console.error('Error unsharing pool:', error);
         throw error;
