@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
-    import { formatDate } from '$lib/utils';
+    import { formatDate } from '$lib/utils/helper';
     import type { PageData } from './$types';
     import type { UserRangeVM } from '$lib/api/types';
     import { ArrowLeft } from 'lucide-svelte';

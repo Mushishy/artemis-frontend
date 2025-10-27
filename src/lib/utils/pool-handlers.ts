@@ -9,7 +9,6 @@ import {
     removePool as destroyPool,
     sharePool,
     unsharePool,
-    unshareSharedPool,
     checkSharingStatus as checkSharingStatusAPI,
     startTesting,
     stopTesting

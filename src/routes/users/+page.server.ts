@@ -1,6 +1,6 @@
 import { getUsers } from '$lib/api/server/users.server';
 import { requireAuth } from '$lib/utils/auth-guard';
-import { formatDate } from '$lib/utils';
+import { formatDate } from '$lib/utils/helper';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {

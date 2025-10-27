@@ -10,7 +10,7 @@
     import { createCtfdTopology } from '$lib/api/client/topology.client';
     import { getScenariosDisplay } from '$lib/api/client/ctfd.client';
     import { loadPools as loadPoolsAPI } from '$lib/api/client/pools.client';
-    import { allTimezones } from '$lib/timezones';
+    import { allTimezones } from '$lib/utils/timezones';
 
     // Form state with default values
     let config = $state({

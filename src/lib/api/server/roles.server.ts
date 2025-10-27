@@ -1,6 +1,6 @@
 import { createServerLudusClient } from '../settings/server-api-client';
 import type { LudusRole, LudusTemplate, TemplateDisplay } from '../types';
-import { createLudusRole } from '../types';
+import { createLudusRole } from '$lib/utils/helper';
 
 export async function getTemplates(apiKey: string): Promise<LudusTemplate[]> {
     try {

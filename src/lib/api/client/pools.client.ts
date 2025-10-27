@@ -1,7 +1,7 @@
 import { getDulusClient } from '../settings/api-client';
 import { checkPoolUsers } from './users.client';
 import { getPoolFlags } from './ctfd.client';
-import { formatDate } from '$lib/utils';
+import { formatDate } from '$lib/utils/helper';
 import type { Pool, UserExistsCheck } from '../types';
 import type { 
     PoolRequest, 
@@ -390,8 +390,8 @@ export async function unshareSharedPool(poolId: string, mainUser: string): Promi
 
 export async function checkUsersInPools(userIds: string[]): Promise<UserExistsCheck[]> {
     try {
-        const response = await dulusClient.get('/pool/users/exists', {
-            params: { userIds: userIds.join(',') }
+        const response = await dulusClient.post('/pool/users', {
+            userIds: userIds
         });
         return response.data;
     } catch (error) {

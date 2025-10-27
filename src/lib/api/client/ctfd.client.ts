@@ -1,5 +1,5 @@
 import { getDulusClient } from '../settings/api-client';
-import { formatDate } from '$lib/utils';
+import { formatDate } from '$lib/utils/helper';
 import type { Scenario } from '../types';
 
 const dulusClient = getDulusClient();

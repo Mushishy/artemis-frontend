@@ -1,5 +1,5 @@
 import { createServerDulusClient } from '../settings/server-api-client';
-import { formatDate } from '$lib/utils';
+import { formatDate } from '$lib/utils/helper';
 import type { Scenario } from '../types';
 
 export async function getScenario(apiKey: string, scenarioID?: string) {

@@ -8,7 +8,7 @@
     import type { PoolDetail, PoolDetailData, PoolHealthCheck, PatchUserRequest } from '$lib/api/types.js';
     import { getPoolDetail, refreshPoolData, checkPoolHealth, checkSharingStatus as checkSharingStatusAPI, getTestingStatus, startTesting, stopTesting } from '$lib/api/client/pools.client.js';
     import { getTopologies, getTopology, downloadTopologyFile } from '$lib/api/client/topology.client.js';
-    import { formatDate } from '$lib/utils';
+    import { formatDate } from '$lib/utils/helper';
     import type { PageData } from './$types';
     import { PoolHandlers } from '$lib/utils/pool-handlers.js';
     

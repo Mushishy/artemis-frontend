@@ -17,15 +17,6 @@ export interface UserExistsCheck {
     userId: string;
 }
 
-export interface UserCheckResult {
-    userId: string;
-    exists: boolean;
-}
-
-export interface UserCheckResponse {
-    results: UserCheckResult[];
-}
-
 export interface UsersCheckResponse {
     allExist: boolean;
     missingUserIds: string[];
@@ -69,15 +60,6 @@ export interface LudusRole {
     Version: string;
     Type: string;
     Global: boolean;
-}
-
-export function createLudusRole(item: any): LudusRole {
-    return {
-        Name: item.Name,
-        Version: item.Version === '(unknown version)' ? 'custom' : item.Version,
-        Type: item.Type,
-        Global: item.Global
-    };
 }
 
 export interface LudusLogResponse {
@@ -161,17 +143,6 @@ export interface Pool {
     mainUser?: string;
 }
 
-export interface PoolStatusResult {
-    userId: string;
-    state: string;
-    error?: string;
-}
-
-export interface PoolStatusResponse {
-    results: PoolStatusResult[];
-    allDeployed: boolean;
-}
-
 export interface StatusCheckResponse {
     allDeployed: boolean;
     results: Array<{
@@ -211,27 +182,6 @@ export interface InstallCollectionRequest {
     collection: string;
     version: string;
     force: boolean;
-}
-
-// RANGE
-export interface RangeRequest {
-    name: string;
-    description?: string;
-    type: 'INDIVIDUAL' | 'SHARED' | 'CTFD';
-    topology_id: string;
-    users?: string[];
-    adminPassword?: string;
-}
-
-export interface Range {
-    id: string;
-    name: string;
-    description: string;
-    status: string;
-    topology_id: string;
-    users: string[];
-    created_at: string;
-    updated_at: string;
 }
 
 export interface Scenario {

@@ -1,4 +1,4 @@
-import { cleanUsername } from '$lib/utils';
+import { cleanUsername } from '$lib/utils/helper';
 import { getLudusClient, getDulusClient, getLudusAdminClient } from '../settings/api-client';
 import type { User, UsersCheckResponse, LudusLogResponse } from '../types';
 

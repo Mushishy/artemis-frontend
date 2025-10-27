@@ -1,26 +1,22 @@
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
 import { env as privateEnv } from '$env/dynamic/private';
+import { createHash, createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 
 // JWT configuration - MUST be set in environment variables
 const JWT_SECRET_KEY = privateEnv.PRIVATE_JWT_SECRET;
-if (!JWT_SECRET_KEY) {
-    throw new Error('PRIVATE_JWT_SECRET environment variable is required for security');
-}
+const ENCRYPTION_SECRET_KEY = privateEnv.PRIVATE_ENCRYPTION_SECRET;
+
 const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_KEY);
 const JWT_ALGORITHM = 'HS256';
 const JWT_ISSUER = 'artemis-frontend';
 const JWT_AUDIENCE = 'artemis-users';
 
-// Token expiration times
-export const TOKEN_EXPIRY = {
-    ACCESS: '1h',    // 1 hour for access tokens
-    REFRESH: '7d'    // 7 days for refresh tokens
-} as const;
+// Token expiration time - single long-lived token
+export const TOKEN_EXPIRY = '12h'; // 12 hours
 
 export interface AuthTokenPayload extends JWTPayload {
     username: string;
-    type: 'access' | 'refresh';
-    apiKey?: string; // LUDUS_API_KEY embedded ONLY in access tokens for server-side API calls
+    apiKey: string; // Encrypted API key stored directly in JWT
 }
 
 /**
@@ -28,7 +24,7 @@ export interface AuthTokenPayload extends JWTPayload {
  */
 export async function createToken(
     payload: Omit<AuthTokenPayload, 'iat' | 'exp' | 'iss' | 'aud'>,
-    expiresIn: string = TOKEN_EXPIRY.ACCESS
+    expiresIn: string = TOKEN_EXPIRY
 ): Promise<string> {
     const jwt = await new SignJWT(payload)
         .setProtectedHeader({ alg: JWT_ALGORITHM })
@@ -59,35 +55,10 @@ export async function verifyToken(token: string): Promise<AuthTokenPayload | nul
 }
 
 /**
- * Create access and refresh token pair with API key ONLY in access token
+ * Create a single auth token with encrypted API key
  */
-export async function createTokenPair(username: string, apiKey: string) {
-    const [accessToken, refreshToken] = await Promise.all([
-        createToken({ username, apiKey, type: 'access' }, TOKEN_EXPIRY.ACCESS),
-        createToken({ username, type: 'refresh' }, TOKEN_EXPIRY.REFRESH) // No API key in refresh token
-    ]);
-    
-    return { accessToken, refreshToken };
-}
-
-/**
- * Extract token from Authorization header or cookies
- */
-export function extractToken(request: Request): string | null {
-    // Try Authorization header first (Bearer token)
-    const authHeader = request.headers.get('Authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-        return authHeader.slice(7);
-    }
-    
-    // Fallback to cookie
-    const cookieHeader = request.headers.get('Cookie');
-    if (cookieHeader) {
-        const match = cookieHeader.match(/access_token=([^;]+)/);
-        return match ? decodeURIComponent(match[1]) : null;
-    }
-    
-    return null;
+export async function createAuthToken(username: string, encryptedApiKey: string): Promise<string> {
+    return createToken({ username, apiKey: encryptedApiKey });
 }
 
 /**
@@ -101,4 +72,63 @@ export function createSecureCookieOptions(maxAge: number) {
         path: '/',
         maxAge
     };
+}
+
+/**
+ * Encrypt API key using AES-256-GCM
+ */
+export function encryptApiKey(apiKey: string): string {
+    const encryptionKey = createHash('sha256').update(ENCRYPTION_SECRET_KEY).digest();
+    
+    // Generate random IV for each encryption
+    const iv = randomBytes(16);
+    const cipher = createCipheriv('aes-256-gcm', encryptionKey, iv);
+    
+    let encrypted = cipher.update(apiKey, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    const authTag = cipher.getAuthTag();
+    
+    // Combine IV + auth tag + encrypted data
+    return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
+}
+
+/**
+ * Decrypt API key using AES-256-GCM
+ */
+export function decryptApiKey(encryptedData: string): string {
+    const encryptionKey = createHash('sha256').update(ENCRYPTION_SECRET_KEY).digest();
+    
+    // Split the encrypted data: iv:authTag:encryptedData
+    const parts = encryptedData.split(':');
+    if (parts.length !== 3) {
+        throw new Error('Invalid encrypted API key format');
+    }
+    
+    const [ivHex, authTagHex, encrypted] = parts;
+    const iv = Buffer.from(ivHex, 'hex');
+    const authTag = Buffer.from(authTagHex, 'hex');
+    
+    const decipher = createDecipheriv('aes-256-gcm', encryptionKey, iv);
+    decipher.setAuthTag(authTag);
+    
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    
+    return decrypted;
+}
+
+/**
+ * Clear authentication cookie
+ */
+export function clearAuthCookie(cookies: any) {
+    const clearOptions = {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'strict' as const,
+        path: '/',
+        maxAge: 0 // Expire immediately
+    };
+    
+    cookies.set('auth_token', '', clearOptions);
+    cookies.delete('auth_token', { path: '/' });
 }

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { GamepadIcon, UsersIcon, FileTextIcon, LayersIcon, CpuIcon, HardDriveIcon, ClockIcon, MemoryStickIcon, MapIcon, SwordsIcon, BookIcon }  from 'lucide-svelte';
 	import type { PageData } from './$types';
-	import { createPieArc } from '$lib/utils';
+	import { createPieArc } from '$lib/utils/helper';
 
 	export let data: PageData;
 	$: ({ proxmoxStats } = data);

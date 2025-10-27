@@ -38,18 +38,3 @@ export function createServerLudusClient(apiKey: string): AxiosInstance {
 
     return axios.create(config);
 }
-
-export function createServerLudusAdminClient(apiKey: string): AxiosInstance {
-    const config = {
-        baseURL: SERVER_API_ENDPOINTS.ludusAdmin.server,
-        headers: {
-            'Content-Type': 'application/json',
-            'X-API-Key': apiKey
-        },
-        httpsAgent
-    };
-
-    return axios.create(config);
-}
-
-

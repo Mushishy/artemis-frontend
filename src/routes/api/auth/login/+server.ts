@@ -1,8 +1,6 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { SERVER_API_ENDPOINTS } from '$lib/api/settings/settings-server';
-import { createTokenPair, createSecureCookieOptions } from '$lib/utils/jwt-auth';
-import { createHash, createCipheriv, randomBytes } from 'crypto';
-import { env as privateEnv } from '$env/dynamic/private';
+import { createAuthToken, createSecureCookieOptions, encryptApiKey } from '$lib/utils/jwt-auth';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
     try {
@@ -57,35 +55,15 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
         // Extract username from API key (first part until the first dot)
         const username = cleanApiKey.split('.')[0] || 'ludus_user';
 
-        // ENCRYPT the API key before putting it in JWT using AES-256-GCM!
-        const encryptionSecret = privateEnv.PRIVATE_JWT_SECRET;
-        if (!encryptionSecret) {
-            return json({ error: 'Server configuration error' }, { status: 500 });
-        }
-        const encryptionKey = createHash('sha256').update(encryptionSecret).digest();
+        // Encrypt the API key
+        const encryptedApiKey = encryptApiKey(cleanApiKey);
         
-        // Generate random IV for each encryption
-        const iv = randomBytes(16);
-        const cipher = createCipheriv('aes-256-gcm', encryptionKey, iv);
+        // Create single JWT token with encrypted API key
+        const authToken = await createAuthToken(username, encryptedApiKey);
         
-        let encryptedData = cipher.update(cleanApiKey, 'utf8', 'hex');
-        encryptedData += cipher.final('hex');
-        const authTag = cipher.getAuthTag();
-        
-        // Combine IV + auth tag + encrypted data
-        const encryptedApiKey = iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encryptedData;
-        
-        // Create JWT token pair with ENCRYPTED API key embedded ONLY in access token (SECURE!)
-        const { accessToken, refreshToken } = await createTokenPair(username, encryptedApiKey);
-        
-        // Set secure HTTP-only cookies for tokens ONLY
-        const accessCookieOptions = createSecureCookieOptions(60 * 60); // 1 hour
-        const refreshCookieOptions = createSecureCookieOptions(7 * 24 * 60 * 60); // 7 days
-        
-        cookies.set('access_token', accessToken, accessCookieOptions);
-        cookies.set('refresh_token', refreshToken, refreshCookieOptions);
-        
-        // DO NOT STORE API KEY IN COOKIES - IT'S NOW IN JWT PAYLOAD!
+        // Set secure HTTP-only cookie for single token
+        const cookieOptions = createSecureCookieOptions(24 * 60 * 60); // 1 day
+        cookies.set('auth_token', authToken, cookieOptions);
 
         return json({ 
             success: true,
