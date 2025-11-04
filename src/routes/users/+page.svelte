@@ -137,6 +137,19 @@
         
         const userName = newUserName.trim();
         
+        // Validate username
+        if (userName.length >= 20) {
+            showAlert('error', 'Username must be less than 20 characters');
+            return;
+        }
+        
+        // Check for only basic ASCII alphanumeric characters
+        const validUsernameRegex = /^[a-zA-Z0-9]+$/;
+        if (!validUsernameRegex.test(userName)) {
+            showAlert('error', 'Username can only contain basic ASCII letters (a-z, A-Z) and numbers (0-9). No spaces, special characters, or diacritical marks allowed.');
+            return;
+        }
+        
         addUserDialogOpen = false;
         newUserName = '';
         

@@ -21,7 +21,7 @@
                 Manage Sharing
             </Dialog.Title>
             <Dialog.Description>
-                Share or unshare the main user's range.
+                Share or unshare the main user's range. Takes some time and might have to be initiated multiple times.
             </Dialog.Description>
         </Dialog.Header>
         

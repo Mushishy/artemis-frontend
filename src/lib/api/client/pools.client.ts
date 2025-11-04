@@ -129,10 +129,13 @@ export async function changePoolTopology(poolId: string, topologyId: string): Pr
     }
 }
 
-export async function deployPool(poolId: string): Promise<any> {
+export async function deployPool(poolId: string, concurrentRequests: number): Promise<any> {
     try {
         const response = await dulusClient.post('/range/deploy', '', {
-            params: { poolId }
+            params: { 
+                poolId,
+                concurrentRequests: Math.max(1, concurrentRequests)
+            }
         });
         return response.data;
     } catch (error) {
@@ -141,10 +144,13 @@ export async function deployPool(poolId: string): Promise<any> {
     }
 }
 
-export async function redeployPool(poolId: string): Promise<any> {
+export async function redeployPool(poolId: string, concurrentRequests: number): Promise<any> {
     try {
         const response = await dulusClient.post('/range/redeploy', '', {
-            params: { poolId }
+            params: { 
+                poolId,
+                concurrentRequests: Math.max(1, concurrentRequests)
+            }
         });
         return response.data;
     } catch (error) {

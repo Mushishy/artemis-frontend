@@ -23,7 +23,7 @@
 
 	let { data, headers = [], itemsPerPage = 13, currentPage = 1, maxHeight = '400px', showActions = false, onRowClick, onEdit, onDelete, onDownload, onDownloadCtfdData, onDownloadLogins, onDownloadWireguard, onNote, onInspect, showDeleteFor }: Props = $props();
 
-	let sortColumn: string | null = $state(null);
+	let sortColumn: string | null = $state(headers.length > 0 ? headers[0].key : null);
 	let sortDirection: 'asc' | 'desc' = $state('asc');
 	let currentItemsPerPage = $state(itemsPerPage);
 

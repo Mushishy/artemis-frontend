@@ -41,11 +41,22 @@ export function cleanUsername(username: string): string {
         .slice(0, 20);                 // Limit to 20 characters max
 }
 
-export function createLudusRole(item: any): LudusRole {
+export function createLudusRole(item: any): any {
     return {
         Name: item.Name,
         Version: item.Version === '(unknown version)' ? 'custom' : item.Version,
         Type: item.Type,
         Global: item.Global
     };
+}
+
+/**
+ * Normalize text by removing diacritics and converting to base characters
+ * Examples: ž -> z, ľ -> l, í -> i, á -> a
+ */
+export function normalizeText(text: string): string {
+	return text
+		.normalize('NFD') // Decompose characters with diacritics
+		.replace(/[\u0300-\u036f]/g, '') // Remove diacritical marks
+		.toLowerCase();
 }

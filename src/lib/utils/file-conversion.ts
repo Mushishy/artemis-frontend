@@ -52,17 +52,69 @@ export async function convertZipToTar(zipFile: File): Promise<File> {
         const tarChunks: Uint8Array[] = [];
         
         for (const [path, content] of Object.entries(filteredFiles)) {
-            // Create TAR header (512 bytes)
-            const header = new Uint8Array(512);
-            
             // Normalize path (remove leading slash if present)
             let normalizedPath = path.startsWith('/') ? path.slice(1) : path;
             
             const pathBytes = new TextEncoder().encode(normalizedPath);
+            
+            // Handle long filenames using GNU tar extended format
             if (pathBytes.length >= 100) {
-                console.warn(`Path too long, truncating: ${normalizedPath}`);
+                console.log(`Long path detected (${pathBytes.length} chars): ${normalizedPath}`);
+                
+                // Create GNU long filename header
+                const longNameHeader = new Uint8Array(512);
+                const longNameContent = new TextEncoder().encode(normalizedPath);
+                
+                // GNU long filename marker
+                longNameHeader.set(new TextEncoder().encode('././@LongLink'), 0);
+                longNameHeader.set(new TextEncoder().encode('0000000'), 100); // mode
+                longNameHeader.set(new TextEncoder().encode('0000000'), 108); // uid
+                longNameHeader.set(new TextEncoder().encode('0000000'), 116); // gid
+                
+                // Size of the long filename
+                const longNameSizeOctal = longNameContent.length.toString(8).padStart(11, '0') + ' ';
+                longNameHeader.set(new TextEncoder().encode(longNameSizeOctal), 124);
+                
+                // Modification time
+                const mtime = Math.floor(Date.now() / 1000).toString(8).padStart(11, '0') + ' ';
+                longNameHeader.set(new TextEncoder().encode(mtime), 136);
+                
+                // Checksum placeholder
+                longNameHeader.set(new TextEncoder().encode('        '), 148);
+                
+                // Type flag for GNU long filename
+                longNameHeader[156] = 0x4C; // 'L'
+                
+                // Calculate checksum for long name header
+                let longNameChecksum = 0;
+                for (let i = 0; i < 512; i++) {
+                    longNameChecksum += longNameHeader[i];
+                }
+                const longNameChecksumOctal = longNameChecksum.toString(8).padStart(6, '0') + '\0 ';
+                longNameHeader.set(new TextEncoder().encode(longNameChecksumOctal), 148);
+                
+                // Add long name header and content
+                tarChunks.push(longNameHeader);
+                tarChunks.push(longNameContent);
+                
+                // Pad long name content to 512-byte boundary
+                const longNamePadding = 512 - (longNameContent.length % 512);
+                if (longNamePadding < 512) {
+                    tarChunks.push(new Uint8Array(longNamePadding));
+                }
             }
-            header.set(pathBytes.slice(0, 100)); // filename (max 100 chars)
+            
+            // Create regular TAR header (512 bytes)
+            const header = new Uint8Array(512);
+            
+            // For long paths, use a truncated version in the regular header
+            if (pathBytes.length >= 100) {
+                // Use last part of path or a placeholder
+                const shortPath = normalizedPath.length > 99 ? normalizedPath.slice(-99) : normalizedPath;
+                header.set(new TextEncoder().encode(shortPath).slice(0, 100));
+            } else {
+                header.set(pathBytes); // filename (max 100 chars)
+            }
             
             // File mode (octal 644)
             const mode = '0000644';

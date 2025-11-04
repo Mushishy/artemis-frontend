@@ -24,7 +24,7 @@
     let { data }: { data: PageData } = $props();
     
     // State
-    let poolDetail: PoolDetail | null = $state(data.poolDetail || null);
+    let poolDetail: PoolDetail = $state(data.poolDetail);
     let poolData: PoolDetailData = $state({
         users: null,
         topology: null,
@@ -339,13 +339,13 @@
     }
 
     // Status dialog handlers
-    async function handleDeployPool() {
-        await handlers.deployPool();
+    async function handleDeployPool(concurrentRequests: number) {
+        await handlers.deployPool(concurrentRequests);
         await refreshHealthCheck();
     }
 
-    async function handleRedeployPool() {
-        await handlers.redeployPool();
+    async function handleRedeployPool(concurrentRequests: number) {
+        await handlers.redeployPool(concurrentRequests);
         await refreshHealthCheck();
     }
 
@@ -497,10 +497,10 @@
                 Back
             </Button>
             <div>
-                <h1 class="text-3xl font-bold">Pool {data.poolId}</h1>
+                <h1 class="text-3xl font-bold">{poolDetail.note}</h1>
                 {#if poolDetail}
                     <p class="text-sm text-muted-foreground">
-                        {poolDetail.note} • Type {poolDetail.type} • Created by {poolDetail.createdBy} • Created at {formatDate(poolDetail.createdAt)}
+                        Id {data.poolId} • Type {poolDetail.type} • Created by {poolDetail.createdBy} • Created at {formatDate(poolDetail.createdAt)}
                     </p>
                 {:else}
                     <div class="flex space-x-2 mt-1">

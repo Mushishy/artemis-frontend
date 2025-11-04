@@ -108,20 +108,20 @@ export class PoolHandlers {
         }
     }
 
-    async deployPool() {
+    async deployPool(concurrentRequests: number) {
         try {
             this.showAlert('Deploying pool', 'success');
-            await deployPool(this.poolId);
+            await deployPool(this.poolId, concurrentRequests);
             this.showAlert('Pool deployment requested', 'success');
         } catch (error: any) {
             this.handleError('Failed to deploy pool', error);
         }
     }
 
-    async redeployPool() {
+    async redeployPool(concurrentRequests: number) {
         try {
             this.showAlert('Redeploying pool', 'success');
-            await redeployPool(this.poolId);
+            await redeployPool(this.poolId, concurrentRequests);
             this.showAlert('Pool redeployment requested', 'success');
         } catch (error: any) {
             this.handleError('Failed to redeploy pool', error);

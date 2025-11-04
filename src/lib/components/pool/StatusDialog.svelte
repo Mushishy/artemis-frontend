@@ -1,12 +1,13 @@
 <script lang="ts">
     import { Button } from '$lib/components/ui/button';
+    import { Input } from '$lib/components/ui/input';
     import * as Dialog from '$lib/components/ui/dialog';
     import { Network } from 'lucide-svelte';
 
     interface Props {
         open: boolean;
-        onDeploy: () => Promise<void>;
-        onRedeploy: () => Promise<void>;
+        onDeploy: (concurrentRequests: number) => Promise<void>;
+        onRedeploy: (concurrentRequests: number) => Promise<void>;
         onAbort: () => Promise<void>;
         onDestroy: () => Promise<void>;
         onClose: () => void;
@@ -15,23 +16,27 @@
     let { open = $bindable(), onDeploy, onRedeploy, onAbort, onDestroy, onClose }: Props = $props();
 
     let statusActionType: 'deploy' | 'redeploy' | 'abort' | 'destroy' = $state('deploy');
+    let concurrentRequests = $state(1);
 
     async function handleAction() {
+        // Close dialog immediately
+        open = false;
+        
+        // Then execute the action (don't await it)
         switch (statusActionType) {
             case 'deploy':
-                await onDeploy();
+                onDeploy(concurrentRequests);
                 break;
             case 'redeploy':
-                await onRedeploy();
+                onRedeploy(concurrentRequests);
                 break;
             case 'abort':
-                await onAbort();
+                onAbort();
                 break;
             case 'destroy':
-                await onDestroy();
+                onDestroy();
                 break;
         }
-        open = false;
     }
 </script>
 
@@ -43,7 +48,7 @@
                 Manage Status
             </Dialog.Title>
             <Dialog.Description>
-                Deploy, redeploy, abort, or destroy the pool.
+                Deploy only when all ranges are never deployed or destroyed, redeploy only when there have been some with errors while deploying, abort to stop all deployments (press for each active deploy, redeploy), when all ranges are in error or aborted state you can destroy the pool.
             </Dialog.Description>
         </Dialog.Header>
         
@@ -68,6 +73,23 @@
                         <span class="text-sm font-medium">Destroy</span>
                     </label>
                 </div>
+            </div>
+            <div class="space-y-2 {statusActionType !== 'deploy' && statusActionType !== 'redeploy' ? 'opacity-50' : ''}">
+                <div class="flex items-center gap-3">
+                    <label for="concurrent-requests" class="text-sm font-medium">Concurrent Requests:</label>
+                    <Input
+                        id="concurrent-requests"
+                        type="number"
+                        bind:value={concurrentRequests}
+                        min="1"
+                        placeholder="4"
+                        class="w-20"
+                        disabled={statusActionType !== 'deploy' && statusActionType !== 'redeploy'}
+                    />
+                </div>
+                <p class="text-xs text-muted-foreground">
+                    Number of concurrent deployment requests (must be ≥ 1)
+                </p>
             </div>
         </div>
 

@@ -13,6 +13,7 @@
     import type { PoolRequest, PoolUserAndTeam } from '$lib/api/types';
     import { userStore } from '$lib/stores/auth';
     import { goto } from '$app/navigation';
+    import { normalizeText } from '$lib/utils/helper';
 
     let { data }: { data: PageData } = $props();
 
@@ -147,9 +148,24 @@
         goto('/users');
     }
 
-    // Transform user name to userId format (BATCH + lowercase no spaces)
+    // Transform user name to userId format (BATCH + normalized lowercase no spaces)
     function transformToUserId(userName: string): string {
-        return 'BATCH' + userName.toLowerCase().replace(/\s+/g, '');
+        return 'BATCH' + normalizeText(userName).replace(/\s+/g, '');
+    }
+
+    // Validate user names to ensure they don't exceed 25 characters when combined with BATCH
+    function validateUserNameLengths(users: PoolUserAndTeam[]): string | null {
+        const invalidUsers = users.filter(user => {
+            const userId = transformToUserId(user.user);
+            return userId.length > 20;
+        });
+
+        if (invalidUsers.length > 0) {
+            const userList = invalidUsers.map(u => `"${u.user}"`).join('\n ');
+            return `User names too long when combined with BATCH prefix. Maximum 25 characters total. Invalid users:\n ${userList}`;
+        }
+
+        return null;
     }
 
     async function checkUsersInOtherPools() {
@@ -162,6 +178,13 @@
         
         if (users.length === 0) {
             showAlert('error', 'No valid users found in input');
+            return;
+        }
+
+        // Validate user name lengths
+        const lengthError = validateUserNameLengths(users);
+        if (lengthError) {
+            showAlert('error', lengthError);
             return;
         }
 
@@ -233,7 +256,15 @@
     function handleSubmit() {
         // Only validate team assignment rule (specific business logic not in isFormValid)
         if (formData.type === 'INDIVIDUAL' || formData.type === 'SHARED') {
-            const users = parseBulkUsers(formData.bulkUserInput);
+            const users = parseBulkUsers(formData.bulkUserInput).map(u => ({ ...u, user: normalizeText(u.user) }));
+            
+            // Validate user name lengths
+            const lengthError = validateUserNameLengths(users);
+            if (lengthError) {
+                showAlert('error', lengthError);
+                return;
+            }
+            
             const hasAnyTeam = users.some((user: PoolUserAndTeam) => user.team);
             const hasAllTeams = users.every((user: PoolUserAndTeam) => user.team);
             
@@ -273,7 +304,7 @@
             };
 
             if (formData.type === 'INDIVIDUAL') {
-                const usersAndTeams = parseBulkUsers(formData.bulkUserInput);
+                const usersAndTeams = parseBulkUsers(formData.bulkUserInput).map(u => ({ ...u, user: normalizeText(u.user) }));
                 if (usersAndTeams.length === 0) {
                     showAlert('error', 'No valid users found in input');
                     return;
@@ -284,7 +315,7 @@
                 }
             } else if (formData.type === 'SHARED') {
                 poolData.mainUser = formData.mainUser;
-                const additionalUsers = parseBulkUsers(formData.bulkUserInput);
+                const additionalUsers = parseBulkUsers(formData.bulkUserInput).map(u => ({ ...u, user: normalizeText(u.user) }));
                 if (additionalUsers.length > 0) {
                     // Double-check: ensure main user is not in the additional users list
                     const additionalUserIds = additionalUsers.map(u => transformToUserId(u.user));

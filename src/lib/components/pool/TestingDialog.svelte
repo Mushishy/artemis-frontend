@@ -35,7 +35,7 @@
                 Manage Testing
             </Dialog.Title>
             <Dialog.Description>
-                Start or stop testing mode for all users in the pool. Testing mode prevents fetching CTFd data for pool.
+                Start or stop testing mode for all users in the pool. Testing mode prevents fetching CTFd data for pool. Takes some time and might have to be initiated multiple times.
             </Dialog.Description>
         </Dialog.Header>
         

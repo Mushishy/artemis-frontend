@@ -193,7 +193,7 @@
 
 	<!-- Floating Alert Messages -->
 	{#if alertMessage}
-		<div class="fixed top-12 left-1/2 transform -translate-x-1/2 z-50 max-w-md animate-in slide-in-from-top-2">
+		<div class="fixed top-12 left-1/2 transform -translate-x-1/2 z-50 max-w-lg animate-in slide-in-from-top-2">
 			<Alert.Root variant={alertMessage.type === 'error' ? 'destructive' : 'default'} class="shadow-lg border">
 				{#if alertMessage.type === 'error'}
 					<AlertCircle class="h-4 w-4" />
@@ -203,9 +203,9 @@
 				<Alert.Title class="text-sm font-medium">
 					{alertMessage.type === 'error' ? 'Error' : 'Success'}
 				</Alert.Title>
-				<Alert.Description class="text-sm flex items-center justify-between pr-2">
-					{alertMessage.message}
-					<Button variant="ghost" size="sm" onclick={hideAlert} class="h-6 w-6 p-0 ml-2 flex-shrink-0">
+				<Alert.Description class="text-sm flex items-center justify-between pr-8">
+					<span class="flex-1 mr-2">{alertMessage.message}</span>
+					<Button variant="ghost" size="sm" onclick={hideAlert} class="h-6 w-6 p-0 flex-shrink-0">
 						<X class="h-3 w-3" />
 					</Button>
 				</Alert.Description>
