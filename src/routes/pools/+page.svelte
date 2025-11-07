@@ -81,12 +81,12 @@
             // Step 3: Filter results based on pool type
             let resultsToCheck = statusResponse.results;
             
-            if (deletingPool.type === 'SHARED' && poolDetail.mainUser) {
-                // For SHARED pools, only check the main user's state
+            if (deletingPool.type === 'SHARED' && poolDetail.mainUsers && poolDetail.mainUsers.length > 0) {
+                // For SHARED pools, only check the main users' states
                 resultsToCheck = statusResponse.results.filter(result => 
-                    result.userId === poolDetail.mainUser
+                    poolDetail.mainUsers!.includes(result.userId)
                 );
-                showAlert(`Checking main user (${poolDetail.mainUser}) status only for shared pool...`, 'success');
+                showAlert(`Checking main users (${poolDetail.mainUsers.join(', ')}) status only for shared pool...`, 'success');
             }
             
             // Check if any user has a state that's not DESTROYED, UNKNOWN, or NEVER DEPLOYED
@@ -140,11 +140,11 @@
 
             // Step 3: If SHARED type, unshare the pool first
             if (poolToDelete.type === 'SHARED') {
-                if (!poolDetail?.mainUser) {
-                    throw new Error('Cannot unshare pool: mainUser not found');
+                if (!poolDetail?.mainUsers || poolDetail.mainUsers.length === 0) {
+                    throw new Error('Cannot unshare pool: mainUsers not found');
                 }
                 showAlert('Unsharing pool...', 'success');
-                await unshareSharedPool(poolToDelete.poolId, poolDetail.mainUser);
+                await unshareSharedPool(poolToDelete.poolId);
             }
 
             // Step 4: Delete users in the pool
@@ -202,11 +202,11 @@
 
             // Step 3: If SHARED type, unshare the pool first
             if (poolToDelete.type === 'SHARED') {
-                if (!poolDetail?.mainUser) {
-                    throw new Error('Cannot unshare pool: mainUser not found');
+                if (!poolDetail?.mainUsers || poolDetail.mainUsers.length === 0) {
+                    throw new Error('Cannot unshare pool: mainUsers not found');
                 }
                 showAlert('Unsharing pool...', 'success');
-                await unshareSharedPool(poolToDelete.poolId, poolDetail.mainUser);
+                await unshareSharedPool(poolToDelete.poolId);
                 showAlert('Pool unshared successfully', 'success');
             }
 

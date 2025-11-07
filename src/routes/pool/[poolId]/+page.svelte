@@ -6,7 +6,7 @@
     import * as Alert from '$lib/components/ui/alert';
     import { AlertCircle, CheckCircle2, X, ArrowLeft } from 'lucide-svelte';
     import type { PoolDetail, PoolDetailData, PoolHealthCheck, PatchUserRequest } from '$lib/api/types.js';
-    import { getPoolDetail, refreshPoolData, checkPoolHealth, checkSharingStatus as checkSharingStatusAPI, getTestingStatus, startTesting, stopTesting } from '$lib/api/client/pools.client.js';
+    import { getPoolDetail, refreshPoolData, checkPoolHealth, checkSharingStatus, getTestingStatus } from '$lib/api/client/pools.client.js';
     import { getTopologies, getTopology, downloadTopologyFile } from '$lib/api/client/topology.client.js';
     import { formatDate } from '$lib/utils/helper';
     import type { PageData } from './$types';
@@ -116,7 +116,7 @@
             ]).finally(() => {
                 // Load sharing status for SHARED pools after other data
                 if (poolDetail?.type === 'SHARED') {
-                    checkSharingStatus().catch(error => {
+                    checkSharingStatusHandler().catch(error => {
                         console.error('Error checking sharing status:', error);
                     });
                 }
@@ -135,7 +135,20 @@
         try {
             // Load pool detail quietly
             try {
-                poolDetail = await getPoolDetail(data.poolId);
+                const rawPoolDetail = await getPoolDetail(data.poolId);
+                
+                // Process poolDetail to extract unique mainUsers from usersAndTeams
+                if (rawPoolDetail && rawPoolDetail.usersAndTeams) {
+                    const uniqueMainUsers = [...new Set(
+                        rawPoolDetail.usersAndTeams
+                            .map((userTeam: any) => userTeam.mainUserId)
+                            .filter((mainUserId: string) => mainUserId) // Filter out any null/undefined values
+                    )];
+                    
+                    rawPoolDetail.mainUsers = uniqueMainUsers;
+                }
+                
+                poolDetail = rawPoolDetail;
             } catch (error) {
                 console.error('Error loading pool detail:', error);
                 // Don't show error screen, just log it
@@ -163,7 +176,7 @@
                 })
             ]).finally(() => {
                 if (poolDetail?.type === 'SHARED') {
-                    checkSharingStatus().catch(error => {
+                    checkSharingStatusHandler().catch(error => {
                         console.error('Error checking sharing status:', error);
                     });
                 }
@@ -195,7 +208,7 @@
 
             // Also refresh sharing status for SHARED pools
             if (poolDetail?.type === 'SHARED') {
-                await checkSharingStatus();
+                await checkSharingStatusHandler();
             }
 
             // Also refresh testing status
@@ -211,7 +224,20 @@
 
     async function loadPoolDetail() {
         try {
-            poolDetail = await getPoolDetail(data.poolId);
+            const rawPoolDetail = await getPoolDetail(data.poolId);
+            
+            // Process poolDetail to extract unique mainUsers from usersAndTeams
+            if (rawPoolDetail && rawPoolDetail.usersAndTeams) {
+                const uniqueMainUsers = [...new Set(
+                    rawPoolDetail.usersAndTeams
+                        .map((userTeam: any) => userTeam.mainUserId)
+                        .filter((mainUserId: string) => mainUserId) // Filter out any null/undefined values
+                )];
+                
+                rawPoolDetail.mainUsers = uniqueMainUsers;
+            }
+            
+            poolDetail = rawPoolDetail;
         } catch (error) {
             throw error;
         }
@@ -226,12 +252,12 @@
         }
     }
 
-    async function checkSharingStatus() {
-        if (!poolDetail?.mainUser) return;
+    async function checkSharingStatusHandler() {
+        if (!poolDetail?.mainUsers || poolDetail.mainUsers.length === 0) return;
         
         sharingStatus.isLoading = true;
         try {
-            const responseData = await checkSharingStatusAPI(data.poolId, poolDetail.mainUser);
+            const responseData = await checkSharingStatus(data.poolId);
             
             sharingStatus.shared = responseData.shared === true;
         } catch (error) {
@@ -265,6 +291,12 @@
 
     function hideAlert() {
         alertMessage = null;
+    }
+
+    function formatStatus(status: string | undefined): string {
+        if (!status) return 'UNKNOWN';
+        const upperStatus = status.toUpperCase();
+        return upperStatus === 'NEVER DEPLOYED' ? 'UNDEPLOYED' : upperStatus;
     }
 
     function goBack() {
@@ -389,18 +421,18 @@
 
     // Sharing handlers
     async function handleSharePool() {
-        if (!poolDetail?.mainUser) return;
+        if (!poolDetail?.mainUsers || poolDetail.mainUsers.length === 0) return;
         
-        await handlers.sharePool(poolDetail.mainUser);
-        await checkSharingStatus();
+        await handlers.sharePool();
+        await checkSharingStatusHandler();
     }
 
     async function handleUnsharePool() {
-        if (!poolDetail?.mainUser) return;
+        if (!poolDetail?.mainUsers || poolDetail.mainUsers.length === 0) return;
         
-        const success = await handlers.unsharePool(poolDetail.mainUser);
+        const success = await handlers.unsharePool();
         if (!success) {
-            await checkSharingStatus();
+            await checkSharingStatusHandler();
         } else {
             sharingStatus.shared = false;
         }
@@ -442,45 +474,85 @@
 
     $effect(() => {
         if (poolDetail?.usersAndTeams) {
-            let userData = poolDetail.usersAndTeams.map((user: any) => {
-                const userStatus = healthCheck.status?.results?.find(result => result.userId === user.userId || result.userId === user.user);
+            if (poolDetail.type === 'SHARED') {
+                // For SHARED pools: Show both main users and regular users, hide userId column
+                let userData: any[] = [];
                 
-                return {
-                    ...user,
-                    userType: user.userType || 'REGULAR',
-                    status: userStatus?.state ? userStatus.state.toUpperCase() : 'UNKNOWN'
-                };
-            });
+                // Add main users
+                if (poolDetail.mainUsers && poolDetail.mainUsers.length > 0) {
+                    const mainUserEntries = poolDetail.mainUsers.map((mainUserId: string) => {
+                        const mainUserStatus = healthCheck.status?.results?.find(result => result.userId === mainUserId);
+                        
+                        return {
+                            user: mainUserId,
+                            userId: mainUserId, // Keep for internal use but won't be displayed
+                            mainUserId: 'N/A', // Main users have N/A as mainUserId
+                            userType: 'MAIN',
+                            status: formatStatus(mainUserStatus?.state),
+                            team: 'N/A'
+                        };
+                    });
+                    userData = [...userData, ...mainUserEntries];
+                }
+                
+                // Add regular users
+                const regularUserEntries = poolDetail.usersAndTeams.map((user: any) => {
+                    const userStatus = healthCheck.status?.results?.find(result => result.userId === user.userId || result.userId === user.user);
+                    
+                    return {
+                        ...user,
+                        userType: user.userType || 'REGULAR',
+                        status: formatStatus(userStatus?.state)
+                    };
+                });
+                userData = [...userData, ...regularUserEntries];
 
-            if (poolDetail.type === 'SHARED' && poolDetail.mainUser) {
-                const mainUserStatus = healthCheck.status?.results?.find(result => result.userId === poolDetail?.mainUser);
+                processedUserData = userData;
+
+                // Headers for SHARED pools (no userId column)
+                const baseHeaders = [
+                    { key: 'user', label: 'User' },
+                    { key: 'mainUserId', label: 'Main User ID' },
+                    { key: 'userType', label: 'User Type' },
+                ];
                 
-                const mainUserEntry = {
-                    user: poolDetail.mainUser,
-                    userId: poolDetail.mainUser,
-                    userType: 'MAIN',
-                    status: mainUserStatus?.state ? mainUserStatus.state.toUpperCase() : 'UNKNOWN',
-                    team: 'N/A'
-                };
+                const hasTeams = userData.some((user: any) => user.team && user.team !== 'N/A');
+                if (hasTeams) {
+                    baseHeaders.push({ key: 'team', label: 'Team' });
+                }
                 
-                userData = [mainUserEntry, ...userData];
+                baseHeaders.push({ key: 'status', label: 'Status' });
+                filteredHeaders = baseHeaders;
+                
+            } else {
+                // For non-SHARED pools: Show regular users, don't show main users
+                let userData = poolDetail.usersAndTeams.map((user: any) => {
+                    const userStatus = healthCheck.status?.results?.find(result => result.userId === user.userId || result.userId === user.user);
+                    
+                    return {
+                        ...user,
+                        userType: user.userType || 'REGULAR',
+                        status: formatStatus(userStatus?.state)
+                    };
+                });
+
+                processedUserData = userData;
+
+                // Headers for non-SHARED pools (include userId column, exclude mainUserId column)
+                const baseHeaders = [
+                    { key: 'user', label: 'User' },
+                    { key: 'userId', label: 'User ID' },
+                    { key: 'userType', label: 'User Type' },
+                ];
+                
+                const hasTeams = poolDetail.usersAndTeams.some((user: any) => user.team);
+                if (hasTeams) {
+                    baseHeaders.push({ key: 'team', label: 'Team' });
+                }
+                
+                baseHeaders.push({ key: 'status', label: 'Status' });
+                filteredHeaders = baseHeaders;
             }
-
-            processedUserData = userData;
-
-            const baseHeaders = [
-                { key: 'user', label: 'User' },
-                { key: 'userType', label: 'User Type' },
-            ];
-            
-            const hasTeams = poolDetail.usersAndTeams.some((user: any) => user.team);
-            if (hasTeams) {
-                baseHeaders.push({ key: 'team', label: 'Team' });
-            }
-            
-            baseHeaders.push({ key: 'status', label: 'Status' });
-            
-            filteredHeaders = baseHeaders;
         } else {
             processedUserData = [];
             filteredHeaders = [];

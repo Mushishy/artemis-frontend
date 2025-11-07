@@ -189,26 +189,26 @@ export class PoolHandlers {
         }
     }
 
-    async sharePool(mainUser: string) {
+    async sharePool() {
         try {
             this.showAlert('Sending sharing request...', 'success');
-            const response = await sharePool(this.poolId, mainUser);
+            const response = await sharePool(this.poolId);
             this.handleSharingResponse(response, 'Sharing request completed');
         } catch (error: any) {
             this.handleError('Failed to share pool', error);
         }
     }
 
-    async unsharePool(mainUser: string) {
+    async unsharePool() {
         try {
             this.showAlert('Sending unsharing request...', 'success');
-            const response = await unsharePool(this.poolId, mainUser);
+            const response = await unsharePool(this.poolId);
             
             // Handle detailed response similar to sharing
             this.handleUnsharingResponse(response, 'Unsharing request completed');
             
             // Still verify the status for consistency
-            const checkData = await checkSharingStatusAPI(this.poolId, mainUser);
+            const checkData = await checkSharingStatusAPI(this.poolId);
             return checkData.shared === false;
         } catch (error: any) {
             this.handleError('Failed to unshare pool', error);

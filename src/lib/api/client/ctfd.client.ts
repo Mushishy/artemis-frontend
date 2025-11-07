@@ -4,9 +4,9 @@ import type { Scenario } from '../types';
 
 const dulusClient = getDulusClient();
 
-export async function getScenario(scenarioID?: string) {
+export async function getScenario(scenarioId?: string) {
     try {
-        const params = scenarioID ? { scenarioId: scenarioID  } : {};
+        const params = scenarioId ? { scenarioId: scenarioId  } : {};
         const response = await dulusClient.get('/ctfd/scenario', { params });
         return response.data;
     } catch (error) {
@@ -22,13 +22,13 @@ export async function getScenariosDisplay(): Promise<Scenario[]> {
         // Handle both single scenario and array of scenarios
         if (Array.isArray(response)) {
             return response.map(item => ({
-                ID: item.scenarioID,
+                ID: item.scenarioId,
                 Name: item.scenarioName,
                 Created: formatDate(item.createdAt)
             }));
-        } else if (response.scenarioID) {
+        } else if (response.scenarioId) {
             return [{
-                ID: response.scenarioID,
+                ID: response.scenarioId,
                 Name: response.scenarioName,
                 Created: formatDate(response.createdAt)
             }];
@@ -41,9 +41,9 @@ export async function getScenariosDisplay(): Promise<Scenario[]> {
     }
 }
 
-export async function downloadScenarioFile(scenarioID: string): Promise<void> {
+export async function downloadScenarioFile(scenarioId: string): Promise<void> {
     try {
-        const response = await getScenario(scenarioID);
+        const response = await getScenario(scenarioId);
         
         if (!response || !response.scenarioFile) {
             throw new Error('Scenario file not found');
@@ -74,12 +74,12 @@ export async function downloadScenarioFile(scenarioID: string): Promise<void> {
     }
 }
 
-export async function createOrUpdateScenario(file: File, scenarioID?: string) {
+export async function createOrUpdateScenario(file: File, scenarioId?: string) {
     try {
         const formData = new FormData();
         formData.append('file', file);
         
-        const params = scenarioID ? { scenarioId: scenarioID } : {};
+        const params = scenarioId ? { scenarioId: scenarioId } : {};
         const response = await dulusClient.put('/ctfd/scenario', formData, {
             params,
             headers: { 
@@ -94,10 +94,10 @@ export async function createOrUpdateScenario(file: File, scenarioID?: string) {
     }
 }
 
-export async function deleteScenario(scenarioID: string) {
+export async function deleteScenario(scenarioId: string) {
     try {
         const response = await dulusClient.delete('/ctfd/scenario', {
-            params: { scenarioId: scenarioID },
+            params: { scenarioId: scenarioId },
         });
         return response.data;
     } catch (error) {

@@ -6,11 +6,12 @@
     import { Badge } from '$lib/components/ui/badge';
     import * as Command from '$lib/components/ui/command';
     import * as Popover from '$lib/components/ui/popover';
-    import { AlertCircle, CheckCircle2, X, RotateCcw, Check, ChevronsUpDown, Save, Users, Search } from 'lucide-svelte';
+    import * as Dialog from '$lib/components/ui/dialog';
+    import { AlertCircle, CheckCircle2, X, RotateCcw, Check, ChevronsUpDown, Save, Users, Search, UserCheck } from 'lucide-svelte';
     import { tick } from 'svelte';
     import type { PageData } from './$types';
     import { createPool, checkUsersInPools } from '$lib/api/client/pools.client';
-    import type { PoolRequest, PoolUserAndTeam } from '$lib/api/types';
+    import type { PoolRequest, PoolUserAndTeam, PoolUserTeam } from '$lib/api/types';
     import { userStore } from '$lib/stores/auth';
     import { goto } from '$app/navigation';
     import { normalizeText } from '$lib/utils/helper';
@@ -21,31 +22,32 @@
     type PoolType = 'INDIVIDUAL' | 'SHARED';
 
     // Form state
-    interface PoolFormData {
-        type: PoolType | null;
-        topologyId: string;
-        topologyName: string;
-        mainUser: string;
-        mainUserName: string;
-        bulkUserInput: string; // For pasting multiple users
-        note: string;
+    type PoolFormData = {
+        type: PoolType | null
+        topologyId: string
+        topologyName: string
+        bulkUserInput: string
+        note: string
     }
-
+    
     let formData: PoolFormData = $state({
         type: null,
         topologyId: "",
         topologyName: "",
-        mainUser: "",
-        mainUserName: "",
         bulkUserInput: "",
         note: ""
-    });    let alertMessage = $state<{ type: 'success' | 'error'; message: string } | null>(null);
+    });
+
+    let alertMessage = $state<{ type: 'success' | 'error'; message: string } | null>(null);
 
     // Combobox state
     let topologyOpen = $state(false);
-    let mainUserOpen = $state(false);
     let topologyTriggerRef = $state<HTMLButtonElement>(null!);
-    let mainUserTriggerRef = $state<HTMLButtonElement>(null!);
+
+    // Main users selection popup state
+    let mainUsersDialogOpen = $state(false);
+    let selectedMainUsers = $state<string[]>([]);
+    let searchMainUsers = $state("");
 
     // Transform data for combobox format
     const topologyOptions = $derived(
@@ -69,9 +71,7 @@
         topologyOptions.find((t) => t.value === formData.topologyId)?.label
     );
 
-    const selectedMainUser = $derived(
-        userOptions.find((u) => u.value === formData.mainUser)?.label
-    );
+
 
     // Extract createdBy from user store
     let createdBy = $state('Unknown');
@@ -89,9 +89,27 @@
     function handleTypeChange(type: PoolType) {
         formData.type = type;
         // Reset dependent fields when type changes
-        formData.mainUser = '';
-        formData.mainUserName = '';
         formData.bulkUserInput = '';
+        selectedMainUsers = [];
+        searchMainUsers = '';
+    }
+
+    function handleMainUserToggle(userId: string, checked: boolean) {
+        if (checked) {
+            selectedMainUsers = [...selectedMainUsers, userId];
+        } else {
+            selectedMainUsers = selectedMainUsers.filter(id => id !== userId);
+        }
+    }
+
+    function getFilteredMainUsers() {
+        if (!searchMainUsers.trim()) {
+            return data.users;
+        }
+        return data.users.filter(user => 
+            user.name.toLowerCase().includes(searchMainUsers.toLowerCase()) ||
+            user.userID.toLowerCase().includes(searchMainUsers.toLowerCase())
+        );
     }
 
     function handleTopologyChange(value: string) {
@@ -108,29 +126,18 @@
         });
     }
 
-    function closeAndFocusMainUserTrigger() {
-        mainUserOpen = false;
-        tick().then(() => {
-            mainUserTriggerRef?.focus();
-        });
-    }
 
-    function handleMainUserChange(value: string) {
-        formData.mainUser = value || '';
-        const user = data.users.find(u => u.userID === value);
-        formData.mainUserName = user?.name || '';
-    }
 
     function resetForm() {
         formData = {
             type: null,
             topologyId: '',
             topologyName: '',
-            mainUser: '',
-            mainUserName: '',
             bulkUserInput: '',
             note: ''
         };
+        selectedMainUsers = [];
+        mainUsersDialogOpen = false;
     }
 
     function showAlert(type: 'success' | 'error', message: string) {
@@ -197,12 +204,16 @@
             return;
         }
 
-        // For SHARED pools, ensure main user is not in the additional users list
-        if (formData.type === 'SHARED' && formData.mainUser) {
+        // For SHARED pools, ensure selected main users are not in the additional users list
+        if (formData.type === 'SHARED' && selectedMainUsers.length > 0) {
             // Convert user names to IDs for proper comparison
             const additionalUserIds = users.map(u => transformToUserId(u.user));
-            if (additionalUserIds.includes(formData.mainUser)) {
-                showAlert('error', 'Main user cannot be included in the additional users list');
+            const conflictingUsers = selectedMainUsers.filter(mainUserId => 
+                additionalUserIds.includes(mainUserId)
+            );
+            
+            if (conflictingUsers.length > 0) {
+                showAlert('error', 'Selected main users cannot be included in the additional users list');
                 return;
             }
         }
@@ -211,9 +222,9 @@
             // Transform user names to userId format
             let userIds = users.map(u => transformToUserId(u.user));
             
-            // For SHARED pools, also include the main user ID
-            if (formData.type === 'SHARED' && formData.mainUser) {
-                userIds.push(formData.mainUser);
+            // For SHARED pools, also include the selected main user IDs
+            if (formData.type === 'SHARED' && selectedMainUsers.length > 0) {
+                userIds.push(...selectedMainUsers);
             }
             
             const results = await checkUsersInPools(userIds);
@@ -281,12 +292,16 @@
                 return;
             }
 
-            // For SHARED pools, ensure main user is not in the additional users list
-            if (formData.type === 'SHARED' && formData.mainUser) {
+            // For SHARED pools, ensure selected main users are not in the additional users list
+            if (formData.type === 'SHARED' && selectedMainUsers.length > 0) {
                 // Convert user names to IDs for proper comparison
                 const additionalUserIds = users.map(u => transformToUserId(u.user));
-                if (additionalUserIds.includes(formData.mainUser)) {
-                    showAlert('error', 'Main user cannot be included in the additional users list');
+                const conflictingUsers = selectedMainUsers.filter(mainUserId => 
+                    additionalUserIds.includes(mainUserId)
+                );
+                
+                if (conflictingUsers.length > 0) {
+                    showAlert('error', 'Selected main users cannot be included in the additional users list');
                     return;
                 }
             }
@@ -300,33 +315,60 @@
             let poolData: PoolRequest = {
                 type: formData.type!,
                 topologyId: formData.topologyId,
-                note: formData.note.trim() // Note is now required, no undefined
+                note: formData.note.trim(), // Note is now required, no undefined
+                usersAndTeams: [] // Initialize as empty array
             };
 
             if (formData.type === 'INDIVIDUAL') {
-                const usersAndTeams = parseBulkUsers(formData.bulkUserInput).map(u => ({ ...u, user: normalizeText(u.user) }));
-                if (usersAndTeams.length === 0) {
+                const allUsers = parseBulkUsers(formData.bulkUserInput).map(u => ({ ...u, user: normalizeText(u.user) }));
+                if (allUsers.length === 0) {
                     showAlert('error', 'No valid users found in input');
                     return;
                 }
+                
+                // For INDIVIDUAL pools, each user is their own main user
+                const usersAndTeams: PoolUserTeam[] = allUsers.map(user => ({
+                    user: user.user,
+                    userId: transformToUserId(user.user),
+                    team: user.team || '',
+                    mainUserId: transformToUserId(user.user) // Each user is their own main user
+                }));
+                
                 poolData.usersAndTeams = usersAndTeams;
-                if (usersAndTeams.length > 0) {
-                    poolData.mainUser = usersAndTeams[0].user;
-                }
             } else if (formData.type === 'SHARED') {
-                poolData.mainUser = formData.mainUser;
-                const additionalUsers = parseBulkUsers(formData.bulkUserInput).map(u => ({ ...u, user: normalizeText(u.user) }));
-                if (additionalUsers.length > 0) {
-                    // Double-check: ensure main user is not in the additional users list
-                    const additionalUserIds = additionalUsers.map(u => transformToUserId(u.user));
-                    
-                    if (additionalUserIds.includes(formData.mainUser)) {
-                        showAlert('error', 'Main user cannot be included in the additional users list');
-                        return;
-                    }
-                    
-                    poolData.usersAndTeams = additionalUsers;
+                // For SHARED pools, distribute users among selected main users
+                if (selectedMainUsers.length === 0) {
+                    showAlert('error', 'At least one main user must be selected');
+                    return;
                 }
+                
+                const allUsers = parseBulkUsers(formData.bulkUserInput).map(u => ({ ...u, user: normalizeText(u.user) }));
+                
+                // Create usersAndTeams array with mainUserId distribution
+                const usersPerMainUser = Math.floor(allUsers.length / selectedMainUsers.length);
+                const remainder = allUsers.length % selectedMainUsers.length;
+                
+                const usersAndTeams: PoolUserTeam[] = [];
+                let userIndex = 0;
+                
+                for (let i = 0; i < selectedMainUsers.length; i++) {
+                    const mainUserId = selectedMainUsers[i];
+                    const userCount = usersPerMainUser + (i < remainder ? 1 : 0);
+                    
+                    for (let j = 0; j < userCount; j++) {
+                        if (userIndex < allUsers.length) {
+                            const currentUser = allUsers[userIndex];
+                            usersAndTeams.push({
+                                user: currentUser.user,
+                                userId: transformToUserId(currentUser.user),
+                                team: currentUser.team || '',
+                                mainUserId: mainUserId
+                            });
+                            userIndex++;
+                        }
+                    }
+                }
+                poolData.usersAndTeams = usersAndTeams;
             }
 
             await createPool(poolData);
@@ -383,7 +425,10 @@
         }
         
         if (formData.type === 'SHARED') {
-            return formData.mainUser.length > 0;
+            const users = parseBulkUsers(formData.bulkUserInput);
+            return selectedMainUsers.length > 0 && 
+                   formData.bulkUserInput.trim().length > 0 &&
+                   selectedMainUsers.length <= users.length;
         }
         
         return false;
@@ -508,55 +553,21 @@
                         </Card.Description>
                     </Card.Header>
                     <Card.Content class="space-y-3 p-6 flex-1 flex flex-col">
-                        <!-- Main User Selection (first for SHARED pools) -->
+                        <!-- Main Users Selection (for SHARED pools) -->
                         {#if formData.type === 'SHARED'}
                             <div class="space-y-2 flex-shrink-0">
-                                <div class="text-sm font-medium">Main User *</div>
-                                <Popover.Root bind:open={mainUserOpen}>
-                                    <Popover.Trigger bind:ref={mainUserTriggerRef}>
-                                        {#snippet child({ props })}
-                                            <Button
-                                                {...props}
-                                                variant="outline"
-                                                class="w-full justify-between"
-                                                role="combobox"
-                                                aria-expanded={mainUserOpen}
-                                            >
-                                                {selectedMainUser || "Select main user..."}
-                                                <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                            </Button>
-                                        {/snippet}
-                                    </Popover.Trigger>
-                                    <Popover.Content class="w-full p-0">
-                                        <Command.Root>
-                                            <Command.Input placeholder="Search users..." />
-                                            <Command.List>
-                                                <Command.Empty>No user found.</Command.Empty>
-                                                <Command.Group>
-                                                    {#each userOptions as user (user.value)}
-                                                        <Command.Item
-                                                            value={user.label}
-                                                            onSelect={() => {
-                                                                handleMainUserChange(user.value);
-                                                                closeAndFocusMainUserTrigger();
-                                                            }}
-                                                        >
-                                                            <Check
-                                                                class="mr-2 h-4 w-4 {formData.mainUser !== user.value && 'text-transparent'}"
-                                                            />
-                                                            <div class="flex flex-col">
-                                                                <span>{user.label}</span>
-                                                                {#if user.description}
-                                                                    <span class="text-xs text-muted-foreground">{user.description}</span>
-                                                                {/if}
-                                                            </div>
-                                                        </Command.Item>
-                                                    {/each}
-                                                </Command.Group>
-                                            </Command.List>
-                                        </Command.Root>
-                                    </Popover.Content>
-                                </Popover.Root>
+                                <div class="text-sm font-medium">Main Users *</div>
+                                <Button
+                                    variant="outline"
+                                    class="w-full justify-between"
+                                    onclick={() => mainUsersDialogOpen = true}
+                                >
+                                    <div class="flex items-center gap-2">
+                                        <Users class="h-4 w-4" />
+                                        {selectedMainUsers.length > 0 ? `${selectedMainUsers.length} main user${selectedMainUsers.length === 1 ? '' : 's'} selected` : "Select main users..."}
+                                    </div>
+                                    <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
                             </div>
                         {/if}
 
@@ -592,7 +603,7 @@ Dave Smith, smurfs"
                                 <Button 
                                     variant="outline" 
                                     onclick={checkUsersInOtherPools}
-                                    disabled={!formData.bulkUserInput.trim() || (formData.type === 'SHARED' && !formData.mainUser)}
+                                    disabled={!formData.bulkUserInput.trim() || (formData.type === 'SHARED' && selectedMainUsers.length === 0)}
                                     class="w-full flex items-center gap-2"
                                 >
                                     <Search class="h-4 w-4" />
@@ -690,4 +701,62 @@ Dave Smith, smurfs"
             </div>
         </div>
     </div>
+
+    <!-- Main Users Selection Dialog -->
+    <Dialog.Root bind:open={mainUsersDialogOpen}>
+        <Dialog.Content class="max-w-md">
+            <Dialog.Header>
+                <Dialog.Title class="flex items-center gap-2">
+                    <Users class="h-5 w-5" />
+                    Select Main Users
+                </Dialog.Title>
+                <Dialog.Description>
+                    Choose the main users for this shared pool. Selected users will be distributed among the regular users.
+                </Dialog.Description>
+            </Dialog.Header>
+            
+            <div class="py-4">
+                <div class="flex items-center space-x-2 mb-4">
+                    <Search class="h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search users..." 
+                        bind:value={searchMainUsers}
+                        class="flex-1"
+                    />
+                </div>
+                
+                <div class="max-h-60 overflow-y-auto space-y-1">
+                    {#each getFilteredMainUsers() as user (user.userID)}
+                        <div class="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50">
+                            <input
+                                type="checkbox"
+                                id="mainuser-{user.userID}"
+                                checked={selectedMainUsers.includes(user.userID)}
+                                onchange={(e) => handleMainUserToggle(user.userID, e.currentTarget.checked)}
+                                class="rounded border-gray-300"
+                            />
+                            <label for="mainuser-{user.userID}" class="flex-1 cursor-pointer">
+                                <div class="font-medium">{user.name}</div>
+                                <div class="text-sm text-muted-foreground">ID: {user.userID}</div>
+                            </label>
+                        </div>
+                    {/each}
+                </div>
+            </div>
+            
+            <Dialog.Footer class="flex justify-between">
+                <div class="text-sm text-muted-foreground">
+                    {selectedMainUsers.length} user{selectedMainUsers.length === 1 ? '' : 's'} selected
+                </div>
+                <div class="flex gap-2">
+                    <Button variant="outline" onclick={() => mainUsersDialogOpen = false}>
+                        Cancel
+                    </Button>
+                    <Button onclick={() => mainUsersDialogOpen = false}>
+                        Confirm Selection
+                    </Button>
+                </div>
+            </Dialog.Footer>
+        </Dialog.Content>
+    </Dialog.Root>
 </div>

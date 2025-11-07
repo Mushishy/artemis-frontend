@@ -2,10 +2,10 @@ import { createServerDulusClient } from '../settings/server-api-client';
 import { formatDate } from '$lib/utils/helper';
 import type { Scenario } from '../types';
 
-export async function getScenario(apiKey: string, scenarioID?: string) {
+export async function getScenario(apiKey: string, scenarioId?: string) {
     try {
         const dulusClient = createServerDulusClient(apiKey);
-        const params = scenarioID ? { scenarioID } : {};
+        const params = scenarioId ? { scenarioId } : {};
         const response = await dulusClient.get('/ctfd/scenario', { params });
         return response.data;
     } catch (error) {
@@ -21,13 +21,13 @@ export async function getScenariosDisplay(apiKey: string): Promise<Scenario[]> {
         // Handle both single scenario and array of scenarios
         if (Array.isArray(response)) {
             return response.map(item => ({
-                ID: item.scenarioID,
+                ID: item.scenarioId,
                 Name: item.scenarioName,
                 Created: formatDate(item.createdAt)
             }));
-        } else if (response.scenarioID) {
+        } else if (response.scenarioId) {
             return [{
-                ID: response.scenarioID,
+                ID: response.scenarioId,
                 Name: response.scenarioName,
                 Created: formatDate(response.createdAt)
             }];

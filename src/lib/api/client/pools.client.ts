@@ -23,13 +23,12 @@ export async function createPool(poolData: PoolRequest) {
             note: poolData.note || '' // Required field
         };
 
-        if (poolData.type === 'SHARED' && poolData.mainUser) {
-            cleanedData.mainUser = poolData.mainUser;
-        }
-
         if (poolData.usersAndTeams && poolData.usersAndTeams.length > 0) {
             cleanedData.usersAndTeams = poolData.usersAndTeams.map(item => {
-                const cleanedItem: any = { user: item.user };
+                const cleanedItem: any = { 
+                    user: item.user,
+                    mainUserId: item.mainUserId
+                };
                 if (item.team && item.team.trim() !== '') {
                     cleanedItem.team = item.team;
                 }
@@ -232,10 +231,10 @@ export async function downloadWireguardConfigs(poolId: string, downloadFileName:
     }
 }
 
-export async function checkSharingStatus(poolId: string, targetId: string): Promise<{ shared: boolean }> {
+export async function checkSharingStatus(poolId: string): Promise<{ shared: boolean }> {
     try {
         const response = await dulusClient.get('/range/shared', {
-            params: { poolId, targetId }
+            params: { poolId }
         });
         return response.data;
     } catch (error) {
@@ -244,10 +243,10 @@ export async function checkSharingStatus(poolId: string, targetId: string): Prom
     }
 }
 
-export async function sharePool(poolId: string, targetId: string): Promise<{ results: Array<{ userId: string; response: { result?: string; error?: string } }> }> {
+export async function sharePool(poolId: string): Promise<{ results: Array<{ userId: string; response: { result?: string; error?: string } }> }> {
     try {
         const response = await dulusClient.post('/range/share', '', {
-            params: { poolId, targetId }
+            params: { poolId }
         });
         return response.data;
     } catch (error) {
@@ -256,10 +255,10 @@ export async function sharePool(poolId: string, targetId: string): Promise<{ res
     }
 }
 
-export async function unsharePool(poolId: string, targetId: string): Promise<{ results: Array<{ userId: string; response: { result?: string; error?: string } }> }> {
+export async function unsharePool(poolId: string): Promise<{ results: Array<{ userId: string; response: { result?: string; error?: string } }> }> {
     try {
         const response = await dulusClient.post('/range/unshare', '', {
-            params: { poolId, targetId }
+            params: { poolId }
         });
         return response.data;
     } catch (error) {
@@ -371,18 +370,18 @@ export async function updatePoolNote(poolId: string, note: string): Promise<void
 }
 
 // Unshare a shared pool
-export async function unshareSharedPool(poolId: string, mainUser: string): Promise<void> {
+export async function unshareSharedPool(poolId: string): Promise<void> {
     try {
         const client = getDulusClient();
         
         // Step 1: Send unshare request
         await client.post('/range/unshare', '', { 
-            params: { poolId, targetId: mainUser }
+            params: { poolId }
         });
 
         // Step 2: Verify unshare was successful
         const checkResponse = await client.get('/range/shared', { 
-            params: { poolId, targetId: mainUser }
+            params: { poolId }
         });
         
         if (checkResponse.data.unshared !== true) {

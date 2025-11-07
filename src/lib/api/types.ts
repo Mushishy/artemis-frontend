@@ -75,8 +75,7 @@ export interface PoolUserAndTeam {
 
 export interface PoolRequest {
     type: 'SHARED' | 'INDIVIDUAL';
-    mainUser?: string;
-    usersAndTeams?: PoolUserAndTeam[];
+    usersAndTeams: PoolUserTeam[];
     topologyId: string;
     note?: string;
 }
@@ -85,6 +84,7 @@ export interface PoolUserTeam {
     team: string;
     user: string;
     userId: string;
+    mainUserId: string;
     status?: string;
     userType?: 'regular' | 'main';
 }
@@ -92,13 +92,13 @@ export interface PoolUserTeam {
 export interface PoolDetail {
     createdBy: string;
     ctfdData: boolean;
-    mainUser: string;
     note: string;
     poolId: string;
     topologyId: string;
     type: string;
     usersAndTeams: PoolUserTeam[];
     createdAt: string;
+    mainUsers?: string[]; // Processed array of unique mainUserId values
 }
 
 export interface PoolDetailData {
