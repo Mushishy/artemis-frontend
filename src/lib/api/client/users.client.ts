@@ -122,3 +122,26 @@ export async function checkUsersExist(poolId: string): Promise<UsersCheckRespons
         throw error;
     }
 }
+
+// Get main users for pool creation
+export async function getMainUsers(poolId?: string): Promise<{ userIds: string[] }> {
+    try {
+        const params = poolId ? { poolId } : undefined;
+        const response = await dulusClient.get('/users/main', { params });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching main users:', error);
+        throw error;
+    }
+}
+
+// Get current main users
+export async function getCurrentMainUsers(): Promise<{ userIds: string[] }> {
+    try {
+        const response = await dulusClient.get('/users/main');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching current main users:', error);
+        throw error;
+    }
+}

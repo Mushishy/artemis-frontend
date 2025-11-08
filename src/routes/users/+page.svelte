@@ -4,10 +4,11 @@
     import * as Alert from '$lib/components/ui/alert';
     import * as Dialog from '$lib/components/ui/dialog';
     import { Input } from '$lib/components/ui/input';
-    import { AlertCircle, CheckCircle2, X, Trash2, Users, Plus, UserPlus, Search } from 'lucide-svelte';
+    import { AlertCircle, CheckCircle2, X, Trash2, Users, Plus, UserPlus, Search, Share } from 'lucide-svelte';
     import type { User } from '$lib/api/types';
     import { downloadWireGuardConfig, deleteUser, deleteMultipleUsers, createUser } from '$lib/api/client/users.client';
     import { checkUsersInPools } from '$lib/api/client/pools.client';
+    import SharePoolDialog from '$lib/components/pool/SharePoolDialog.svelte';
     import type { PageData } from './$types';
 
     let { data }: { data: PageData } = $props();
@@ -15,6 +16,7 @@
     let deleteDialogOpen = $state(false);
     let massDeleteDialogOpen = $state(false);
     let addUserDialogOpen = $state(false);
+    let sharePoolDialogOpen = $state(false);
     let userToDelete = $state<User | null>(null);
     let selectedUsersForDelete = $state<string[]>([]);
     let newUserName = $state('');
@@ -92,6 +94,10 @@
     function handleAddUser() {
         newUserName = '';
         addUserDialogOpen = true;
+    }
+
+    function handleSharePool() {
+        sharePoolDialogOpen = true;
     }
 
     async function handleCheckUsersInPools() {
@@ -225,6 +231,14 @@
             >
             <Trash2 class="h-4 w-4" />
                 Delete Users
+            </Button>
+            <Button 
+                onclick={handleSharePool}
+                variant="outline"
+                class="flex items-center gap-2"
+            >
+            <Share class="h-4 w-4" />
+                Share Pool
             </Button>
             <Button 
                 onclick={handleAddUser}
@@ -409,4 +423,11 @@
             </Dialog.Footer>
         </Dialog.Content>
     </Dialog.Root>
+
+    <!-- Share Pool Dialog -->
+    <SharePoolDialog 
+        bind:open={sharePoolDialogOpen}
+        onClose={() => sharePoolDialogOpen = false}
+        onShowAlert={(message, type) => showAlert(type, message)}
+    />
 </div>

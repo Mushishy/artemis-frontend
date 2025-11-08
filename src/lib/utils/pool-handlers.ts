@@ -1,5 +1,5 @@
 import { 
-    patchPoolUsers,
+    patchPoolUsers as patchPoolUsersAPI,
     checkUsersInPools,
     setPoolTopology,
     changePoolTopology,
@@ -7,8 +7,8 @@ import {
     redeployPool,
     abortPool,
     removePool as destroyPool,
-    sharePool,
-    unsharePool,
+    sharePool as sharePoolAPI,
+    unsharePool as unsharePoolAPI,
     checkSharingStatus as checkSharingStatusAPI,
     startTesting,
     stopTesting
@@ -22,6 +22,7 @@ import type { PatchUserRequest } from '$lib/api/types.js';
 export class PoolHandlers {
     constructor(
         private poolId: string,
+        private poolType: string,
         private showAlert: (message: string, type: 'success' | 'error') => void
     ) {}
 
@@ -52,7 +53,7 @@ export class PoolHandlers {
     async patchUsers(users: PatchUserRequest[]) {
         try {
             this.showAlert(`Patching ${users.length} users...`, 'success');
-            await patchPoolUsers(this.poolId, users);
+            await patchPoolUsersAPI(this.poolId, this.poolType, users);
             this.showAlert(`Successfully patched ${users.length} users`, 'success');
         } catch (error: any) {
             this.handleError('Failed to patch users', error);
@@ -192,7 +193,7 @@ export class PoolHandlers {
     async sharePool() {
         try {
             this.showAlert('Sending sharing request...', 'success');
-            const response = await sharePool(this.poolId);
+            const response = await sharePoolAPI(this.poolId);
             this.handleSharingResponse(response, 'Sharing request completed');
         } catch (error: any) {
             this.handleError('Failed to share pool', error);
@@ -202,7 +203,7 @@ export class PoolHandlers {
     async unsharePool() {
         try {
             this.showAlert('Sending unsharing request...', 'success');
-            const response = await unsharePool(this.poolId);
+            const response = await unsharePoolAPI(this.poolId);
             
             // Handle detailed response similar to sharing
             this.handleUnsharingResponse(response, 'Unsharing request completed');

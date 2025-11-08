@@ -70,6 +70,7 @@ export interface LudusLogResponse {
 // POOL
 export interface PoolUserAndTeam {
     user: string;
+    mainUserId: string;
     team?: string;
 }
 
@@ -129,6 +130,7 @@ export interface PoolHealthCheck {
 
 export interface PatchUserRequest {
     user: string;
+    mainUserId?: string;
     team?: string;
 }
 
@@ -136,7 +138,7 @@ export interface Pool {
     poolId: string;
     note?: string;
     createdBy: string;
-    type: 'INDIVIDUAL' | 'SHARED' | 'CTFD';
+    type: 'INDIVIDUAL' | 'SHARED';
     topologyId: string;
     ctfdData: boolean;
     createdAt: string;

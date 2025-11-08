@@ -125,7 +125,7 @@
 	function getTagClass(value: any): string {
 		if (typeof value === 'string') {
 			// Role type tags (blue)
-			if (value === 'role' || value === 'REGULAR' || value === 'DEPLOYING' || value === 'DESTROYING' || value == 'CTFD') {
+			if (value === 'role' || value === 'REGULAR' || value === 'DEPLOYING' || value === 'DESTROYING') {
 				return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
 			}
 			// Collection type tags (yellow)
@@ -165,7 +165,7 @@
 			   value === 'UNKNOWN' || value === 'UNDEPLOYED' || value === 'ERROR' || value === 'DESTROYED' || value === 'ABORTED' || value === 'SUCCESS' ||
 			   value === 'DEPLOYED' ||
 			   value === 'DEPLOYING' || value === 'DESTROYING' ||
-			   value === 'INDIVIDUAL' || value === 'SHARED' || value === 'CTFD';
+			   value === 'INDIVIDUAL' || value === 'SHARED';
 	}
 
 	function getDisplayValue(value: any): string {

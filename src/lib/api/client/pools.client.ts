@@ -56,10 +56,35 @@ export async function getPoolDetail(poolId: string): Promise<PoolDetail> {
     }
 }
 
-export async function patchPoolUsers(poolId: string, usersAndTeams: PatchUserRequest[]): Promise<any> {
+export async function patchPoolUsers(poolId: string, poolType: string, usersAndTeams: PatchUserRequest[]): Promise<any> {
     try {
+        // Format the request according to the new schema
+        const requestData: any = {
+            type: poolType,
+            usersAndTeams: usersAndTeams.map(user => {
+                if (poolType === 'INDIVIDUAL') {
+                    // For INDIVIDUAL pools, only send user and team (if present)
+                    const userObj: any = { user: user.user };
+                    if (user.team) {
+                        userObj.team = user.team;
+                    }
+                    return userObj;
+                } else {
+                    // For SHARED pools, include mainUserId
+                    const userObj: any = { 
+                        user: user.user,
+                        mainUserId: user.mainUserId 
+                    };
+                    if (user.team) {
+                        userObj.team = user.team;
+                    }
+                    return userObj;
+                }
+            })
+        };
+
         const response = await dulusClient.patch('/pool/users', 
-            { usersAndTeams }, 
+            requestData, 
             { params: { poolId } }
         );
         return response.data;
@@ -438,6 +463,62 @@ export async function stopTesting(poolId: string): Promise<{ results: Array<{ us
         return response.data;
     } catch (error) {
         console.error('Error stopping testing:', error);
+        throw error;
+    }
+}
+
+// Share pool to specific user
+export async function sharePoolToUser(poolId: string, targetUserId: string): Promise<{ results: Array<{ userId: string; response: { result?: string; error?: string } }> }> {
+    try {
+        const response = await dulusClient.post('/range/share/user', '', {
+            params: { poolId, targetUserId }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error sharing pool to user:', error);
+        throw error;
+    }
+}
+
+// Unshare pool from specific user
+export async function unsharePoolFromUser(poolId: string, targetUserId: string): Promise<{ results: Array<{ userId: string; response: { result?: string; error?: string } }> }> {
+    try {
+        const response = await dulusClient.post('/range/unshare/user', '', {
+            params: { poolId, targetUserId }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error unsharing pool from user:', error);
+        throw error;
+    }
+}
+
+// Check if range is shared to specific user
+export async function checkRangeSharedToUser(poolId: string, targetUserId: string): Promise<{ shared: boolean; unshared: boolean }> {
+    try {
+        const response = await dulusClient.get('/range/shared/user', {
+            params: { poolId, targetUserId }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error checking range shared to user:', error);
+        throw error;
+    }
+}
+
+// Get pool details with only poolId and note
+export async function getPoolSummaries(): Promise<Array<{ poolId: string; note: string }>> {
+    try {
+        const response = await dulusClient.get('/pool');
+        const pools = response.data;
+        const poolsArray = Array.isArray(pools) ? pools : [pools];
+        
+        return poolsArray.map(pool => ({
+            poolId: pool.poolId,
+            note: pool.note || ""
+        }));
+    } catch (error) {
+        console.error('Error loading pool summaries:', error);
         throw error;
     }
 }

@@ -57,8 +57,8 @@
     let currentTopologyData = $state<{topologyId: string; topologyName: string; topologyFile?: string} | null>(null);
     let isLoadingCurrentTopology = $state(false);
     
-    // Create handlers instance
-    const handlers = new PoolHandlers(data.poolId, showAlert);
+    // Create handlers instance - use derived to update when poolDetail changes
+    const handlers = $derived(new PoolHandlers(data.poolId, poolDetail?.type || 'INDIVIDUAL', showAlert));
     
     // Always load data in background without showing loading screens
     if (!data.poolDetail) {
@@ -644,11 +644,14 @@
     <!-- All Dialog Components -->
     <UsersDialog
         bind:open={usersDialogOpen}
+        poolId={data.poolId}
+        poolType={poolDetail.type}
         {missingUsers}
         onImport={handleImportUsers}
         onPatch={handlePatchUsers}
         onCheckUsers={handleCheckPatchUsers}
         onClose={() => usersDialogOpen = false}
+        onShowAlert={showAlert}
     />
 
     <TopologyDialog
