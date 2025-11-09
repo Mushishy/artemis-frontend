@@ -141,3 +141,30 @@ export async function getPoolFlags(poolId: string): Promise<boolean> {
         return false;
     }
 }
+
+export async function downloadCtfdFlags(poolId: string): Promise<void> {
+    try {
+        const response = await dulusClient.get('/ctfd/data', {
+            params: { poolId }
+        });
+        
+        if (!response.data?.ctfdData) {
+            throw new Error('CTFd flags data not found');
+        }
+        
+        // Create JSON blob and download
+        const jsonString = JSON.stringify(response.data.ctfdData, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${poolId}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error downloading CTFd flags:', error);
+        throw error;
+    }
+}

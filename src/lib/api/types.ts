@@ -208,6 +208,7 @@ export interface ProxmoxStatsResponse {
     diskUsedGiB: number
     diskTotalGiB: number
     uptimeFormatted: string
+    ludusVersion: string
 }
 
 // CTFD

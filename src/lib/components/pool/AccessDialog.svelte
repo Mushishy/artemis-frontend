@@ -1,7 +1,7 @@
 <script lang="ts">
     import * as Dialog from '$lib/components/ui/dialog';
     import { Button } from '$lib/components/ui/button';
-    import { Hand, FileText, Globe, Flag } from 'lucide-svelte';
+    import { Hand, FileText, Globe, Flag, ListPlus } from 'lucide-svelte';
     import type { PoolHealthCheck } from '$lib/api/types';
 
     type Props = {
@@ -10,6 +10,7 @@
         ctfdData?: any;
         onFetchCtfdData: () => Promise<void>;
         onDownloadCtfdLogins: () => Promise<void>;
+        onDownloadCtfdFlags: () => Promise<void>;
         onDownloadWireguard: () => Promise<void>;
         onClose: () => void;
     };
@@ -20,6 +21,7 @@
         ctfdData,
         onFetchCtfdData,
         onDownloadCtfdLogins,
+        onDownloadCtfdFlags,
         onDownloadWireguard,
         onClose
     }: Props = $props();
@@ -54,7 +56,7 @@
                 variant="outline"
                 class="w-full justify-start gap-3 h-12"
             >
-                <Flag class="h-4 w-4" />
+                <ListPlus class="h-4 w-4" />
                 <div class="flex flex-col items-start">
                     <span>Fetch CTFd Data to Pool</span>
                     <span class="text-xs text-muted-foreground">Requires users, topology and status processes to be finished</span>
@@ -70,6 +72,19 @@
                 <FileText class="h-4 w-4" />
                 <div class="flex flex-col items-start">
                     <span>Download CTFd Logins</span>
+                    <span class="text-xs text-muted-foreground">Requires CTFd data to be fetched first</span>
+                </div>
+            </Button>
+
+            <Button 
+                onclick={onDownloadCtfdFlags}
+                disabled={!canDownloadLogins}
+                variant="outline"
+                class="w-full justify-start gap-3 h-12"
+            >
+                <Flag class="h-4 w-4" />
+                <div class="flex flex-col items-start">
+                    <span>Download CTFd Flags</span>
                     <span class="text-xs text-muted-foreground">Requires CTFd data to be fetched first</span>
                 </div>
             </Button>

@@ -15,7 +15,7 @@ import {
 } from '$lib/api/client/pools.client.js';
 
 import { importMissingUsers } from '$lib/api/client/users.client.js';
-import { fetchCtfdData, downloadCtfdLogins } from '$lib/api/client/ctfd.client.js';
+import { fetchCtfdData, downloadCtfdLogins, downloadCtfdFlags } from '$lib/api/client/ctfd.client.js';
 import { downloadWireguardConfigs } from '$lib/api/client/pools.client.js';
 import type { PatchUserRequest } from '$lib/api/types.js';
 
@@ -177,6 +177,16 @@ export class PoolHandlers {
             this.showAlert('CTFd logins downloaded successfully', 'success');
         } catch (error: any) {
             this.handleError('Failed to download CTFd logins', error);
+        }
+    }
+
+    async downloadCtfdFlags() {
+        try {
+            this.showAlert('Downloading CTFd flags...', 'success');
+            await downloadCtfdFlags(this.poolId);
+            this.showAlert('CTFd flags downloaded successfully', 'success');
+        } catch (error: any) {
+            this.handleError('Failed to download CTFd flags', error);
         }
     }
 

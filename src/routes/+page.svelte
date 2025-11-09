@@ -9,7 +9,7 @@
 
 <div class="min-h-[100vh] flex-1 rounded-xl md:min-h-min">
 	<div class="p-6">
-		<h1 class="text-3xl font-bold">Welcome to Ludus</h1>
+		<h1 class="text-3xl font-bold">Welcome to {proxmoxStats.ludusVersion}</h1>
 		<p class="text-sm text-muted-foreground">
 			Open-source cyber-range, proven in practice, with the purpose of boosting the resilience of digital society.
 		</p>

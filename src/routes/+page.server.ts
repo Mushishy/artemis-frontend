@@ -18,7 +18,8 @@ const noProxmoxStats: ProxmoxStatsResponse = {
     memoryFreeGiB: 0,
     diskUsedGiB: 0,
     diskTotalGiB: 0,
-    uptimeFormatted: '0 days'
+    uptimeFormatted: '0 days',
+    ludusVersion: "unknown"
 };
 
 export const load: PageServerLoad = async (event) => {

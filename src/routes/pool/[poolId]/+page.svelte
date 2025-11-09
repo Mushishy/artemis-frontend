@@ -415,6 +415,15 @@
         await handlers.downloadCtfdLogins();
     }
 
+    async function handleDownloadCtfdFlags() {
+        if (!poolDetail?.ctfdData) {
+            showAlert('CTFd flags can only be downloaded when CTFd data is available (green access indicator)', 'error');
+            return;
+        }
+
+        await handlers.downloadCtfdFlags();
+    }
+
     async function handleDownloadWireguard() {
         await handlers.downloadWireguard();
     }
@@ -680,6 +689,7 @@
         ctfdData={poolDetail?.ctfdData}
         onFetchCtfdData={handleFetchCtfdData}
         onDownloadCtfdLogins={handleDownloadCtfdLogins}
+        onDownloadCtfdFlags={handleDownloadCtfdFlags}
         onDownloadWireguard={handleDownloadWireguard}
         onClose={() => accessDialogOpen = false}
     />
