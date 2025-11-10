@@ -9,7 +9,7 @@ Once logged in, all features of the FE are accessible. Stating with basic statis
 
 ## Prerequisites to Pool Creation
 ### 1. Topology
-Before creating a pool topology, a blueprint for the range containing information about VMs and roles must be uploaded. 
+Before creating a pool topology, a blueprint for the range containing information about VMs and roles must be uploaded. It can be created deleted and patched.
 
 ![](./img/3_topologies.png)
 
@@ -28,12 +28,12 @@ The same applies to Roles. They can be imported as a file or installed from [Ans
 When creating a pool, a Note with a maximum of 15 characters is used as a human-readable identifier, and a topologyId is selected along with a pool type, which determines the input for users. Team inside Users and Teams input serves as a reference for creating users in CTFd, which will be explained in detail later.
 
 ### 1. Individual
-Each user has their own pool, which they can access. 
+Each user has their own range, which they can access. 
 
 ![](./img/6_create_individual.png)
 
 ### 2. Shared
-Each user has a main user whose pool is shared with them. There is an option to search for available main users who are not currently assigned as main users in other pools. 
+Each user has a main user whose range is shared with them. There is an option to search for available main users who are not currently assigned as main users in other pools. 
 
 ![](./img/7_create_shared.png)
 
@@ -82,7 +82,7 @@ Here, VPN configs for all users can be downloaded, or CTFd data can be fetched a
 
 
 ### Testing
-Within the pool, testing mode behavior can be specified, such as blocking internet connections or creating snapshots after deployment. See the [Ludus Documentation](https://docs.ludus.cloud/docs/quick-start/testing-mode/) for more details. It takes some time to enable, but once it is enabled for all ranges, the indicator light is green. 
+Within the pool topology, testing mode behavior can be specified, such as blocking internet connections or creating snapshots after deployment. See the [Ludus Documentation](https://docs.ludus.cloud/docs/quick-start/testing-mode/) for more details. It takes some time to enable, but once it is enabled for all ranges, the indicator light is green. 
 
 ![](./img/15_manage_testing.png)
 
@@ -90,7 +90,7 @@ Within the pool, testing mode behavior can be specified, such as blocking intern
 ## Pool Information 
 
 ### Pool Logs
-The range creator can inspect logs that are continuously fetched while the range is being deployed and download them to a file.
+The pool creator can inspect logs that are continuously fetched while the range is being deployed and download them to a file.
 
 ![](./img/16_pool_logs.png)
 
@@ -103,7 +103,7 @@ Once the pool is deployed, information about range VMs is visualized in a clear 
 
 ## Manage Observer Users
 
-Once the pool is deployed, an observer account for the manager can be created, and all main users inside a pool can be shared with it. This means an administrator can access all main users' pools. 
+Once the pool is deployed, an observer account for the manager can be created, and all main users inside a pool can be shared with it. This means an administrator can access all main users' ranges. Users page enables the option to create, destroy and download user VPN configs as well. 
 
 ![](./img/18_observer.png)
 
@@ -111,7 +111,7 @@ Once the pool is deployed, an observer account for the manager can be created, a
 
 
 ### Scenarios
-To create a CTFd instance, a scenario that was exported from an existing CTFd with the same version and plugins as the one in the role needs to be uploaded. This scenario contains all of the challenges and correct answers. 
+To create a CTFd instance, a scenario that was exported from an existing CTFd with the same version and plugins as the one in the role needs to be uploaded. This scenario contains all of the challenges and correct answers. It can be created deleted and patched. 
 
 ![](./img/19_ctfd_scenarios.png)
 
