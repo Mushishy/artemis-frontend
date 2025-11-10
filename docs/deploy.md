@@ -6,8 +6,8 @@
 sudo apt update -y
 sudo apt-get update -y
 sudo apt-get upgrade -y
-sudo apt install unattended-upgrades
-sudo dpkg-reconfigure unattended-upgrades
+#sudo apt install unattended-upgrades
+#sudo dpkg-reconfigure unattended-upgrades
 
 apt install nano curl net-tools locales
 apt-get install net-tools vim tmux ssh
