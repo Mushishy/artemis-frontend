@@ -22,7 +22,7 @@ It is best to create a test user and share it with your main VPN, then create ra
 ```bash
 ludus user add --name "jan slizik velociraptor" --userid JSV --url https://127.0.0.1:8081
 ludus range access grant --target JSV --source JANSLIZIK
-ludus range wireguard get
+ludus users wireguard
 ```
 
 ## Before Deployment
