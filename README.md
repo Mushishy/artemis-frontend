@@ -20,3 +20,11 @@ Once you install dependencies with `npm install` you can start a development ser
 ```bash
 npm run dev
 ```
+
+## Deploying 
+
+deploy.sh script
+
+```
+openssl rand -hex 32
+```

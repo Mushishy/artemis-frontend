@@ -1,5 +1,4 @@
 import { env } from '$env/dynamic/public';
-import { verifyToken } from '$lib/utils/jwt-auth';
 
 export const SERVER_API_ENDPOINTS = {
 	dulus: {

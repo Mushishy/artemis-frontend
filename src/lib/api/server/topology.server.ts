@@ -18,17 +18,24 @@ export async function getTopologiesDisplay(apiKey: string): Promise<TopologyDisp
     try {
         const response = await getTopology(apiKey);
         
+        // Return empty array if no response
+        if (!response) {
+            return [];
+        }
+        
         // Handle both single topology and array of topologies
         if (Array.isArray(response)) {
-            return response.map(item => ({
-                ID: item.topologyId,
-                Name: item.topologyName,
-                Created: formatDate(item.createdAt)
-            }));
+            return response
+                .filter(item => item && item.topologyId) // Filter out null items
+                .map(item => ({
+                    ID: item.topologyId,
+                    Name: item.topologyName || 'Unnamed Topology',
+                    Created: formatDate(item.createdAt)
+                }));
         } else if (response.topologyId) {
             return [{
                 ID: response.topologyId,
-                Name: response.topologyName,
+                Name: response.topologyName || 'Unnamed Topology',
                 Created: formatDate(response.createdAt)
             }];
         }

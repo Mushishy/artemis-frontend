@@ -10,7 +10,7 @@
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
-	let topologies = $state(data.topologies);
+	let topologies = $derived(data.topologies);
 	let uploadDialogOpen = $state(false);
 	let deleteDialogOpen = $state(false);
 	let editingTopology: TopologyDisplay | null = $state(null);

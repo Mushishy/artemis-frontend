@@ -13,7 +13,7 @@
 	let { data }: { data: PageData } = $props();
 	
 	// State management
-	let roles = $state(data.roles);
+	let roles = $derived(data.roles);
 	let installDialogOpen = $state(false);
 	let selectedFile: File | null = $state(null);
 	let fileInput = $state<HTMLInputElement>();

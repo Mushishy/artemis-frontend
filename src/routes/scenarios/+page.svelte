@@ -10,7 +10,7 @@
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
-	let scenarios = $state(data.scenarios);
+	let scenarios = $derived(data.scenarios);
 	let uploadDialogOpen = $state(false);
 	let deleteDialogOpen = $state(false);
 	let editingScenario: Scenario | null = $state(null);

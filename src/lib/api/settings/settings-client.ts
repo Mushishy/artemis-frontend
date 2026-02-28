@@ -1,5 +1,4 @@
 import { env } from '$env/dynamic/public';
-import { browser } from '$app/environment';
 
 export const API_ENDPOINTS = {
 	dulus: {

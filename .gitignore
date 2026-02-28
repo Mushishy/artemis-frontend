@@ -1,5 +1,6 @@
 note.md
 node_modules
+.vscode/
 
 # Output
 .output

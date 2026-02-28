@@ -18,13 +18,20 @@ export async function getScenariosDisplay(apiKey: string): Promise<Scenario[]> {
     try {
         const response = await getScenario(apiKey);
         
+        // Check if response is null or undefined
+        if (!response) {
+            return [];
+        }
+        
         // Handle both single scenario and array of scenarios
         if (Array.isArray(response)) {
-            return response.map(item => ({
-                ID: item.scenarioId,
-                Name: item.scenarioName,
-                Created: formatDate(item.createdAt)
-            }));
+            return response
+                .filter(item => item && item.scenarioId) // Filter out null/undefined items
+                .map(item => ({
+                    ID: item.scenarioId,
+                    Name: item.scenarioName,
+                    Created: formatDate(item.createdAt)
+                }));
         } else if (response.scenarioId) {
             return [{
                 ID: response.scenarioId,

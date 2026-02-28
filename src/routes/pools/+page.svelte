@@ -18,7 +18,7 @@
         poolDetail?: PoolDetail;
     };
 
-    let pools = $state(data?.pools || []);
+    let pools = $derived(data?.pools || []);
     let deleteDialogOpen = $state(false);
     let noteDialogOpen = $state(false);
     let destroyUsersDialogOpen = $state(false);

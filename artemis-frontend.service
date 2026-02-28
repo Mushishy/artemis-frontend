@@ -1,0 +1,26 @@
+[Unit]
+Description=Artemis Frontend Service
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/artemis-frontend
+ExecStart=/usr/local/bin/npm run start
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=artemis-frontend
+NoNewPrivileges=true
+RestrictSUIDSGID=true
+
+# Environment variables
+Environment=NODE_ENV=production
+EnvironmentFile=/opt/artemis-frontend/.env
+
+ReadOnlyPaths=/opt/artemis-frontend/.env
+
+[Install]
+WantedBy=multi-user.target

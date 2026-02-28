@@ -84,7 +84,7 @@
             }));
         } catch (error) {
             poolOptions = [];
-            showAlert('Failed to load pools. Please refresh the page.', 'error');
+            // Silently handle pool loading errors - user requested removal of this popup
         }
     }
     

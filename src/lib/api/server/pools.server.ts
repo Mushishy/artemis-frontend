@@ -8,15 +8,23 @@ export async function loadPools(apiKey: string): Promise<Pool[]> {
         const response = await dulusClient.get('/pool');
         
         const pools = response.data;
+        
+        // Return empty array if no pools data
+        if (!pools) {
+            return [];
+        }
+        
         const poolsArray = Array.isArray(pools) ? pools : [pools];
         
-        // Ensure undefined values are converted to appropriate defaults
-        return poolsArray.map(pool => ({
-            ...pool,
-            note: pool.note || "",
-            ctfdData: Boolean(pool.ctfdData),
-            createdAt: pool.createdAt ? formatDate(pool.createdAt) : ""
-        }));
+        // Filter out null pools and ensure undefined values are converted to appropriate defaults
+        return poolsArray
+            .filter(pool => pool !== null && pool !== undefined)
+            .map(pool => ({
+                ...pool,
+                note: pool.note || "",
+                ctfdData: Boolean(pool.ctfdData),
+                createdAt: pool.createdAt ? formatDate(pool.createdAt) : ""
+            }));
     } catch (error) {
         console.error('Error loading pools:', error);
         throw error;
