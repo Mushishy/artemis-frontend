@@ -1,30 +1,25 @@
 # Artemis Frontend Overview
 
+
+![](./docs/img/2_dashboard.png)
+
 ## System Architecture
 
-The Artemis system consists of multiple interconnected components distributed across Docker containers and the host system. The architecture is designed to provide a web-based interface for managing Ludus cybersecurity training ranges through an intuitive frontend application.
-
-![](./docs/img/architecture.png)
-
-## Further Resources
-
-- [Artemis FE Guide](./docs/admin-guide.md)
-- [Game Developer Guide](./docs/user-guide.md)
-- [Deploy Artemis + Ludus Guide](./docs/deploy.md)
-- [Artemis FE Components Explained](./docs/components.md)
+The Artemis system consists of multiple interconnected components. The architecture is designed to provide a web-based interface for managing Ludus cybersecurity training ranges through an intuitive frontend application. Read more about its' components here - [Artemis Components Explained](./docs/components.md). 
 
 ## Developing
 
-Once you install dependencies with `npm install` you can start a development server:
-
 ```bash
+npm install
 npm run dev
 ```
 
-## Deploying 
+## Test Deployment
 
-deploy.sh script
-
-```
+```bash
+# change variables in .env
 openssl rand -hex 32
+npm install
+npm run build
+npm start
 ```

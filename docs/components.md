@@ -1,5 +1,7 @@
 ## Components
 
+![](./img/architecture.png)
+
 ### Client Layer
 Users interact with the system through a web browser, accessing the application via HTTPS on port 443.
 
