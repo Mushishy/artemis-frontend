@@ -13,9 +13,6 @@ export const API_ENDPOINTS = {
 		server: env.PUBLIC_LUDUS_ADMIN_SERVER,
 		client: '/api/proxy/ludus-admin'
 	},
-	ludusProxmox: {
-		url: env.PUBLIC_LUDUS_PROXMOX_SERVER
-	},
 	gitlab: {
 		url: env.PUBLIC_GITLAB_URL
 	}

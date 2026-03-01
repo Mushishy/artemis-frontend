@@ -15,8 +15,8 @@
 	import LogOutIcon from "@lucide/svelte/icons/log-out";
 	import { logout, userStore } from "$lib/stores/auth";
 	import { Button } from "$lib/components/ui/button";
-	
-	
+	import { browser } from "$app/environment";
+	import { onMount } from "svelte";
 
     import { API_ENDPOINTS } from "$lib/api/settings/settings-client";
 
@@ -75,20 +75,30 @@
 		},
 	];
 
-	const documentation = [
+	let currentProtocol = "http:";
+	let currentHostname = "localhost";
+	
+	onMount(() => {
+		if (browser) {
+			currentProtocol = window.location.protocol;
+			currentHostname = window.location.hostname;
+		}
+	});
+
+	$: documentation = [
 		{
-		name: "Proxmox",
-			url: API_ENDPOINTS.ludusProxmox.url,
+			name: "Proxmox",
+			url: `${currentProtocol}//${currentHostname}:8006`,
 			icon: ServerIcon,
-		},	
+		},
 		{
-		name: "GitLab",
+			name: "GitLab",
 			url: API_ENDPOINTS.gitlab.url,
 			icon: GitlabIcon,
-		},	
+		},
 		{
-		name: "Documentation",
-			url: API_ENDPOINTS.ludus.server + "/ludus",
+			name: "Documentation",
+			url: `${currentProtocol}//${currentHostname}:8080/ludus`,
 			icon: TextIcon,
 		}
 	]
