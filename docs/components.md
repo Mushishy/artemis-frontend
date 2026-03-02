@@ -3,9 +3,9 @@
 ![](./img/architecture.png)
 
 ### Client Layer
-Users interact with the system through a web browser, accessing the application via HTTPS on port 443.
+Users interact with the system through a web browser, accessing the application via HTTPS.
 
-### Docker Network
+### Artemis System
 
 **Nginx (:443)**
 - Acts as a reverse proxy and SSL/TLS termination point
@@ -18,13 +18,13 @@ Users interact with the system through a web browser, accessing the application 
   - Buffer overflow protection
   - HTTP to HTTPS redirect
 
-**Artemis Frontend Container**
+**Artemis Frontend**
 - SvelteKit-based web application providing the user interface
 - Contains `/routes/api` endpoints for backend communication
 - Communicates with both Dulus (internally) and Ludus/Proxmox (externally)
 - Handles authentication via JWT tokens
 
-**Scenario Manager API Container (Dulus)**
+**Scenario Manager API (Dulus)**
 - Golang Gin based API service running on port 5000
 - Manages proxmox statistics as well as scenarios, topologies, and pool configurations
 - Stores data in `/scenarios`, `/topologies`, and `/pools` directories
