@@ -581,7 +581,7 @@
                 <h1 class="text-3xl font-bold">{poolDetail.note}</h1>
                 {#if poolDetail}
                     <p class="text-sm text-muted-foreground">
-                        Id {data.poolId} • Type {poolDetail.type} • Created by {poolDetail.createdBy} • Created at {formatDate(poolDetail.createdAt)}
+                        Id {data.poolId} • Pool Type {poolDetail.type} • Created by {poolDetail.createdBy} • Created at {formatDate(poolDetail.createdAt)}
                     </p>
                 {:else}
                     <div class="flex space-x-2 mt-1">

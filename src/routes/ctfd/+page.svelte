@@ -4,7 +4,7 @@
     import { Label } from '$lib/components/ui/label';
     import * as Card from '$lib/components/ui/card';
     import * as Alert from '$lib/components/ui/alert';
-    import { RotateCcw, AlertCircle, CheckCircle2, X, Send, ChevronsUpDown, Check } from 'lucide-svelte';
+    import { RotateCcw, AlertCircle, CheckCircle2, X, Send, ChevronsUpDown, Check, Cog } from 'lucide-svelte';
     import * as Command from '$lib/components/ui/command';
     import * as Popover from '$lib/components/ui/popover';
     import { createCtfdTopology } from '$lib/api/client/topology.client';
@@ -18,14 +18,13 @@
         scenarioId: "",
         poolId: "",
         
-        usernameConfig: "admin",
-        passwordConfig: "admin",
         adminUsername: "supervisor",
         adminPassword: "admin",
         
         ctfName: "",
         ctfDescription: "",
         challengeVisibility: "private" as const,
+        challengeRatings: "public" as const,
         accountVisibility: "private" as const,
         scoreVisibility: "private" as const,
         registrationVisibility: "private" as const,
@@ -49,13 +48,14 @@
     let timezoneOpen = $state(false);
     let allowViewingAfterOpen = $state(false);
     let challengeVisibilityOpen = $state(false);
+    let challengeRatingsOpen = $state(false);
     let accountVisibilityOpen = $state(false);
     let scoreVisibilityOpen = $state(false);
     let registrationVisibilityOpen = $state(false);
     let allowNameChangesOpen = $state(false);
     let allowTeamCreationOpen = $state(false);
     let allowTeamDisbandingOpen = $state(false);
-    let scenarioOptions = $state<{ value: string; label: string; description?: string }[]>([]);
+    let scenarioOptions = $state<{ value: string; label: string; mode?: string; description?: string }[]>([]);
     let poolOptions = $state<{ value: string; label: string; description?: string; poolId?: string }[]>([]);
 
     // Load scenarios and pools on component mount
@@ -65,6 +65,7 @@
             scenarioOptions = scenarios.map(scenario => ({
                 value: scenario.ID,
                 label: scenario.Name,
+                mode: scenario.Mode,
                 description: scenario.ID
             }));
         } catch (error) {
@@ -105,6 +106,11 @@
         { value: "yes", label: "yes" }
     ];
 
+    // Get selected scenario mode
+    const selectedScenarioMode = $derived(
+        scenarioOptions.find(s => s.value === config.scenarioId)?.mode
+    );
+
     // Action Function
     function showAlert(message: string, type: 'success' | 'error') {
         alertMessage = { message, type };
@@ -123,14 +129,13 @@
             scenarioId: "",
             poolId: "",
             
-            usernameConfig: "admin",
-            passwordConfig: "admin",
             adminUsername: "supervisor",
             adminPassword: "admin",
             
             ctfName: "",
             ctfDescription: "",
             challengeVisibility: "private" as const,
+            challengeRatings: "public" as const,
             accountVisibility: "private" as const,
             scoreVisibility: "private" as const,
             registrationVisibility: "private" as const,
@@ -204,9 +209,13 @@
                 <RotateCcw class="h-4 w-4" />
                 Reset Form
             </Button>
-            <Button onclick={handleSubmit} class="flex items-center gap-2" disabled={isSubmitting}>
+            <Button onclick={() => handleSubmit()} class="flex items-center gap-2" disabled={isSubmitting}>
                 <Send class="h-4 w-4" />
-                {isSubmitting ? 'Creating...' : 'Create CTFd Topology'}
+                {isSubmitting ? 'Creating...' : 
+                    selectedScenarioMode ? 
+                        `Create ${selectedScenarioMode === 'USERS' ? 'Users' : 'Teams'} Topology` : 
+                        'Create Topology'
+                }
             </Button>
         </div>
     </div>
@@ -411,47 +420,6 @@
                             </Popover.Content>
                         </Popover.Root>
                     </div>
-                    <div>
-                        <Label for="allowViewingAfter" class="text-sm">Allow Viewing After End</Label>
-                        <Popover.Root bind:open={allowViewingAfterOpen}>
-                            <Popover.Trigger>
-                                {#snippet child({ props })}
-                                    <Button
-                                        {...props}
-                                        variant="outline"
-                                        class="w-full justify-between"
-                                        role="combobox"
-                                        aria-expanded={allowViewingAfterOpen}
-                                    >
-                                        {yesNoOptions.find(o => o.value === config.allowViewingAfter)?.label || "Select option"}
-                                        <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                {/snippet}
-                            </Popover.Trigger>
-                            <Popover.Content class="w-full p-0">
-                                <Command.Root>
-                                    <Command.List>
-                                        <Command.Group>
-                                            {#each yesNoOptions as option (option.value)}
-                                                <Command.Item
-                                                    value={option.label}
-                                                    onSelect={() => {
-                                                        config.allowViewingAfter = option.value as typeof config.allowViewingAfter;
-                                                        allowViewingAfterOpen = false;
-                                                    }}
-                                                >
-                                                    <Check
-                                                        class="mr-2 h-4 w-4 {config.allowViewingAfter !== option.value && 'text-transparent'}"
-                                                    />
-                                                    {option.label}
-                                                </Command.Item>
-                                            {/each}
-                                        </Command.Group>
-                                    </Command.List>
-                                </Command.Root>
-                            </Popover.Content>
-                        </Popover.Root>
-                    </div>
                 </Card.Content>
             </Card.Root>
         </div>
@@ -498,22 +466,47 @@
                         />
                     </div>
                     <div>
-                        <Label for="usernameConfig" class="text-sm">Username (used during configuration)</Label>
-                        <Input 
-                            id="usernameConfig" 
-                            bind:value={config.usernameConfig}
-                            placeholder="Scenario username"
-                        />
+                        <Label for="allowViewingAfter" class="text-sm">Allow Viewing After End</Label>
+                        <Popover.Root bind:open={allowViewingAfterOpen}>
+                            <Popover.Trigger>
+                                {#snippet child({ props })}
+                                    <Button
+                                        {...props}
+                                        variant="outline"
+                                        class="w-full justify-between"
+                                        role="combobox"
+                                        aria-expanded={allowViewingAfterOpen}
+                                    >
+                                        {yesNoOptions.find(o => o.value === config.allowViewingAfter)?.label || "Select option"}
+                                        <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                {/snippet}
+                            </Popover.Trigger>
+                            <Popover.Content class="w-full p-0">
+                                <Command.Root>
+                                    <Command.List>
+                                        <Command.Group>
+                                            {#each yesNoOptions as option (option.value)}
+                                                <Command.Item
+                                                    value={option.label}
+                                                    onSelect={() => {
+                                                        config.allowViewingAfter = option.value as typeof config.allowViewingAfter;
+                                                        allowViewingAfterOpen = false;
+                                                    }}
+                                                >
+                                                    <Check
+                                                        class="mr-2 h-4 w-4 {config.allowViewingAfter !== option.value && 'text-transparent'}"
+                                                    />
+                                                    {option.label}
+                                                </Command.Item>
+                                            {/each}
+                                        </Command.Group>
+                                    </Command.List>
+                                </Command.Root>
+                            </Popover.Content>
+                        </Popover.Root>
                     </div>
-                    <div>
-                        <Label for="passwordConfig" class="text-sm">Password (used during configuration)</Label>
-                        <Input 
-                            id="passwordConfig" 
-                            type="text"
-                            bind:value={config.passwordConfig}
-                            placeholder="Scenario password"
-                        />
-                    </div>
+
                 </Card.Content>
             </Card.Root>
         </div>
@@ -557,6 +550,47 @@
                                                 >
                                                     <Check
                                                         class="mr-2 h-4 w-4 {config.challengeVisibility !== option.value && 'text-transparent'}"
+                                                    />
+                                                    {option.label}
+                                                </Command.Item>
+                                            {/each}
+                                        </Command.Group>
+                                    </Command.List>
+                                </Command.Root>
+                            </Popover.Content>
+                        </Popover.Root>
+                    </div>
+                    <div>
+                        <Label for="challengeRatings" class="text-sm">Challenge Ratings Visibility</Label>
+                        <Popover.Root bind:open={challengeRatingsOpen}>
+                            <Popover.Trigger>
+                                {#snippet child({ props })}
+                                    <Button
+                                        {...props}
+                                        variant="outline"
+                                        class="w-full justify-between"
+                                        role="combobox"
+                                        aria-expanded={challengeRatingsOpen}
+                                    >
+                                        {visibilityOptions.find(o => o.value === config.challengeRatings)?.label || "Select visibility"}
+                                        <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                {/snippet}
+                            </Popover.Trigger>
+                            <Popover.Content class="w-full p-0">
+                                <Command.Root>
+                                    <Command.List>
+                                        <Command.Group>
+                                            {#each visibilityOptions as option (option.value)}
+                                                <Command.Item
+                                                    value={option.label}
+                                                    onSelect={() => {
+                                                        config.challengeRatings = option.value as typeof config.challengeRatings;
+                                                        challengeRatingsOpen = false;
+                                                    }}
+                                                >
+                                                    <Check
+                                                        class="mr-2 h-4 w-4 {config.challengeRatings !== option.value && 'text-transparent'}"
                                                     />
                                                     {option.label}
                                                 </Command.Item>

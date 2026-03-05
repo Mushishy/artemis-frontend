@@ -30,13 +30,15 @@ export async function getTopologiesDisplay(apiKey: string): Promise<TopologyDisp
                 .map(item => ({
                     ID: item.topologyId,
                     Name: item.topologyName || 'Unnamed Topology',
-                    Created: formatDate(item.createdAt)
+                    Created: formatDate(item.createdAt),
+                    Type: (item.topologyName || '').toLowerCase().startsWith('ctfd_') ? 'CTFD' : 'REGULAR'
                 }));
         } else if (response.topologyId) {
             return [{
                 ID: response.topologyId,
                 Name: response.topologyName || 'Unnamed Topology',
-                Created: formatDate(response.createdAt)
+                Created: formatDate(response.createdAt),
+                Type: (response.topologyName || '').toLowerCase().startsWith('ctfd_') ? 'CTFD' : 'REGULAR'
             }];
         }
         

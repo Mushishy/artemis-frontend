@@ -10,7 +10,7 @@
     import { AlertCircle, CheckCircle2, X, RotateCcw, Check, ChevronsUpDown, Save, Users, Search, UserCheck } from 'lucide-svelte';
     import { tick } from 'svelte';
     import type { PageData } from './$types';
-    import { createPool, checkUsersInPools } from '$lib/api/client/pools.client';
+    import { createPool, createDevPool, checkUsersInPools } from '$lib/api/client/pools.client';
     import { getMainUsers } from '$lib/api/client/users.client';
     import type { PoolRequest, PoolUserAndTeam, PoolUserTeam } from '$lib/api/types';
     import { userStore } from '$lib/stores/auth';
@@ -20,7 +20,7 @@
     let { data }: { data: PageData } = $props();
 
     // Pool type options
-    type PoolType = 'INDIVIDUAL' | 'SHARED';
+    type PoolType = 'INDIVIDUAL' | 'SHARED' | 'CTFD';
 
     // Form state
     type PoolFormData = {
@@ -29,6 +29,7 @@
         topologyName: string
         bulkUserInput: string
         note: string
+        isDev: boolean
     }
     
     let formData: PoolFormData = $state({
@@ -36,7 +37,8 @@
         topologyId: "",
         topologyName: "",
         bulkUserInput: "",
-        note: ""
+        note: "",
+        isDev: false
     });
 
     let alertMessage = $state<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -47,24 +49,33 @@
     let mainUsersOpen = $state(false);
     let mainUsersTriggerRef = $state<HTMLButtonElement>(null!);
     let mainUsersData = $state<string[]>([]);
+    let mainUsersLoading = $state(false);
 
 
 
     // Transform data for combobox format
     const topologyOptions = $derived(
-        data.topologies.map(topology => ({
-            value: topology.ID,
-            label: topology.Name,
-            description: `ID: ${topology.ID}`
-        }))
+        data.topologies
+            .filter(topology => {
+                // For CTFd pools, only show topologies starting with 'ctfd_'
+                if (formData.type === 'CTFD') {
+                    return topology.Name.toLowerCase().startsWith('ctfd_');
+                }
+                return true;
+            })
+            .map(topology => ({
+                value: topology.ID,
+                label: topology.Name,
+                description: `ID: ${topology.ID}`
+            }))
     );
 
     const mainUsersOptions = $derived(
-        mainUsersData.map(userId => ({
+        Array.isArray(mainUsersData) ? mainUsersData.map(userId => ({
             value: userId,
             label: userId,
             description: `Main User: ${userId}`
-        }))
+        })) : []
     );
 
     const userOptions = $derived(
@@ -90,17 +101,52 @@
         createdBy = $userStore?.username || 'Unknown';
     });
 
-    // Load main users data on component mount
+    // Track the last pool type to prevent infinite loops
+    let lastPoolType = $state<PoolType | null>(null);
+
+    // Load main users data when pool type changes
     $effect(() => {
+        // Only react to formData.type changes
+        const currentType = formData.type;
+        
+        // Skip if type hasn't actually changed
+        if (currentType === lastPoolType) {
+            return;
+        }
+        
+        lastPoolType = currentType;
+        
         async function loadMainUsersData() {
+            // Only load if we need main users (SHARED or CTFD pools)
+            if (currentType !== 'SHARED' && currentType !== 'CTFD') {
+                mainUsersData = [];
+                mainUsersLoading = false;
+                return;
+            }
+
             try {
-                const result = await getMainUsers();
-                mainUsersData = result.userIds;
+                mainUsersLoading = true;
+                console.log('Loading main users for type:', currentType);
+                
+                const isCtfd = currentType === 'CTFD';
+                const result = await getMainUsers(isCtfd ? { isCtfd: 'true' } : {});
+                
+                // Ensure result.userIds is an array
+                if (result && Array.isArray(result.userIds)) {
+                    mainUsersData = result.userIds;
+                    console.log('Loaded main users:', result.userIds.length);
+                } else {
+                    console.warn('Invalid main users response:', result);
+                    mainUsersData = [];
+                }
             } catch (error) {
                 console.error('Failed to load main users:', error);
                 mainUsersData = [];
+            } finally {
+                mainUsersLoading = false;
             }
         }
+        
         loadMainUsersData();
     });
 
@@ -113,6 +159,7 @@
         formData.type = type;
         // Reset dependent fields when type changes
         formData.bulkUserInput = '';
+        formData.isDev = false; // Reset dev mode when type changes
     }
 
 
@@ -138,6 +185,43 @@
         });
     }
 
+    function addSelectedUserToInput(selectedUserId: string) {
+        if (!formData.bulkUserInput.trim()) {
+            closeAndFocusMainUsersTrigger();
+            return;
+        }
+
+        // Split existing content into lines
+        const lines = formData.bulkUserInput.split('\n');
+        
+        // Process each line
+        const updatedLines = lines.map(line => {
+            const trimmedLine = line.trim();
+            if (!trimmedLine) return line; // Keep empty lines as is
+            
+            if (formData.type === 'CTFD') {
+                // For CTFd pools, append the selected CTFd user ID to each line
+                // Check if the line already has a comma (already formatted)
+                if (trimmedLine.includes(',')) {
+                    return line; // Don't modify already formatted lines
+                } else {
+                    return `${trimmedLine}, ${selectedUserId}`;
+                }
+            } else if (formData.type === 'SHARED') {
+                // For SHARED pools, append the main user ID
+                if (trimmedLine.includes(',')) {
+                    return line; // Don't modify already formatted lines
+                } else {
+                    return `${trimmedLine}, ${selectedUserId}`;
+                }
+            }
+            return line;
+        });
+        
+        formData.bulkUserInput = updatedLines.join('\n');
+        closeAndFocusMainUsersTrigger();
+    }
+
 
 
     function resetForm() {
@@ -146,7 +230,8 @@
             topologyId: '',
             topologyName: '',
             bulkUserInput: '',
-            note: ''
+            note: '',
+            isDev: false
         };
     }
 
@@ -198,11 +283,12 @@
             return;
         }
 
-        // For SHARED pools, validate that all users have mainUserId
-        if (formData.type === 'SHARED') {
+        // For SHARED/CTFD pools, validate that all users have mainUserId
+        if (formData.type === 'SHARED' || formData.type === 'CTFD') {
             const usersWithoutMainUserId = users.filter(u => !u.mainUserId.trim());
             if (usersWithoutMainUserId.length > 0) {
-                showAlert('error', 'MainUserId is mandatory for all users in SHARED pools. Please check your input format.');
+                const poolTypeName = formData.type === 'CTFD' ? 'CTFd' : 'SHARED';
+                showAlert('error', `MainUserId is mandatory for all users in ${poolTypeName} pools. Please check your input format.`);
                 return;
             }
             
@@ -210,7 +296,8 @@
             const invalidMainUsers = users.filter(u => !mainUsersData.includes(u.mainUserId.trim()));
             if (invalidMainUsers.length > 0) {
                 const invalidIds = [...new Set(invalidMainUsers.map(u => u.mainUserId))].join(', ');
-                showAlert('error', `Invalid MainUserId(s): ${invalidIds}. MainUserId must be one of the available main users.`);
+                const userType = formData.type === 'CTFD' ? 'CTFd users' : 'main users';
+                showAlert('error', `Invalid MainUserId(s): ${invalidIds}. MainUserId must be one of the available ${userType}.`);
                 return;
             }
         }
@@ -250,11 +337,19 @@
             }
 
             // Update available users data by reloading main users
-            try {
-                const result = await getMainUsers();
-                mainUsersData = result.userIds;
-            } catch (error) {
-                console.error('Failed to refresh main users:', error);
+            if (!mainUsersLoading) {
+                try {
+                    mainUsersLoading = true;
+                    const isCtfd = formData.type === 'CTFD';
+                    const result = await getMainUsers(isCtfd ? { isCtfd: 'true' } : {});
+                    if (result && Array.isArray(result.userIds)) {
+                        mainUsersData = result.userIds;
+                    }
+                } catch (error) {
+                    console.error('Failed to refresh main users:', error);
+                } finally {
+                    mainUsersLoading = false;
+                }
             }
         } catch (error: any) {
             showAlert('error', 'Failed to check users in pools');
@@ -274,8 +369,8 @@
             
             const parts = trimmed.split(',').map(part => part.trim());
             
-            if (formData.type === 'SHARED') {
-                // For SHARED: "Username, MainUserId, Team" or "Username, MainUserId"
+            if (formData.type === 'SHARED' || formData.type === 'CTFD') {
+                // For SHARED/CTFD: "Username, MainUserId, Team" or "Username, MainUserId"
                 if (parts.length >= 2) {
                     users.push({
                         user: parts[0],
@@ -300,14 +395,15 @@
 
     function handleSubmit() {
         // Only validate team assignment rule (specific business logic not in isFormValid)
-        if (formData.type === 'INDIVIDUAL' || formData.type === 'SHARED') {
+        if (formData.type === 'INDIVIDUAL' || formData.type === 'SHARED' || formData.type === 'CTFD') {
             const users = parseBulkUsers(formData.bulkUserInput).map(u => ({ ...u, user: normalizeText(u.user) }));
             
-            // For SHARED pools, validate that all users have mainUserId
-            if (formData.type === 'SHARED') {
+            // For SHARED/CTFD pools, validate that all users have mainUserId
+            if (formData.type === 'SHARED' || formData.type === 'CTFD') {
                 const usersWithoutMainUserId = users.filter(u => !u.mainUserId.trim());
                 if (usersWithoutMainUserId.length > 0) {
-                    showAlert('error', 'MainUserId is mandatory for all users in SHARED pools. Please check your input format.');
+                    const poolTypeName = formData.type === 'CTFD' ? 'CTFd' : 'SHARED';
+                    showAlert('error', `MainUserId is mandatory for all users in ${poolTypeName} pools. Please check your input format.`);
                     return;
                 }
                 
@@ -315,7 +411,8 @@
                 const invalidMainUsers = users.filter(u => !mainUsersData.includes(u.mainUserId.trim()));
                 if (invalidMainUsers.length > 0) {
                     const invalidIds = [...new Set(invalidMainUsers.map(u => u.mainUserId))].join(', ');
-                    showAlert('error', `Invalid MainUserId(s): ${invalidIds}. MainUserId must be one of the available main users.`);
+                    const userType = formData.type === 'CTFD' ? 'CTFd users' : 'main users';
+                    showAlert('error', `Invalid MainUserId(s): ${invalidIds}. MainUserId must be one of the available ${userType}.`);
                     return;
                 }
             }
@@ -349,8 +446,15 @@
 
     async function submitPool() {
         try {
+            // If CTFD dev mode is enabled, use the dev pool endpoint
+            if (formData.type === 'CTFD' && formData.isDev) {
+                await createDevPool(formData.note.trim());
+                goto('/pools');
+                return;
+            }
+            
             let poolData: PoolRequest = {
-                type: formData.type!,
+                type: formData.type === 'CTFD' ? 'SHARED' : formData.type!,
                 topologyId: formData.topologyId,
                 note: formData.note.trim(), // Note is now required, no undefined
                 usersAndTeams: [] // Initialize as empty array
@@ -372,7 +476,7 @@
                     }
                     return userObj;
                 } else {
-                    // For SHARED pools, include mainUserId
+                    // For SHARED/CTFD pools, include mainUserId
                     return {
                         user: user.user,
                         userId: transformToUserId(user.user),
@@ -420,6 +524,11 @@
     }
 
     function isFormValid(): boolean {
+        // For CTFD dev mode, only validate note
+        if (formData.type === 'CTFD' && formData.isDev) {
+            return formData.note.trim().length > 0 && formData.note.length <= 15;
+        }
+        
         if (!formData.type || !formData.topologyId) {
             return false;
         }
@@ -436,13 +545,13 @@
             return formData.bulkUserInput.trim().length > 0;
         }
         
-        if (formData.type === 'SHARED') {
+        if (formData.type === 'SHARED' || formData.type === 'CTFD') {
             if (!formData.bulkUserInput.trim()) {
                 return false;
             }
             
             const users = parseBulkUsers(formData.bulkUserInput);
-            // For SHARED pools, check that all users have mainUserId
+            // For SHARED/CTFD pools, check that all users have mainUserId
             return users.length > 0 && users.every(u => u.mainUserId.trim());
         }
         
@@ -496,15 +605,14 @@
         </div>
     {/if}
     
-    <br>
-    <div class="flex-1 min-h-0 w-full overflow-auto pb-20">
+    <div class="flex-1 min-h-0 w-full overflow-auto">
         <div class="max-w-7xl mx-auto">
             <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 <!-- Step 1: Pool Type Selection -->
                 <Card.Root class="h-full min-h-[39rem] flex flex-col">
                     <Card.Header class="pb-4">
                         <Card.Title class="text-xl">Step 1: Select Pool Type</Card.Title>
-                        <Card.Description class="text-base">Choose the type of pool you want to create</Card.Description>
+                        <Card.Description class="text-sm">Choose the type of pool you want to create</Card.Description>
                     </Card.Header>
                     <Card.Content class="space-y-4 p-6 flex-1 flex flex-col">
                         <div class="flex-1 space-y-4">
@@ -537,6 +645,21 @@
                                     </div>
                                 </div>
                             </button>
+
+                            <button
+                                class="w-full p-6 border-2 rounded-lg transition-all min-h-[8.5rem] {formData.type === 'CTFD' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}"
+                                onclick={() => handleTypeChange('CTFD')}
+                            >
+                                <div class="text-center h-full flex flex-col justify-center">
+                                    <h3 class="font-semibold mb-2 text-lg">CTFd</h3>
+                                    <p class="text-sm text-muted-foreground">Users share CTFd user's range</p>
+                                    <div class="mt-3 min-h-[1.5rem] flex items-center justify-center">
+                                        {#if formData.type === 'CTFD'}
+                                            <Badge>Selected</Badge>
+                                        {/if}
+                                    </div>
+                                </div>
+                            </button>
                         </div>
 
                         <!-- Manage Users Button - always shown at bottom -->
@@ -554,14 +677,16 @@
                 </Card.Root>
 
                 <!-- Step 2: Set up users -->
-                <Card.Root class="h-full min-h-[32rem] flex flex-col {!formData.type ? 'opacity-50 pointer-events-none' : ''}">
+                <Card.Root class="h-full min-h-[32rem] flex flex-col {!formData.type || (formData.type === 'CTFD' && formData.isDev) ? 'opacity-50 pointer-events-none' : ''}">
                     <Card.Header class="pb-4">
                         <Card.Title class="text-xl">Step 2: Select users</Card.Title>
-                        <Card.Description class="text-base">
+                        <Card.Description class="text-sm">
                             {#if formData.type === 'INDIVIDUAL'}
                                 Enter pool users and teams
                             {:else if formData.type === 'SHARED'}
                                 Enter main user and pool users and teams
+                            {:else if formData.type === 'CTFD'}
+                                Enter CTFd user and pool users
                             {:else}
                                 Select a pool type first
                             {/if}
@@ -571,14 +696,16 @@
 
 
                         <!-- Users and Teams Input (second for consistency) -->
-                        {#if formData.type === 'INDIVIDUAL' || formData.type === 'SHARED'}
+                        {#if formData.type === 'INDIVIDUAL' || formData.type === 'SHARED' || formData.type === 'CTFD'}
                             <div class="flex-1 flex flex-col min-h-0">
                                 <div class="text-sm font-medium mb-1">
                                     Pool Users and Teams *
                                 </div>
                                 <p class="text-xs text-muted-foreground mb-2">
                                     {#if formData.type === 'SHARED'}
-                                        Enter one per line "Username, MainUserId, Team" or "Username, MainUserId"
+                                        Enter one per line "Username, MainUserId, Team" or "Username, MainUserId". Use the search helper below to add main users.
+                                    {:else if formData.type === 'CTFD'}
+                                        Enter one per line "Username, CTFdUserId". Use the search helper below to add CTFd user automatically.
                                     {:else}
                                         Enter one per line "Username, Team" or "Username"
                                     {/if}
@@ -587,6 +714,8 @@
                                     bind:value={formData.bulkUserInput}
                                     placeholder={formData.type === 'SHARED' ? 
                                         "Alice Dan, MainUser1, smurfs\nBob Dylan, MainUser2, gargamel\nDave Smith, MainUser1, smurfs" : 
+                                        formData.type === 'CTFD' ?
+                                        "Alice Dan, CTFD1\nBob Dylan, CTFD1\nDave Smith, CTFD1" :
                                         "Alice Dan, smurfs\nBob Dylan, gargamel\nDave Smith, smurfs"}
                                     class="w-full flex-1 p-4 border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none rounded-md"
                                 ></textarea>
@@ -597,12 +726,11 @@
                                 </div>
                             </div>
 
-                            <!-- Main User Search Helper (for SHARED pools only) -->
-                            {#if formData.type === 'SHARED'}
+                            <!-- Main User Search Helper (for SHARED/CTFD pools only) -->
+                            {#if formData.type === 'SHARED' || formData.type === 'CTFD'}
                                 <div class="space-y-3 pt-2 border-t">
-                                    <div class="text-sm font-medium">Main User Search Helper</div>
-                                    <p class="text-xs text-muted-foreground">
-                                        Search main users to help with input formatting
+                                    <div class="text-sm font-medium">{formData.type === 'CTFD' ? 'CTFd User Search Helper' : 'Main User Search Helper'}</div>                                    <p class="text-xs text-muted-foreground">
+                                        {formData.type === 'CTFD' ? 'Select CTFd user to automatically add him to the user list above' : 'Search main users to help with input formatting'}
                                     </p>
                                 <Popover.Root bind:open={mainUsersOpen}>
                                     <Popover.Trigger bind:ref={mainUsersTriggerRef}>
@@ -613,23 +741,24 @@
                                                 class="w-full justify-between"
                                                 role="combobox"
                                                 aria-expanded={mainUsersOpen}
+                                                disabled={mainUsersLoading}
                                             >
-                                                Search main users...
+                                                {mainUsersLoading ? 'Loading...' : formData.type === 'CTFD' ? 'Select CTFd users to add...' : 'Search main users...'}
                                                 <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                             </Button>
                                         {/snippet}
                                     </Popover.Trigger>
                                     <Popover.Content class="w-full p-0">
                                         <Command.Root>
-                                            <Command.Input placeholder="Search main users..." />
+                                            <Command.Input placeholder="Search {formData.type === 'CTFD' ? 'CTFd users' : 'main users'}..." />
                                             <Command.List>
-                                                <Command.Empty>No main user found.</Command.Empty>
+                                                <Command.Empty>No {formData.type === 'CTFD' ? 'CTFd user' : 'main user'} found.</Command.Empty>
                                                 <Command.Group>
                                                     {#each mainUsersOptions as mainUser (mainUser.value)}
                                                         <Command.Item
                                                             value={mainUser.label}
                                                             onSelect={() => {
-                                                                closeAndFocusMainUsersTrigger();
+                                                                addSelectedUserToInput(mainUser.value);
                                                             }}
                                                         >
                                                             <div class="flex flex-col">
@@ -651,7 +780,7 @@
 
                         <!-- Check Users in Pools Button -->
                         <div class="pt-3">
-                            {#if formData.type === 'INDIVIDUAL' || formData.type === 'SHARED'}
+                            {#if formData.type === 'INDIVIDUAL' || formData.type === 'SHARED' || formData.type === 'CTFD'}
                                 <Button 
                                     variant="outline" 
                                     onclick={checkUsersInOtherPools}
@@ -670,7 +799,7 @@
                 <Card.Root class="h-full min-h-[32rem] flex flex-col {!formData.type ? 'opacity-50 pointer-events-none' : ''}">
                     <Card.Header class="pb-4">
                         <Card.Title class="text-xl">Step 3: Topology & Note</Card.Title>
-                        <Card.Description class="text-base">
+                        <Card.Description class="text-sm">
                             {#if formData.type}
                                 Choose the topology and add notes for your pool
                             {:else}
@@ -680,7 +809,7 @@
                     </Card.Header>
                     <Card.Content class="space-y-6 p-6 flex-1 flex flex-col">
                         <div class="flex-1 space-y-6">
-                            <div class="space-y-3">
+                            <div class="space-y-3 {formData.type === 'CTFD' && formData.isDev ? 'opacity-50 pointer-events-none' : ''}">
                                 <div class="text-sm font-medium">Topology *</div>
                                 <Popover.Root bind:open={topologyOpen}>
                                     <Popover.Trigger bind:ref={topologyTriggerRef}>
@@ -691,6 +820,7 @@
                                                 class="w-full justify-between"
                                                 role="combobox"
                                                 aria-expanded={topologyOpen}
+                                                disabled={formData.type === 'CTFD' && formData.isDev}
                                             >
                                                 {selectedTopology || "Select topology..."}
                                                 <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -741,11 +871,26 @@
                                     {formData.note.length}/15 characters
                                 </p>
                             </div>
+
+                            <!-- Dev Mode Toggle (only for CTFD) -->
+                            {#if formData.type === 'CTFD'}
+                                <div class="space-y-3 pt-2 border-t">
+                                    <div class="text-sm font-medium">Development Mode</div>
+                                    <label class="flex items-center space-x-3 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            bind:checked={formData.isDev}
+                                            class="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2"
+                                        />
+                                        <span class="text-sm">Create CTFd development pool</span>
+                                    </label>
+                                </div>
+                            {/if}
                         </div>
 
                         <div class="mt-auto pt-6">
                             <div class="text-xs text-muted-foreground bg-muted/50 p-3 rounded-md">
-                                <strong>Created by:</strong> {createdBy}
+                                <strong>Pool Creator:</strong> {createdBy}
                             </div>
                         </div>
                     </Card.Content>

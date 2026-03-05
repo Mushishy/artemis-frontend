@@ -22,6 +22,7 @@
 	// TABLE
 	const headers: { key: keyof TopologyDisplay; label: string; sortable?: boolean }[] = [
 		{ key: 'Name', label: 'Topology Name', sortable: true },
+		{ key: 'Type', label: 'Topology Type', sortable: true },
 		{ key: 'ID', label: 'Topology ID', sortable: true },
 		{ key: 'Created', label: 'Created', sortable: true }
 	];

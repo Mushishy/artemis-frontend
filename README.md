@@ -8,13 +8,35 @@ The Artemis system consists of multiple interconnected components. The architect
 ## Developing
 
 ```bash
+cp .env.example .env
+```
+
+Add `trustedOrigins` to `svelte.config.js`
+```
+'http://localhost:5173', 'http://localhost:3000'
+```
+
+Edit environment variables:
+
+```bash
+cp .env.example .env
+# remove
+HOST=127.0.0.1
+PORT=3000
+BODY_SIZE_LIMIT=8589934592
+# change
+https://127.0.0.1:5000
+PUBLIC_DULUS_SERVER=
+```
+
+```bash
 npm install
 npm run dev
 ```
 
 ## Test Deployment
 
-To change variables in `.env` use:
+Generate `PRIVATE_JWT_SECRET` and `PRIVATE_ENCRYPTION_SECRET` using:
 
 ```bash
 openssl rand -hex 32

@@ -33,7 +33,7 @@
         { key: 'note', label: 'Note', sortable: true },
         { key: 'createdBy', label: 'Created By', sortable: true },
         { key: 'poolId', label: 'Pool ID', sortable: true },
-        { key: 'type', label: 'Type', sortable: true }
+        { key: 'type', label: 'Pool Type', sortable: true }
     ];
 
     // Action Functions

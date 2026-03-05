@@ -45,7 +45,7 @@ export function createLudusRole(item: any): any {
     return {
         Name: item.Name,
         Version: item.Version === '(unknown version)' ? 'custom' : item.Version,
-        Type: item.Type,
+        Type: item.Type ? item.Type.toUpperCase() : item.Type,
         Global: item.Global
     };
 }

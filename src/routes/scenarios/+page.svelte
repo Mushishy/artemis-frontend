@@ -22,6 +22,7 @@
 	// TABLE
 	const headers: { key: keyof Scenario; label: string; sortable?: boolean }[] = [
 		{ key: 'Name', label: 'Scenario Name', sortable: true },
+		{ key: 'Mode', label: 'Scenario Type', sortable: true },
 		{ key: 'ID', label: 'Scenario ID', sortable: true },
 		{ key: 'Created', label: 'Created', sortable: true }
 	];

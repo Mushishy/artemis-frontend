@@ -134,13 +134,13 @@
 	}
 
 	function getTagClass(value: any): string {
-		if (typeof value === 'string') {
+		if (typeof value === 'string') { 
 			// Role type tags (blue)
-			if (value === 'role' || value === 'REGULAR' || value === 'DEPLOYING' || value === 'DESTROYING') {
+			if (value === 'ROLE' || value === 'REGULAR' || value === 'DEPLOYING' || value === 'DESTROYING' || value === "USERS") {
 				return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
 			}
 			// Collection type tags (yellow)
-			else if (value === 'collection' || value === 'MAIN' || value === 'SHARED') {
+			else if (value === 'COLLECTION' || value === 'MAIN' || value === 'SHARED' || value === "TEAMS") {
 				return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
 			}
 			// Status tags - Red (error/failed states)
@@ -148,7 +148,7 @@
 				return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
 			}
 			// Status tags - Green (success states)
-			else if (value === 'DEPLOYED' || value === 'INDIVIDUAL' || value === 'SUCCESS') {
+			else if (value === 'DEPLOYED' || value === 'INDIVIDUAL' || value === 'SUCCESS' || value === 'CTFD') {
 				return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
 			}
 		}
@@ -170,18 +170,20 @@
 	function shouldHighlight(value: any): boolean {
 		return typeof value === 'boolean' || 
 			   value === 'Built' || value === 'Not Built' ||
-			   value === 'True' || value === 'False' ||
-			   value === 'role' || value === 'collection' ||
-			   value === 'REGULAR' || value === 'MAIN' ||
+			   value === 'TRUE' || value === 'FALSE' ||
+			   value === 'CTFD' || value === 'REGULAR' ||
+			   value === 'ROLE' || value === 'COLLECTION' ||
+			   value === 'MAIN' ||
 			   value === 'UNKNOWN' || value === 'UNDEPLOYED' || value === 'ERROR' || value === 'DESTROYED' || value === 'ABORTED' || value === 'SUCCESS' ||
 			   value === 'DEPLOYED' ||
 			   value === 'DEPLOYING' || value === 'DESTROYING' ||
-			   value === 'INDIVIDUAL' || value === 'SHARED';
+			   value === 'INDIVIDUAL' || value === 'SHARED' ||
+			   value === 'USERS' || value === 'TEAMS';
 	}
 
 	function getDisplayValue(value: any): string {
 		if (typeof value === 'boolean') {
-			return value ? 'True' : 'False';
+			return value ? 'TRUE' : 'FALSE';
 		}
 		return String(value);
 	}

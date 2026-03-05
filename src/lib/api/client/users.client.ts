@@ -124,9 +124,13 @@ export async function checkUsersExist(poolId: string): Promise<UsersCheckRespons
 }
 
 // Get main users for pool creation
-export async function getMainUsers(poolId?: string): Promise<{ userIds: string[] }> {
+export async function getMainUsers(options?: { poolId?: string; isCtfd?: string; current?: string }): Promise<{ userIds: string[] }> {
     try {
-        const params = poolId ? { poolId } : undefined;
+        const params = options ? { 
+            ...(options.poolId && { poolId: options.poolId }),
+            ...(options.isCtfd && { isCtfd: options.isCtfd }),
+            ...(options.current && { current: options.current })
+        } : undefined;
         const response = await dulusClient.get('/users/main', { params });
         return response.data;
     } catch (error) {

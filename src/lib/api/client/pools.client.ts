@@ -493,6 +493,17 @@ export async function unsharePoolFromUser(poolId: string, targetUserId: string):
     }
 }
 
+// Create a development pool
+export async function createDevPool(note: string): Promise<any> {
+    try {
+        const response = await dulusClient.post('/pool/dev', { note });
+        return response.data;
+    } catch (error) {
+        console.error('Error creating dev pool:', error);
+        throw error;
+    }
+}
+
 // Check if range is shared to specific user
 export async function checkRangeSharedToUser(poolId: string, targetUserId: string): Promise<{ shared: boolean; unshared: boolean }> {
     try {

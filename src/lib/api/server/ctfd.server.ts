@@ -30,12 +30,14 @@ export async function getScenariosDisplay(apiKey: string): Promise<Scenario[]> {
                 .map(item => ({
                     ID: item.scenarioId,
                     Name: item.scenarioName,
+                    Mode: item.scenarioMode,
                     Created: formatDate(item.createdAt)
                 }));
         } else if (response.scenarioId) {
             return [{
                 ID: response.scenarioId,
                 Name: response.scenarioName,
+                Mode: response.scenarioMode,
                 Created: formatDate(response.createdAt)
             }];
         }

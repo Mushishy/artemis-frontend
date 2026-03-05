@@ -169,6 +169,7 @@ export interface TopologyDisplay {
     ID: string;
     Name: string;
     Created: string;
+    Type: string;
 }
 
 // ROLE
@@ -189,6 +190,7 @@ export interface InstallCollectionRequest {
 export interface Scenario {
     ID: string;
     Name: string;
+    Mode?: 'users' | 'teams';
     Created: string;
 }
 
@@ -216,13 +218,12 @@ export interface CtfdTopologyRequest {
     topologyName: string;
     scenarioId: string;
     poolId: string;
-    usernameConfig?: string;
-    passwordConfig?: string;
     adminUsername?: string;
     adminPassword?: string;
     ctfName?: string;
     ctfDescription?: string;
     challengeVisibility?: 'private' | 'public';
+    challengeRatings?: 'private' | 'public';
     accountVisibility?: 'private' | 'public';
     scoreVisibility?: 'private' | 'public';
     registrationVisibility?: 'private' | 'public';
