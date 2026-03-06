@@ -16,7 +16,7 @@ const config = {
                 }),
                 // Configure CSRF to allow requests from your application
                 csrf: {
-                        trustedOrigins: ['http://localhost', 'https://localhost']
+                        trustedOrigins: ['https://0.0.0.0:8003']
                 }
         }
 };
