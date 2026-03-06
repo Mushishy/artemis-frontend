@@ -195,6 +195,7 @@
 					id="file-upload"
 					type="file"
 					accept=".zip"
+					onclick={(e) => { (e.target as HTMLInputElement).value = ''; }}
 					onchange={handleFileSelect}
 					class="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground file:border-0 file:bg-transparent file:text-sm file:font-medium"
 				/>

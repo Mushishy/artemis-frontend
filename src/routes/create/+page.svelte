@@ -12,7 +12,7 @@
     import type { PageData } from './$types';
     import { createPool, createDevPool, checkUsersInPools } from '$lib/api/client/pools.client';
     import { getMainUsers } from '$lib/api/client/users.client';
-    import type { PoolRequest, PoolUserAndTeam, PoolUserTeam } from '$lib/api/types';
+    import type { PoolRequest, PoolUserAndTeam } from '$lib/api/types';
     import { userStore } from '$lib/stores/auth';
     import { goto } from '$app/navigation';
     import { normalizeText } from '$lib/utils/helper';
@@ -50,6 +50,31 @@
     let mainUsersTriggerRef = $state<HTMLButtonElement>(null!);
     let mainUsersData = $state<string[]>([]);
     let mainUsersLoading = $state(false);
+
+    // Team management state (INDIVIDUAL)
+    let teamsDialogOpen = $state(false);
+    let assignUsersDialogOpen = $state(false);
+    let teams = $state<string[]>([]);
+    let teamUsers = $state<Record<string, string>>({});
+    let newTeamName = $state('');
+
+    // Shared pool management state
+    let selectedMainUsers = $state<string[]>([]);
+    let mainUserUsers = $state<Record<string, string>>({});
+    let manageMainUsersDialogOpen = $state(false);
+    let assignToMainUsersDialogOpen = $state(false);
+    let sharedTeamsDialogOpen = $state(false);
+    let assignToTeamsDialogOpen = $state(false);
+    let sharedTeams = $state<string[]>([]);
+    let sharedNewTeamName = $state('');
+    let selectedTeamForAssignment = $state('');
+    let userTeamAssignments = $state<Record<string, string>>({});
+
+    // CTFd pool management state
+    let selectedCtfdUser = $state<string | null>(null);
+    let selectCtfdUserDialogOpen = $state(false);
+    let ctfdAssignUsersDialogOpen = $state(false);
+    let ctfdUserInput = $state('');
 
 
 
@@ -126,15 +151,12 @@
 
             try {
                 mainUsersLoading = true;
-                console.log('Loading main users for type:', currentType);
-                
                 const isCtfd = currentType === 'CTFD';
                 const result = await getMainUsers(isCtfd ? { isCtfd: 'true' } : {});
                 
                 // Ensure result.userIds is an array
                 if (result && Array.isArray(result.userIds)) {
                     mainUsersData = result.userIds;
-                    console.log('Loaded main users:', result.userIds.length);
                 } else {
                     console.warn('Invalid main users response:', result);
                     mainUsersData = [];
@@ -159,7 +181,17 @@
         formData.type = type;
         // Reset dependent fields when type changes
         formData.bulkUserInput = '';
-        formData.isDev = false; // Reset dev mode when type changes
+        formData.isDev = false;
+        // Reset shared pool state
+        selectedMainUsers = [];
+        mainUserUsers = {};
+        sharedTeams = [];
+        sharedNewTeamName = '';
+        selectedTeamForAssignment = '';
+        userTeamAssignments = {};
+        // Reset CTFd pool state
+        selectedCtfdUser = null;
+        ctfdUserInput = '';
     }
 
 
@@ -233,6 +265,13 @@
             note: '',
             isDev: false
         };
+        // Reset shared pool state
+        selectedMainUsers = [];
+        mainUserUsers = {};
+        sharedTeams = [];
+        sharedNewTeamName = '';
+        selectedTeamForAssignment = '';
+        userTeamAssignments = {};
     }
 
     function showAlert(type: 'success' | 'error', message: string) {
@@ -523,6 +562,205 @@
         }
     }
 
+    // Team management functions
+    function addTeam() {
+        if (!newTeamName.trim() || teams.includes(newTeamName.trim())) return;
+        
+        teams = [...teams, newTeamName.trim()];
+        teamUsers[newTeamName.trim()] = '';
+        newTeamName = '';
+    }
+
+    function removeTeam(teamName: string) {
+        teams = teams.filter(t => t !== teamName);
+        delete teamUsers[teamName];
+        // Rebuild bulkUserInput to remove lines for the deleted team
+        const lines: string[] = [];
+        if (teams.length > 0) {
+            for (const team of teams) {
+                const users = teamUsers[team]?.trim();
+                if (users) {
+                    for (const user of users.split('\n').map(u => u.trim()).filter(u => u)) {
+                        lines.push(`${user}, ${team}`);
+                    }
+                }
+            }
+        } else {
+            const users = teamUsers['_no_teams']?.trim();
+            if (users) {
+                for (const user of users.split('\n').map(u => u.trim()).filter(u => u)) {
+                    lines.push(user);
+                }
+            }
+        }
+        formData.bulkUserInput = lines.join('\n');
+    }
+
+    function updateTeamUsers(teamName: string, users: string) {
+        teamUsers[teamName] = users;
+    }
+
+    function getDialogUserCount(): number {
+        let count = 0;
+        if (teams.length > 0) {
+            for (const t of teams) {
+                count += (teamUsers[t] || '').split('\n').filter(l => l.trim()).length;
+            }
+        } else {
+            count = (teamUsers['_no_teams'] || '').split('\n').filter(l => l.trim()).length;
+        }
+        return count;
+    }
+
+    function applyTeamData() {
+        const lines: string[] = [];
+        
+        if (teams.length > 0) {
+            // With teams: format as "Username, Team"
+            for (const team of teams) {
+                const users = teamUsers[team]?.trim();
+                if (users) {
+                    const userList = users.split('\n').map(u => u.trim()).filter(u => u);
+                    for (const user of userList) {
+                        lines.push(`${user}, ${team}`);
+                    }
+                }
+            }
+        } else {
+            // Without teams: just usernames
+            const users = teamUsers['_no_teams']?.trim();
+            if (users) {
+                const userList = users.split('\n').map(u => u.trim()).filter(u => u);
+                for (const user of userList) {
+                    lines.push(user);
+                }
+            }
+        }
+        
+        formData.bulkUserInput = lines.join('\n');
+        assignUsersDialogOpen = false;
+    }
+
+    // === Shared pool functions ===
+
+    function toggleMainUser(userId: string) {
+        if (selectedMainUsers.includes(userId)) {
+            // Clean up team assignments for users under this main user
+            const usersForMainUser = (mainUserUsers[userId] || '').split('\n').map(l => l.trim()).filter(l => l);
+            for (const user of usersForMainUser) {
+                delete userTeamAssignments[user];
+            }
+            userTeamAssignments = { ...userTeamAssignments };
+            selectedMainUsers = selectedMainUsers.filter(u => u !== userId);
+            delete mainUserUsers[userId];
+            // Rebuild bulkUserInput without this main user's entries
+            applySharedData();
+        } else {
+            selectedMainUsers = [...selectedMainUsers, userId];
+            mainUserUsers[userId] = '';
+        }
+    }
+
+    function getMainUserDialogUserCount(): number {
+        let count = 0;
+        for (const mu of selectedMainUsers) {
+            count += (mainUserUsers[mu] || '').split('\n').filter(l => l.trim()).length;
+        }
+        return count;
+    }
+
+    function getAllSharedUsers(): { user: string; mainUserId: string }[] {
+        const users: { user: string; mainUserId: string }[] = [];
+        for (const mu of selectedMainUsers) {
+            const text = mainUserUsers[mu] || '';
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+            for (const line of lines) {
+                users.push({ user: line, mainUserId: mu });
+            }
+        }
+        return users;
+    }
+
+    function addSharedTeam() {
+        if (!sharedNewTeamName.trim() || sharedTeams.includes(sharedNewTeamName.trim())) return;
+        sharedTeams = [...sharedTeams, sharedNewTeamName.trim()];
+        sharedNewTeamName = '';
+    }
+
+    function removeSharedTeam(teamName: string) {
+        sharedTeams = sharedTeams.filter(t => t !== teamName);
+        // Remove team assignments for this team
+        for (const [user, team] of Object.entries(userTeamAssignments)) {
+            if (team === teamName) {
+                delete userTeamAssignments[user];
+            }
+        }
+        userTeamAssignments = { ...userTeamAssignments };
+        if (selectedTeamForAssignment === teamName) {
+            selectedTeamForAssignment = sharedTeams[0] || '';
+        }
+        // Rebuild bulkUserInput without the deleted team assignments
+        applySharedData();
+    }
+
+    function toggleUserTeam(userName: string) {
+        if (!selectedTeamForAssignment) return;
+        if (userTeamAssignments[userName] === selectedTeamForAssignment) {
+            delete userTeamAssignments[userName];
+            userTeamAssignments = { ...userTeamAssignments };
+        } else {
+            userTeamAssignments = { ...userTeamAssignments, [userName]: selectedTeamForAssignment };
+        }
+    }
+
+    function assignRemainingToTeam() {
+        if (!selectedTeamForAssignment) return;
+        const allUsers = getAllSharedUsers();
+        for (const u of allUsers) {
+            if (!userTeamAssignments[u.user]) {
+                userTeamAssignments[u.user] = selectedTeamForAssignment;
+            }
+        }
+        userTeamAssignments = { ...userTeamAssignments };
+    }
+
+    function getSharedUserCount(): number {
+        return getAllSharedUsers().length;
+    }
+
+    function applySharedData() {
+        const allUsers = getAllSharedUsers();
+        const lines: string[] = [];
+        for (const u of allUsers) {
+            const team = userTeamAssignments[u.user] || '';
+            if (team) {
+                lines.push(`${u.user}, ${u.mainUserId}, ${team}`);
+            } else {
+                lines.push(`${u.user}, ${u.mainUserId}`);
+            }
+        }
+        formData.bulkUserInput = lines.join('\n');
+    }
+
+    // === CTFd pool functions ===
+
+    function selectCtfdUser(userId: string) {
+        selectedCtfdUser = userId;
+        selectCtfdUserDialogOpen = false;
+    }
+
+    function getCtfdDialogUserCount(): number {
+        return (ctfdUserInput || '').split('\n').filter(l => l.trim()).length;
+    }
+
+    function applyCtfdData() {
+        if (!selectedCtfdUser) return;
+        const users = (ctfdUserInput || '').split('\n').map(l => l.trim()).filter(l => l);
+        const lines = users.map(u => `${u}, ${selectedCtfdUser}`);
+        formData.bulkUserInput = lines.join('\n');
+        ctfdAssignUsersDialogOpen = false;
+    }
+
     function isFormValid(): boolean {
         // For CTFD dev mode, only validate note
         if (formData.type === 'CTFD' && formData.isDev) {
@@ -695,92 +933,136 @@
                     <Card.Content class="space-y-3 p-6 flex-1 flex flex-col">
 
 
-                        <!-- Users and Teams Input (second for consistency) -->
-                        {#if formData.type === 'INDIVIDUAL' || formData.type === 'SHARED' || formData.type === 'CTFD'}
-                            <div class="flex-1 flex flex-col min-h-0">
-                                <div class="text-sm font-medium mb-1">
-                                    Pool Users and Teams *
+                        <!-- Team Management Buttons (for INDIVIDUAL pools only) -->
+                        {#if formData.type === 'INDIVIDUAL'}
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium">User and Team Management</div>
+                                <div class="flex flex-col gap-2">
+                                    <Button 
+                                        variant="outline" 
+                                        onclick={() => teamsDialogOpen = true}
+                                        class="w-full flex items-center gap-2"
+                                    >
+                                        <Users class="h-4 w-4" />
+                                        Manage Teams
+                                    </Button>
+                                    <Button 
+                                        variant="outline" 
+                                        onclick={() => assignUsersDialogOpen = true}
+                                        class="w-full flex items-center gap-2"
+                                    >
+                                        <UserCheck class="h-4 w-4" />
+                                        Assign Users
+                                    </Button>
                                 </div>
-                                <p class="text-xs text-muted-foreground mb-2">
-                                    {#if formData.type === 'SHARED'}
-                                        Enter one per line "Username, MainUserId, Team" or "Username, MainUserId". Use the search helper below to add main users.
-                                    {:else if formData.type === 'CTFD'}
-                                        Enter one per line "Username, CTFdUserId". Use the search helper below to add CTFd user automatically.
-                                    {:else}
-                                        Enter one per line "Username, Team" or "Username"
-                                    {/if}
-                                </p>
-                                <textarea
-                                    bind:value={formData.bulkUserInput}
-                                    placeholder={formData.type === 'SHARED' ? 
-                                        "Alice Dan, MainUser1, smurfs\nBob Dylan, MainUser2, gargamel\nDave Smith, MainUser1, smurfs" : 
-                                        formData.type === 'CTFD' ?
-                                        "Alice Dan, CTFD1\nBob Dylan, CTFD1\nDave Smith, CTFD1" :
-                                        "Alice Dan, smurfs\nBob Dylan, gargamel\nDave Smith, smurfs"}
-                                    class="w-full flex-1 p-4 border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none rounded-md"
-                                ></textarea>
                                 <div class="min-h-[1.25rem] flex items-center mt-1">
                                     <p class="text-xs text-muted-foreground">
                                         {parseBulkUsers(formData.bulkUserInput).length} user(s) parsed
                                     </p>
                                 </div>
                             </div>
+                        {/if}
 
-                            <!-- Main User Search Helper (for SHARED/CTFD pools only) -->
-                            {#if formData.type === 'SHARED' || formData.type === 'CTFD'}
-                                <div class="space-y-3 pt-2 border-t">
-                                    <div class="text-sm font-medium">{formData.type === 'CTFD' ? 'CTFd User Search Helper' : 'Main User Search Helper'}</div>                                    <p class="text-xs text-muted-foreground">
-                                        {formData.type === 'CTFD' ? 'Select CTFd user to automatically add him to the user list above' : 'Search main users to help with input formatting'}
-                                    </p>
-                                <Popover.Root bind:open={mainUsersOpen}>
-                                    <Popover.Trigger bind:ref={mainUsersTriggerRef}>
-                                        {#snippet child({ props })}
-                                            <Button
-                                                {...props}
-                                                variant="outline"
-                                                class="w-full justify-between"
-                                                role="combobox"
-                                                aria-expanded={mainUsersOpen}
-                                                disabled={mainUsersLoading}
-                                            >
-                                                {mainUsersLoading ? 'Loading...' : formData.type === 'CTFD' ? 'Select CTFd users to add...' : 'Search main users...'}
-                                                <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                            </Button>
-                                        {/snippet}
-                                    </Popover.Trigger>
-                                    <Popover.Content class="w-full p-0">
-                                        <Command.Root>
-                                            <Command.Input placeholder="Search {formData.type === 'CTFD' ? 'CTFd users' : 'main users'}..." />
-                                            <Command.List>
-                                                <Command.Empty>No {formData.type === 'CTFD' ? 'CTFd user' : 'main user'} found.</Command.Empty>
-                                                <Command.Group>
-                                                    {#each mainUsersOptions as mainUser (mainUser.value)}
-                                                        <Command.Item
-                                                            value={mainUser.label}
-                                                            onSelect={() => {
-                                                                addSelectedUserToInput(mainUser.value);
-                                                            }}
-                                                        >
-                                                            <div class="flex flex-col">
-                                                                <span>{mainUser.label}</span>
-                                                                {#if mainUser.description}
-                                                                    <span class="text-xs text-muted-foreground">{mainUser.description}</span>
-                                                                {/if}
-                                                            </div>
-                                                        </Command.Item>
-                                                    {/each}
-                                                </Command.Group>
-                                            </Command.List>
-                                        </Command.Root>
-                                    </Popover.Content>
-                                </Popover.Root>
+                        <!-- Users and Teams Input (for SHARED pools - button-driven) -->
+                        {#if formData.type === 'SHARED'}
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium">Main Users & User Management</div>
+                                <div class="flex flex-col gap-2">
+                                    <Button 
+                                        variant="outline" 
+                                        onclick={() => manageMainUsersDialogOpen = true}
+                                        disabled={mainUsersLoading}
+                                        class="w-full flex items-center gap-2"
+                                    >
+                                        <Users class="h-4 w-4" />
+                                        {mainUsersLoading ? 'Loading Main Users...' : 'Manage Main Users'}
+                                        {#if selectedMainUsers.length > 0}
+                                            <Badge class="ml-auto">{selectedMainUsers.length}</Badge>
+                                        {/if}
+                                    </Button>
+                                    <Button 
+                                        variant="outline" 
+                                        onclick={() => assignToMainUsersDialogOpen = true}
+                                        disabled={selectedMainUsers.length === 0}
+                                        class="w-full flex items-center gap-2"
+                                    >
+                                        <UserCheck class="h-4 w-4" />
+                                        Assign Users to Main Users
+                                    </Button>
                                 </div>
-                            {/if}
+                            </div>
+                            <div class="space-y-2 pt-2 border-t">
+                                <div class="text-sm font-medium">Team Management</div>
+                                <div class="flex flex-col gap-2">
+                                    <Button 
+                                        variant="outline" 
+                                        onclick={() => sharedTeamsDialogOpen = true}
+                                        class="w-full flex items-center gap-2"
+                                    >
+                                        <Users class="h-4 w-4" />
+                                        Manage Teams
+                                        {#if sharedTeams.length > 0}
+                                            <Badge class="ml-auto">{sharedTeams.length}</Badge>
+                                        {/if}
+                                    </Button>
+                                    <Button 
+                                        variant="outline" 
+                                        onclick={() => {
+                                            if (sharedTeams.length > 0 && !selectedTeamForAssignment) {
+                                                selectedTeamForAssignment = sharedTeams[0];
+                                            }
+                                            assignToTeamsDialogOpen = true;
+                                        }}
+                                        disabled={sharedTeams.length === 0 || getSharedUserCount() === 0}
+                                        class="w-full flex items-center gap-2"
+                                    >
+                                        <UserCheck class="h-4 w-4" />
+                                        Assign Users to Teams
+                                    </Button>
+                                </div>
+                            </div>
+                            <div class="min-h-[1.25rem] flex items-center mt-1">
+                                <p class="text-xs text-muted-foreground">
+                                    {parseBulkUsers(formData.bulkUserInput).length} user(s) parsed
+                                </p>
+                            </div>
+                        {/if}
+
+                        <!-- CTFd pool buttons -->
+                        {#if formData.type === 'CTFD'}
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium">CTFd User & User Management</div>
+                                <div class="flex flex-col gap-2">
+                                    <Button 
+                                        variant="outline" 
+                                        onclick={() => selectCtfdUserDialogOpen = true}
+                                        disabled={mainUsersLoading}
+                                        class="w-full flex items-center gap-2"
+                                    >
+                                        <Users class="h-4 w-4" />
+                                        {mainUsersLoading ? 'Loading CTFd Users...' : selectedCtfdUser ? `CTFd User: ${selectedCtfdUser}` : 'Select CTFd User'}
+                                    </Button>
+                                    <Button 
+                                        variant="outline" 
+                                        onclick={() => ctfdAssignUsersDialogOpen = true}
+                                        disabled={!selectedCtfdUser}
+                                        class="w-full flex items-center gap-2"
+                                    >
+                                        <UserCheck class="h-4 w-4" />
+                                        Assign Users
+                                    </Button>
+                                </div>
+                                <div class="min-h-[1.25rem] flex items-center mt-1">
+                                    <p class="text-xs text-muted-foreground">
+                                        {parseBulkUsers(formData.bulkUserInput).length} user(s) parsed
+                                    </p>
+                                </div>
+                            </div>
                         {/if}
 
                         <!-- Check Users in Pools Button -->
-                        <div class="pt-3">
-                            {#if formData.type === 'INDIVIDUAL' || formData.type === 'SHARED' || formData.type === 'CTFD'}
+                        <div class="mt-auto pt-3">
+                            {#if formData.type}
                                 <Button 
                                     variant="outline" 
                                     onclick={checkUsersInOtherPools}
@@ -788,7 +1070,7 @@
                                     class="w-full flex items-center gap-2"
                                 >
                                     <Search class="h-4 w-4" />
-                                    Search Users and Teams
+                                    Search Users
                                 </Button>
                             {/if}
                         </div>
@@ -898,6 +1180,420 @@
             </div>
         </div>
     </div>
+
+    <!-- Team Management Dialogs -->
+    <!-- Manage Teams Dialog -->
+    <Dialog.Root bind:open={teamsDialogOpen}>
+        <Dialog.Content class="max-w-lg">
+            <Dialog.Header>
+                <Dialog.Title>Manage Teams</Dialog.Title>
+            </Dialog.Header>
+            <div class="space-y-4">
+                <div class="flex gap-2">
+                    <Input
+                        bind:value={newTeamName}
+                        placeholder="Enter team name..."
+                        class="flex-1"
+                        onkeydown={(e) => {
+                            if (e.key === 'Enter') {
+                                addTeam();
+                            }
+                        }}
+                    />
+                    <Button 
+                        onclick={addTeam}
+                        disabled={!newTeamName.trim() || teams.includes(newTeamName.trim())}
+                        class="whitespace-nowrap"
+                    >
+                        Add Team
+                    </Button>
+                </div>
+                
+                <div class="space-y-2 max-h-60 overflow-auto">
+                    <div class="text-sm font-medium">Teams ({teams.length})</div>
+                    {#each teams as team (team)}
+                        <div class="flex items-center justify-between p-2 border rounded">
+                            <span class="text-sm">{team}</span>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onclick={() => removeTeam(team)}
+                                class="h-6 w-6 p-0"
+                            >
+                                <X class="h-3 w-3" />
+                            </Button>
+                        </div>
+                    {:else}
+                        <p class="text-sm text-muted-foreground">No teams created yet</p>
+                    {/each}
+                </div>
+            </div>
+            <Dialog.Footer>
+                <Button variant="outline" onclick={() => teamsDialogOpen = false}>Close</Button>
+            </Dialog.Footer>
+        </Dialog.Content>
+    </Dialog.Root>
+
+    <!-- Assign Users to Teams Dialog -->
+    <Dialog.Root bind:open={assignUsersDialogOpen}>
+        <Dialog.Content class="max-w-[90vw] max-h-[85vh] p-0 flex flex-col">
+            <Dialog.Header class="px-6 py-4 border-b flex-shrink-0">
+                <Dialog.Title class="text-xl font-semibold">Assign Users</Dialog.Title>
+            </Dialog.Header>
+            <div class="flex-1 overflow-auto p-6">
+                {#if teams.length > 1}
+                    <div class="flex gap-4">
+                        {#each teams as team (team)}
+                            <div class="flex flex-col border rounded-lg bg-card w-64 flex-shrink-0">
+                                <div class="px-4 py-3 border-b bg-muted/50 rounded-t-lg">
+                                    <h3 class="font-medium text-sm truncate" title={team}>{team}</h3>
+                                </div>
+                                <div class="p-3">
+                                    <textarea
+                                        bind:value={teamUsers[team]}
+                                        placeholder="One user per line..."
+                                        rows="14"
+                                        class="w-full p-3 border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none rounded-md h-[320px]"
+                                        oninput={(e) => updateTeamUsers(team, e.currentTarget.value)}
+                                    ></textarea>
+                                </div>
+                            </div>
+                        {/each}
+                    </div>
+                {:else if teams.length === 1}
+                    <div class="flex flex-col border rounded-lg bg-card w-full">
+                        <div class="px-4 py-3 border-b bg-muted/50 rounded-t-lg">
+                            <h3 class="font-medium text-sm">{teams[0]}</h3>
+                        </div>
+                        <div class="p-3">
+                            <textarea
+                                bind:value={teamUsers[teams[0]]}
+                                placeholder="One user per line..."
+                                rows="14"
+                                class="w-full p-3 border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none rounded-md h-[320px]"
+                                oninput={(e) => updateTeamUsers(teams[0], e.currentTarget.value)}
+                            ></textarea>
+                        </div>
+                    </div>
+                {:else}
+                    <div class="flex flex-col w-full">
+                        <textarea
+                            bind:value={teamUsers['_no_teams']}
+                            placeholder="One user per line..."
+                            rows="14"
+                            class="w-full p-3 border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none rounded-md h-[320px]"
+                            oninput={(e) => updateTeamUsers('_no_teams', e.currentTarget.value)}
+                        ></textarea>
+                    </div>
+                {/if}
+            </div>
+            <Dialog.Footer class="px-6 py-4 border-t flex-shrink-0">
+                <div class="flex items-center justify-between w-full">
+                    <div class="text-xs text-muted-foreground">
+                        {getDialogUserCount()} user{getDialogUserCount() === 1 ? '' : 's'}
+                    </div>
+                    <div class="flex gap-3">
+                        <Button variant="outline" onclick={() => assignUsersDialogOpen = false}>Cancel</Button>
+                        <Button onclick={applyTeamData}>Apply Users</Button>
+                    </div>
+                </div>
+            </Dialog.Footer>
+        </Dialog.Content>
+    </Dialog.Root>
+
+    <!-- SHARED POOL DIALOGS -->
+
+    <!-- 1. Manage Main Users Dialog -->
+    <Dialog.Root bind:open={manageMainUsersDialogOpen}>
+        <Dialog.Content class="max-w-lg max-h-[80vh] p-0 flex flex-col">
+            <Dialog.Header class="px-6 py-4 border-b flex-shrink-0">
+                <Dialog.Title>Manage Main Users</Dialog.Title>
+            </Dialog.Header>
+            <div class="flex-1 overflow-auto p-6">
+                <div class="space-y-2">
+                    {#if mainUsersData.length > 0}
+                        {#each mainUsersData as userId (userId)}
+                            <button
+                                class="w-full flex items-center justify-between p-3 border rounded-lg transition-all {selectedMainUsers.includes(userId) ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}"
+                                onclick={() => toggleMainUser(userId)}
+                            >
+                                <span class="text-sm font-medium">{userId}</span>
+                                {#if selectedMainUsers.includes(userId)}
+                                    <Check class="h-4 w-4 text-primary" />
+                                {/if}
+                            </button>
+                        {/each}
+                    {:else}
+                        <p class="text-sm text-muted-foreground text-center py-4">No main users available</p>
+                    {/if}
+                </div>
+            </div>
+            <Dialog.Footer class="px-6 py-4 border-t flex-shrink-0">
+                <div class="flex items-center justify-between w-full">
+                    <div class="text-xs text-muted-foreground">
+                        {selectedMainUsers.length} selected
+                    </div>
+                    <Button variant="outline" onclick={() => manageMainUsersDialogOpen = false}>Close</Button>
+                </div>
+            </Dialog.Footer>
+        </Dialog.Content>
+    </Dialog.Root>
+
+    <!-- 2. Assign Users to Main Users Dialog -->
+    <Dialog.Root bind:open={assignToMainUsersDialogOpen}>
+        <Dialog.Content class="max-w-[90vw] max-h-[85vh] p-0 flex flex-col">
+            <Dialog.Header class="px-6 py-4 border-b flex-shrink-0">
+                <Dialog.Title class="text-xl font-semibold">Assign Users to Main Users</Dialog.Title>
+            </Dialog.Header>
+            <div class="flex-1 overflow-auto p-6">
+                {#if selectedMainUsers.length > 1}
+                    <div class="flex gap-4">
+                        {#each selectedMainUsers as mu (mu)}
+                            <div class="flex flex-col border rounded-lg bg-card w-64 flex-shrink-0">
+                                <div class="px-4 py-3 border-b bg-muted/50 rounded-t-lg">
+                                    <h3 class="font-medium text-sm truncate" title={mu}>{mu}</h3>
+                                </div>
+                                <div class="p-3">
+                                    <textarea
+                                        bind:value={mainUserUsers[mu]}
+                                        placeholder="One user per line..."
+                                        rows="14"
+                                        class="w-full p-3 border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none rounded-md h-[320px]"
+                                    ></textarea>
+                                </div>
+                            </div>
+                        {/each}
+                    </div>
+                {:else if selectedMainUsers.length === 1}
+                    <div class="flex flex-col border rounded-lg bg-card w-full">
+                        <div class="px-4 py-3 border-b bg-muted/50 rounded-t-lg">
+                            <h3 class="font-medium text-sm">{selectedMainUsers[0]}</h3>
+                        </div>
+                        <div class="p-3">
+                            <textarea
+                                bind:value={mainUserUsers[selectedMainUsers[0]]}
+                                placeholder="One user per line..."
+                                rows="14"
+                                class="w-full p-3 border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none rounded-md h-[320px]"
+                            ></textarea>
+                        </div>
+                    </div>
+                {:else}
+                    <div class="flex items-center justify-center h-48 text-muted-foreground text-sm">
+                        No main users selected. Use "Manage Main Users" first.
+                    </div>
+                {/if}
+            </div>
+            <Dialog.Footer class="px-6 py-4 border-t flex-shrink-0">
+                <div class="flex items-center justify-between w-full">
+                    <div class="text-xs text-muted-foreground">
+                        {getMainUserDialogUserCount()} user{getMainUserDialogUserCount() === 1 ? '' : 's'}
+                    </div>
+                    <div class="flex gap-3">
+                        <Button variant="outline" onclick={() => assignToMainUsersDialogOpen = false}>Cancel</Button>
+                        <Button onclick={() => { applySharedData(); assignToMainUsersDialogOpen = false; }}>Apply Users</Button>
+                    </div>
+                </div>
+            </Dialog.Footer>
+        </Dialog.Content>
+    </Dialog.Root>
+
+    <!-- 3. Manage Teams Dialog (Shared) -->
+    <Dialog.Root bind:open={sharedTeamsDialogOpen}>
+        <Dialog.Content class="max-w-lg">
+            <Dialog.Header>
+                <Dialog.Title>Manage Teams</Dialog.Title>
+            </Dialog.Header>
+            <div class="space-y-4">
+                <div class="flex gap-2">
+                    <Input
+                        bind:value={sharedNewTeamName}
+                        placeholder="Enter team name..."
+                        class="flex-1"
+                        onkeydown={(e) => {
+                            if (e.key === 'Enter') {
+                                addSharedTeam();
+                            }
+                        }}
+                    />
+                    <Button 
+                        onclick={addSharedTeam}
+                        disabled={!sharedNewTeamName.trim() || sharedTeams.includes(sharedNewTeamName.trim())}
+                        class="whitespace-nowrap"
+                    >
+                        Add Team
+                    </Button>
+                </div>
+                
+                <div class="space-y-2 max-h-60 overflow-auto">
+                    <div class="text-sm font-medium">Teams ({sharedTeams.length})</div>
+                    {#each sharedTeams as team (team)}
+                        <div class="flex items-center justify-between p-2 border rounded">
+                            <span class="text-sm">{team}</span>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onclick={() => removeSharedTeam(team)}
+                                class="h-6 w-6 p-0"
+                            >
+                                <X class="h-3 w-3" />
+                            </Button>
+                        </div>
+                    {:else}
+                        <p class="text-sm text-muted-foreground">No teams created yet</p>
+                    {/each}
+                </div>
+            </div>
+            <Dialog.Footer>
+                <Button variant="outline" onclick={() => sharedTeamsDialogOpen = false}>Close</Button>
+            </Dialog.Footer>
+        </Dialog.Content>
+    </Dialog.Root>
+
+    <!-- 4. Assign Users to Teams Dialog (Shared) -->
+    <Dialog.Root bind:open={assignToTeamsDialogOpen}>
+        <Dialog.Content class="max-w-2xl max-h-[85vh] p-0 flex flex-col">
+            <Dialog.Header class="px-6 py-4 border-b flex-shrink-0">
+                <Dialog.Title class="text-xl font-semibold">Assign Users to Teams</Dialog.Title>
+            </Dialog.Header>
+            <div class="flex-1 overflow-hidden p-6 flex flex-col gap-4">
+                <!-- Team selector -->
+                <div class="space-y-2 flex-shrink-0">
+                    <div class="text-sm font-medium">Select Team</div>
+                    <div class="flex flex-wrap gap-2">
+                        {#each sharedTeams as team (team)}
+                            <button
+                                class="px-3 py-1.5 text-sm rounded-md border transition-all {selectedTeamForAssignment === team ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border hover:border-primary/50'}"
+                                onclick={() => selectedTeamForAssignment = team}
+                            >
+                                {team}
+                                <span class="ml-1 opacity-70">({getAllSharedUsers().filter(u => userTeamAssignments[u.user] === team).length})</span>
+                            </button>
+                        {/each}
+                    </div>
+                </div>
+
+                <!-- Users list -->
+                <div class="flex-1 min-h-0 flex flex-col gap-2">
+                    <div class="flex items-center justify-between flex-shrink-0">
+                        <div class="text-sm font-medium">Users</div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onclick={assignRemainingToTeam}
+                            disabled={!selectedTeamForAssignment}
+                            class="text-xs"
+                        >
+                            Assign remaining to {selectedTeamForAssignment || '...'}
+                        </Button>
+                    </div>
+                    <div class="space-y-1 flex-1 min-h-0 overflow-auto">
+                        {#each getAllSharedUsers() as user (user.user + user.mainUserId)}
+                            <button
+                                class="w-full flex items-center justify-between p-2.5 border rounded-lg transition-all text-left {userTeamAssignments[user.user] === selectedTeamForAssignment ? 'border-primary bg-primary/5' : userTeamAssignments[user.user] ? 'border-border bg-muted/30' : 'border-border hover:border-primary/50'}"
+                                onclick={() => toggleUserTeam(user.user)}
+                            >
+                                <div class="flex flex-col">
+                                    <span class="text-sm">{user.user}</span>
+                                    <span class="text-xs text-muted-foreground">Main: {user.mainUserId}</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    {#if userTeamAssignments[user.user]}
+                                        <Badge variant={userTeamAssignments[user.user] === selectedTeamForAssignment ? 'default' : 'secondary'}>
+                                            {userTeamAssignments[user.user]}
+                                        </Badge>
+                                    {:else}
+                                        <span class="text-xs text-muted-foreground">Unassigned</span>
+                                    {/if}
+                                </div>
+                            </button>
+                        {:else}
+                            <p class="text-sm text-muted-foreground text-center py-4">No users assigned to main users yet</p>
+                        {/each}
+                    </div>
+                </div>
+            </div>
+            <Dialog.Footer class="px-6 py-4 border-t flex-shrink-0">
+                <div class="flex items-center justify-between w-full">
+                    <div class="text-xs text-muted-foreground">
+                        {Object.keys(userTeamAssignments).length}/{getAllSharedUsers().length} assigned
+                    </div>
+                    <div class="flex gap-3">
+                        <Button variant="outline" onclick={() => assignToTeamsDialogOpen = false}>Cancel</Button>
+                        <Button onclick={() => { applySharedData(); assignToTeamsDialogOpen = false; }}>Apply</Button>
+                    </div>
+                </div>
+            </Dialog.Footer>
+        </Dialog.Content>
+    </Dialog.Root>
+
+    <!-- CTFD POOL DIALOGS -->
+
+    <!-- Select CTFd User Dialog -->
+    <Dialog.Root bind:open={selectCtfdUserDialogOpen}>
+        <Dialog.Content class="max-w-lg max-h-[80vh] p-0 flex flex-col">
+            <Dialog.Header class="px-6 py-4 border-b flex-shrink-0">
+                <Dialog.Title>Select CTFd User</Dialog.Title>
+            </Dialog.Header>
+            <div class="flex-1 overflow-auto p-6">
+                <div class="space-y-2">
+                    {#if mainUsersData.length > 0}
+                        {#each mainUsersData as userId (userId)}
+                            <button
+                                class="w-full flex items-center justify-between p-3 border rounded-lg transition-all {selectedCtfdUser === userId ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}"
+                                onclick={() => selectCtfdUser(userId)}
+                            >
+                                <span class="text-sm font-medium">{userId}</span>
+                                {#if selectedCtfdUser === userId}
+                                    <Check class="h-4 w-4 text-primary" />
+                                {/if}
+                            </button>
+                        {/each}
+                    {:else}
+                        <p class="text-sm text-muted-foreground text-center py-4">No CTFd users available</p>
+                    {/if}
+                </div>
+            </div>
+            <Dialog.Footer class="px-6 py-4 border-t flex-shrink-0">
+                <Button variant="outline" onclick={() => selectCtfdUserDialogOpen = false}>Close</Button>
+            </Dialog.Footer>
+        </Dialog.Content>
+    </Dialog.Root>
+
+    <!-- Assign Users to CTFd User Dialog -->
+    <Dialog.Root bind:open={ctfdAssignUsersDialogOpen}>
+        <Dialog.Content class="max-w-[90vw] max-h-[85vh] p-0 flex flex-col">
+            <Dialog.Header class="px-6 py-4 border-b flex-shrink-0">
+                <Dialog.Title class="text-xl font-semibold">Assign Users</Dialog.Title>
+            </Dialog.Header>
+            <div class="flex-1 overflow-auto p-6">
+                <div class="flex flex-col border rounded-lg bg-card w-full">
+                    <div class="px-4 py-3 border-b bg-muted/50 rounded-t-lg">
+                        <h3 class="font-medium text-sm">{selectedCtfdUser}</h3>
+                    </div>
+                    <div class="p-3">
+                        <textarea
+                            bind:value={ctfdUserInput}
+                            placeholder="One user per line..."
+                            rows="14"
+                            class="w-full p-3 border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none rounded-md h-[320px]"
+                        ></textarea>
+                    </div>
+                </div>
+            </div>
+            <Dialog.Footer class="px-6 py-4 border-t flex-shrink-0">
+                <div class="flex items-center justify-between w-full">
+                    <div class="text-xs text-muted-foreground">
+                        {getCtfdDialogUserCount()} user{getCtfdDialogUserCount() === 1 ? '' : 's'}
+                    </div>
+                    <div class="flex gap-3">
+                        <Button variant="outline" onclick={() => ctfdAssignUsersDialogOpen = false}>Cancel</Button>
+                        <Button onclick={applyCtfdData}>Apply Users</Button>
+                    </div>
+                </div>
+            </Dialog.Footer>
+        </Dialog.Content>
+    </Dialog.Root>
 
 
 </div>

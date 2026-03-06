@@ -27,6 +27,14 @@
     let streamingInterval: ReturnType<typeof setInterval> | null = $state(null);
     let playbookCompleted = $derived(logContent.includes('PLAY RECAP *********************************************************************'));
     let alertMessage = $state<{ message: string; type: 'success' | 'error' } | null>(null);
+    let logContainer = $state<HTMLDivElement>();
+    
+    // Auto-scroll to bottom function
+    function scrollToBottom() {
+        if (logContainer) {
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+    }
 
     // Cleanup streaming when component is destroyed
     $effect(() => {
@@ -40,6 +48,14 @@
     // Load logs when component mounts
     $effect(() => {
         loadUserLogs(userId);
+    });
+
+    // Auto-scroll to bottom when log content changes
+    $effect(() => {
+        if (logContent) {
+            // Small delay to ensure DOM is updated
+            setTimeout(scrollToBottom, 100);
+        }
     });
 
     // Log management functions
@@ -304,7 +320,7 @@
 
     <!-- Log Content -->
     <div class="flex-1 overflow-hidden border rounded-lg shadow-sm mb-6" style="background-color: #1a1a1a;">
-        <div class="h-full w-full overflow-y-auto overflow-x-auto p-4" style="background-color: #1a1a1a; color: #ffffff;">
+        <div bind:this={logContainer} class="h-full w-full overflow-y-auto overflow-x-auto p-4" style="background-color: #1a1a1a; color: #ffffff;">
             {#if isLoadingLogs && !logContent}
                 <div class="flex items-center justify-center h-32">
                     <div class="text-center space-y-2">

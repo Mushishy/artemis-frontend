@@ -229,20 +229,24 @@ export class PoolHandlers {
 
     private handleTopologyResponse(response: any, successMessage: string) {
         if (response?.results && Array.isArray(response.results)) {
-            const errorResults = response.results.filter((result: any) => result.response?.error);
-            
+            const errorResults = response.results.filter((result: any) => result.error || result.response?.error);
+
             if (errorResults.length > 0) {
-                const errorSummary = `Topology configuration failed for ${errorResults.length} user(s):`;
                 const errorDetails = errorResults
-                    .map((result: any) => `• ${result.userId}: ${result.response.error}`)
+                    .map((result: any) => `${result.userId}: ${result.error ?? result.response?.error}`)
                     .join('\n');
-                
-                this.showAlert(`${errorSummary}\n\n${errorDetails}`, 'error');
+                this.showAlert(`Failed to configure ${errorResults.length} user(s):\n\n${errorDetails}`, 'error');
                 return;
             }
+
+            const successResults = response.results.filter((result: any) => result.response?.result);
+            const successDetails = successResults
+                .map((result: any) => `${result.userId}: ${result.response.result}`)
+                .join('\n');
+            this.showAlert(`Successfully configured ${successResults.length} user(s):\n\n${successDetails}`, 'success');
+        } else {
+            this.showAlert(successMessage, 'success');
         }
-        
-        this.showAlert(successMessage, 'success');
     }
 
     private handleTopologyError(baseMessage: string, error: any) {

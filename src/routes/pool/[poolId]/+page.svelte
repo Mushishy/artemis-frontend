@@ -347,13 +347,35 @@
 
     // Dialog handler functions - simplified since dialogs handle their own logic
     async function handleImportUsers() {
-        await handlers.importUsers(missingUsers);
-        await Promise.all([loadPoolDetail(), refreshHealthCheck()]);
+        try {
+            await handlers.importUsers(missingUsers);
+            await Promise.all([loadPoolDetail(), refreshHealthCheck()]);
+            showAlert('Users imported successfully', 'success');
+        } catch (error: any) {
+            let errorMessage = 'Failed to import users';
+            if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            showAlert(errorMessage, 'error');
+        }
     }
 
     async function handlePatchUsers(users: PatchUserRequest[]) {
-        await handlers.patchUsers(users);
-        await Promise.all([loadPoolDetail(), refreshHealthCheck()]);
+        try {
+            await handlers.patchUsers(users);
+            await Promise.all([loadPoolDetail(), refreshHealthCheck()]);
+            showAlert('Users updated successfully', 'success');
+        } catch (error: any) {
+            let errorMessage = 'Failed to update users';
+            if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            showAlert(errorMessage, 'error');
+        }
     }
 
     async function handleCheckPatchUsers(users: PatchUserRequest[]) {
@@ -361,34 +383,101 @@
     }
 
     async function handleSetTopology() {
-        await handlers.setTopology();
-        await Promise.all([loadPoolDetail(), refreshHealthCheck()]);
+        try {
+            await handlers.setTopology();
+            await Promise.all([loadPoolDetail(), refreshHealthCheck()]);
+        } catch (error: any) {
+            let errorMessage = 'Failed to set topology';
+            if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            } else if (typeof error.response?.data === 'string') {
+                errorMessage = error.response.data;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            showAlert(errorMessage, 'error');
+        }
     }
 
     async function handleChangeTopology(topologyId: string) {
-        await handlers.changeTopology(topologyId);
-        await Promise.all([loadPoolDetail(), refreshHealthCheck()]);
+        try {
+            await handlers.changeTopology(topologyId);
+            await Promise.all([loadPoolDetail(), refreshHealthCheck()]);
+            showAlert('Topology changed successfully', 'success');
+        } catch (error: any) {
+            let errorMessage = 'Failed to change topology';
+            if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            showAlert(errorMessage, 'error');
+        }
     }
 
     // Status dialog handlers
     async function handleDeployPool(concurrentRequests: number) {
-        await handlers.deployPool(concurrentRequests);
-        await refreshHealthCheck();
+        try {
+            await handlers.deployPool(concurrentRequests);
+            await refreshHealthCheck();
+            showAlert('Pool deployment started successfully', 'success');
+        } catch (error: any) {
+            let errorMessage = 'Failed to deploy pool';
+            if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            showAlert(errorMessage, 'error');
+        }
     }
 
     async function handleRedeployPool(concurrentRequests: number) {
-        await handlers.redeployPool(concurrentRequests);
-        await refreshHealthCheck();
+        try {
+            await handlers.redeployPool(concurrentRequests);
+            await refreshHealthCheck();
+            showAlert('Pool redeployment started successfully', 'success');
+        } catch (error: any) {
+            let errorMessage = 'Failed to redeploy pool';
+            if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            showAlert(errorMessage, 'error');
+        }
     }
 
     async function handleAbortPool() {
-        await handlers.abortPool();
-        await refreshHealthCheck();
+        try {
+            await handlers.abortPool();
+            await refreshHealthCheck();
+            showAlert('Pool operation aborted successfully', 'success');
+        } catch (error: any) {
+            let errorMessage = 'Failed to abort pool operation';
+            if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            showAlert(errorMessage, 'error');
+        }
     }
 
     async function handleDestroyPool() {
-        await handlers.destroyPool();
-        await refreshHealthCheck();
+        try {
+            await handlers.destroyPool();
+            await refreshHealthCheck();
+            showAlert('Pool destruction started successfully', 'success');
+        } catch (error: any) {
+            let errorMessage = 'Failed to destroy pool';
+            if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            showAlert(errorMessage, 'error');
+        }
     }
 
     // Access dialog handlers
@@ -402,8 +491,19 @@
             return;
         }
 
-        await handlers.fetchCtfdData();
-        await loadPoolDetail();
+        try {
+            await handlers.fetchCtfdData();
+            await loadPoolDetail();
+            showAlert('CTFd data fetched successfully', 'success');
+        } catch (error: any) {
+            let errorMessage = 'Failed to fetch CTFd data';
+            if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            showAlert(errorMessage, 'error');
+        }
     }
 
     async function handleDownloadCtfdLogins() {
@@ -432,18 +532,40 @@
     async function handleSharePool() {
         if (!poolDetail?.mainUsers || poolDetail.mainUsers.length === 0) return;
         
-        await handlers.sharePool();
-        await checkSharingStatusHandler();
+        try {
+            await handlers.sharePool();
+            await checkSharingStatusHandler();
+            showAlert('Pool shared successfully', 'success');
+        } catch (error: any) {
+            let errorMessage = 'Failed to share pool';
+            if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            showAlert(errorMessage, 'error');
+        }
     }
 
     async function handleUnsharePool() {
         if (!poolDetail?.mainUsers || poolDetail.mainUsers.length === 0) return;
         
-        const success = await handlers.unsharePool();
-        if (!success) {
-            await checkSharingStatusHandler();
-        } else {
-            sharingStatus.shared = false;
+        try {
+            const success = await handlers.unsharePool();
+            if (!success) {
+                await checkSharingStatusHandler();
+            } else {
+                sharingStatus.shared = false;
+                showAlert('Pool unshared successfully', 'success');
+            }
+        } catch (error: any) {
+            let errorMessage = 'Failed to unshare pool';
+            if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            showAlert(errorMessage, 'error');
         }
     }
 
@@ -458,8 +580,19 @@
             return;
         }
 
-        await handlers.startTesting();
-        await checkTestingStatus();
+        try {
+            await handlers.startTesting();
+            await checkTestingStatus();
+            showAlert('Testing started successfully', 'success');
+        } catch (error: any) {
+            let errorMessage = 'Failed to start testing';
+            if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            showAlert(errorMessage, 'error');
+        }
     }
 
     async function handleStopTesting() {
@@ -472,8 +605,19 @@
             return;
         }
 
-        await handlers.stopTesting();
-        await checkTestingStatus();
+        try {
+            await handlers.stopTesting();
+            await checkTestingStatus();
+            showAlert('Testing stopped successfully', 'success');
+        } catch (error: any) {
+            let errorMessage = 'Failed to stop testing';
+            if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            showAlert(errorMessage, 'error');
+        }
     }
 
     // Data processing - using $effect for runes mode
@@ -581,7 +725,7 @@
                 <h1 class="text-3xl font-bold">{poolDetail.note}</h1>
                 {#if poolDetail}
                     <p class="text-sm text-muted-foreground">
-                        Id {data.poolId} • Pool Type {poolDetail.type} • Created by {poolDetail.createdBy} • Created at {formatDate(poolDetail.createdAt)}
+                        Id {data.poolId} • Pool Type {poolDetail.type} • Created by {poolDetail.createdBy} • Created {formatDate(poolDetail.createdAt)}
                     </p>
                 {:else}
                     <div class="flex space-x-2 mt-1">

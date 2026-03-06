@@ -131,11 +131,12 @@ export async function checkPoolHealth(poolId: string): Promise<PoolHealthCheck> 
     }
 }
 
-export async function setPoolTopology(poolId: string): Promise<void> {
+export async function setPoolTopology(poolId: string): Promise<{ results: Array<{ userId: string; error?: string; response?: any }> }> {
     try {
-        await dulusClient.post('/range/config', '', {
+        const response = await dulusClient.post('/range/config', '', {
             params: { poolId }
         });
+        return response.data;
     } catch (error) {
         console.error('Error setting pool topology:', error);
         throw error;

@@ -64,6 +64,11 @@
 				errorMessage = error.message;
 			}
 			
+			// Handle specific conflict error
+			if (errorMessage.toLowerCase().includes('conflict')) {
+				errorMessage = 'Topology is being used by pool';
+			}
+			
 			showAlert(errorMessage, 'error');
 		}
 	}
@@ -115,22 +120,23 @@
 			// Refresh the topologies list
 			location.reload();
 		} catch (error: any) {
-			// Check for 400 error (topology being used by pool)
-			if (error.response?.status === 400) {
-				showAlert('Topology cannot be edited because it is being used by an active pool', 'error');
-			} else {
-				let errorMessage = 'Failed to upload topology';
-				if (error.response?.data) {
-					if (typeof error.response.data === 'string') {
-						errorMessage = error.response.data;
-					} else if (error.response.data.error) {
-						errorMessage = error.response.data.error;
-					} else if (error.response.data.message) {
-						errorMessage = error.response.data.message;
-					}
+			let errorMessage = 'Failed to upload topology';
+			if (error.response?.data) {
+				if (typeof error.response.data === 'string') {
+					errorMessage = error.response.data;
+				} else if (error.response.data.error) {
+					errorMessage = error.response.data.error;
+				} else if (error.response.data.message) {
+					errorMessage = error.response.data.message;
 				}
-				showAlert(errorMessage, 'error');
 			}
+			
+			// Handle specific conflict error
+			if (errorMessage.toLowerCase().includes('conflict')) {
+				errorMessage = 'Topology is being used by pool';
+			}
+			
+			showAlert(errorMessage, 'error');
 		}
 	}
 
@@ -235,6 +241,7 @@
 					bind:this={fileInput}
 					id="file-upload"
 					type="file"
+					onclick={(e) => { (e.target as HTMLInputElement).value = ''; }}
 					onchange={handleFileSelect}
 					class="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground file:border-0 file:bg-transparent file:text-sm file:font-medium"
 				/>

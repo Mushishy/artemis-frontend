@@ -24,13 +24,22 @@
 	let { data, headers = [], itemsPerPage = 13, currentPage = 1, maxHeight = '400px', showActions = false, onRowClick, onEdit, onDelete, onDownload, onDownloadCtfdData, onDownloadLogins, onDownloadWireguard, onNote, onInspect, showDeleteFor }: Props = $props();
 
 	let sortColumn: string | null = $state(null);
-	let sortDirection: 'asc' | 'desc' = $state('asc');
+	let sortDirection: 'asc' | 'desc' = $state('desc');
 	let currentItemsPerPage = $state(13);
 
 	// Initialize reactive values properly
 	$effect(() => {
 		if (headers.length > 0 && !sortColumn) {
-			sortColumn = headers[0].key;
+			// Prefer Global boolean column (True first)
+			const globalColumn = headers.find(h => h.key === 'Global' || h.label === 'Global Role');
+			if (globalColumn) {
+				sortColumn = globalColumn.key;
+				sortDirection = 'desc';
+			} else {
+				// Try to find "Created" column for default sorting (newest first)
+				const createdColumn = headers.find(h => h.key === 'Created' || h.label === 'Created');
+				sortColumn = createdColumn ? createdColumn.key : headers[0].key;
+			}
 		}
 	});
 
@@ -41,30 +50,34 @@
 	const itemsPerPageOptions = [13, 18, 27, 63];
 
 	// Use getter functions instead of $derived for better Svelte 5 compatibility
+	const userTypeOrder: Record<string, number> = { 'MAIN': 0, 'REGULAR': 1 };
+
 	function getSortedData(): any[] {
 		if (!sortColumn || !data || !Array.isArray(data)) {
 			return data || [];
 		}
 		
 		return [...data].sort((a, b) => {
+			// Primary sort: MAIN before REGULAR (when userType is present)
+			const aType = userTypeOrder[a.userType] ?? 2;
+			const bType = userTypeOrder[b.userType] ?? 2;
+			if (aType !== bType) return aType - bType;
+
+			// Secondary sort: selected column
 			const aVal = a[sortColumn as string];
 			const bVal = b[sortColumn as string];
 			
-			// Handle different data types
 			if (typeof aVal === 'string' && typeof bVal === 'string') {
 				const comparison = aVal.localeCompare(bVal);
 				return sortDirection === 'asc' ? comparison : -comparison;
-			}
-			
-			if (typeof aVal === 'boolean' && typeof bVal === 'boolean') {
+			} else if (typeof aVal === 'boolean' && typeof bVal === 'boolean') {
 				const comparison = aVal === bVal ? 0 : aVal ? 1 : -1;
 				return sortDirection === 'asc' ? comparison : -comparison;
+			} else {
+				if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+				if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+				return 0;
 			}
-			
-			// Default comparison
-			if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
-			if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
-			return 0;
 		});
 	}
 

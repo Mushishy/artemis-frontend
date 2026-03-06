@@ -31,9 +31,9 @@
     // TABLE
     const headers: { key: keyof Pool; label: string; sortable?: boolean }[] = [
         { key: 'note', label: 'Note', sortable: true },
+        { key: 'type', label: 'Pool Type', sortable: true },
         { key: 'createdBy', label: 'Created By', sortable: true },
-        { key: 'poolId', label: 'Pool ID', sortable: true },
-        { key: 'type', label: 'Pool Type', sortable: true }
+        { key: 'createdAt', label: 'Created', sortable: true }
     ];
 
     // Action Functions
