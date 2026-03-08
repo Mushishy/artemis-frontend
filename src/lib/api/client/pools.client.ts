@@ -94,10 +94,15 @@ export async function patchPoolUsers(poolId: string, poolType: string, usersAndT
     }
 }
 
-export async function checkPoolStatus(poolId: string): Promise<StatusCheckResponse> {
+export async function checkPoolStatus(poolId: string, isDestroying?: boolean): Promise<StatusCheckResponse> {
     try {
+        const params: { poolId: string; isDestroying?: string } = { poolId };
+        if (isDestroying) {
+            params.isDestroying = 'true';
+        }
+        
         const response = await dulusClient.get('/range/status', {
-            params: { poolId }
+            params
         });
         return response.data;
     } catch (error) {

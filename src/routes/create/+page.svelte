@@ -764,7 +764,7 @@
     function isFormValid(): boolean {
         // For CTFD dev mode, only validate note
         if (formData.type === 'CTFD' && formData.isDev) {
-            return formData.note.trim().length > 0 && formData.note.length <= 15;
+            return formData.note.trim().length > 0 && formData.note.length <= 30;
         }
         
         if (!formData.type || !formData.topologyId) {
@@ -775,7 +775,7 @@
             return false;
         }
         
-        if (formData.note.length > 15) {
+        if (formData.note.length > 30) {
             return false;
         }
         
@@ -1142,15 +1142,15 @@
                             </div>
 
                             <div class="space-y-3">
-                                <div class="text-sm font-medium">Note * <span class="text-muted-foreground">(maximum 15 characters)</span></div>
+                                <div class="text-sm font-medium">Note * <span class="text-muted-foreground">(maximum 30 characters)</span></div>
                                 <Input
                                     bind:value={formData.note}
                                     placeholder="Enter note..."
-                                    maxlength={15}
+                                    maxlength={30}
                                     class="w-full"
                                 />
                                 <p class="text-xs text-muted-foreground">
-                                    {formData.note.length}/15 characters
+                                    {formData.note.length}/30 characters
                                 </p>
                             </div>
 

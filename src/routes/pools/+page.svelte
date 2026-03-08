@@ -76,7 +76,7 @@
             
             // Step 2: Check pool status
             showAlert('Checking pool status...', 'success');
-            const statusResponse = await checkPoolStatus(deletingPool.poolId);
+            const statusResponse = await checkPoolStatus(deletingPool.poolId, true);
             
             // Step 3: Filter results based on pool type
             let resultsToCheck = statusResponse.results;
