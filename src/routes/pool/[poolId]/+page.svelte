@@ -19,6 +19,7 @@
     import AccessDialog from '$lib/components/pool/AccessDialog.svelte';
     import SharingDialog from '$lib/components/pool/SharingDialog.svelte';
     import TestingDialog from '$lib/components/pool/TestingDialog.svelte';
+    import PowerDialog from '$lib/components/pool/PowerDialog.svelte';
     import StatusTabs from '$lib/components/pool/StatusTabs.svelte';
 
     let { data }: { data: PageData } = $props();
@@ -41,7 +42,7 @@
     let isRefreshing = $state(false);
     let alertMessage = $state<{ message: string; type: 'success' | 'error' } | null>(null);
     let sharingStatus = $state<{ shared: boolean; isLoading: boolean }>({ shared: false, isLoading: false });
-    let testingStatus = $state<{ allSame: boolean; testingEnabled: boolean; isLoading: boolean }>({ allSame: false, testingEnabled: false, isLoading: false });
+    let testingStatus = $state<{ allSame: boolean; testingEnabled: boolean; poweredOn: boolean; isLoading: boolean }>({ allSame: false, testingEnabled: false, poweredOn: false, isLoading: false });
     // Remove initial loading - always show UI immediately
     
     // Dialog states
@@ -51,6 +52,7 @@
     let sharingDialogOpen = $state(false);
     let accessDialogOpen = $state(false);
     let testingDialogOpen = $state(false);
+    let powerDialogOpen = $state(false);
     
     // Topology state
     let topologyOptions = $state<any[]>([]);
@@ -274,9 +276,11 @@
             
             testingStatus.allSame = responseData.allSame;
             testingStatus.testingEnabled = responseData.testingEnabled;
+            testingStatus.poweredOn = responseData.poweredOn;
         } catch (error) {
             testingStatus.allSame = false;
             testingStatus.testingEnabled = false;
+            testingStatus.poweredOn = false;
         } finally {
             testingStatus.isLoading = false;
         }
@@ -620,6 +624,57 @@
         }
     }
 
+    // Power handlers
+    async function handlePowerOn() {
+        const canPower = healthCheck.users?.allExist && 
+                        healthCheck.topology?.matchPoolTopology && 
+                        healthCheck.status?.allDeployed;
+        
+        if (!canPower) {
+            showAlert('Power management requires Users, Topology, and Status to be green', 'error');
+            return;
+        }
+
+        try {
+            await handlers.powerOn();
+            await checkTestingStatus();
+            showAlert('Power on request completed successfully', 'success');
+        } catch (error: any) {
+            let errorMessage = 'Failed to power on ranges';
+            if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            showAlert(errorMessage, 'error');
+        }
+    }
+
+    async function handlePowerOff() {
+        const canPower = healthCheck.users?.allExist && 
+                        healthCheck.topology?.matchPoolTopology && 
+                        healthCheck.status?.allDeployed;
+        
+        if (!canPower) {
+            showAlert('Power management requires Users, Topology, and Status to be green', 'error');
+            return;
+        }
+
+        try {
+            await handlers.powerOff();
+            await checkTestingStatus();
+            showAlert('Power off request completed successfully', 'success');
+        } catch (error: any) {
+            let errorMessage = 'Failed to power off ranges';
+            if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            showAlert(errorMessage, 'error');
+        }
+    }
+
     // Data processing - using $effect for runes mode
     let processedUserData: any[] = $state([]);
     let filteredHeaders: { key: string; label: string; sortable?: boolean }[] = $state([]);
@@ -751,6 +806,7 @@
         onSharingClick={poolDetail?.type === 'SHARED' ? () => sharingDialogOpen = true : undefined}
         onAccessClick={() => accessDialogOpen = true}
         onTestingClick={() => testingDialogOpen = true}
+        onPowerClick={() => powerDialogOpen = true}
         onRefresh={handleRefresh}
     />
 
@@ -851,5 +907,13 @@
         onStartTesting={handleStartTesting}
         onStopTesting={handleStopTesting}
         onClose={() => testingDialogOpen = false}
+    />
+
+    <PowerDialog
+        bind:open={powerDialogOpen}
+        {healthCheck}
+        onPowerOn={handlePowerOn}
+        onPowerOff={handlePowerOff}
+        onClose={() => powerDialogOpen = false}
     />
 </div>

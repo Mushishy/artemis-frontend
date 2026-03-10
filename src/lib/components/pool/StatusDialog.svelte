@@ -48,7 +48,7 @@
                 Manage Status
             </Dialog.Title>
             <Dialog.Description>
-                Deploy only when all ranges are never deployed or destroyed, redeploy only when there have been some with errors while deploying, abort to stop all deployments, when all ranges are in error or aborted state you can destroy the pool.
+                Deploy only when all ranges are never deployed or destroyed, redeploy only when there have been some with errors while deploying. You must abort the range deployment or wait until it finishes before you can redeploy! Abort to stop all deployments. When all ranges are in error or aborted state you can destroy the pool.
             </Dialog.Description>
         </Dialog.Header>
         

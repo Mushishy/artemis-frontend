@@ -11,7 +11,9 @@ import {
     unsharePool as unsharePoolAPI,
     checkSharingStatus as checkSharingStatusAPI,
     startTesting,
-    stopTesting
+    stopTesting,
+    powerOnRanges,
+    powerOffRanges
 } from '$lib/api/client/pools.client.js';
 
 import { importMissingUsers } from '$lib/api/client/users.client.js';
@@ -397,6 +399,26 @@ export class PoolHandlers {
             this.handleTestingResponse(response, 'Testing stop request completed');
         } catch (error: any) {
             this.handleError('Failed to stop testing', error);
+        }
+    }
+
+    async powerOn() {
+        try {
+            this.showAlert('Sending power on request...', 'success');
+            const response = await powerOnRanges(this.poolId);
+            this.handleTestingResponse(response, 'Power on request completed');
+        } catch (error: any) {
+            this.handleError('Failed to power on ranges', error);
+        }
+    }
+
+    async powerOff() {
+        try {
+            this.showAlert('Sending power off request...', 'success');
+            const response = await powerOffRanges(this.poolId);
+            this.handleTestingResponse(response, 'Power off request completed');
+        } catch (error: any) {
+            this.handleError('Failed to power off ranges', error);
         }
     }
 

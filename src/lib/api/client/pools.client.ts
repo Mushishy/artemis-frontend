@@ -437,7 +437,7 @@ export async function checkUsersInPools(userIds: string[]): Promise<UserExistsCh
 }
 
 // Testing API functions
-export async function getTestingStatus(poolId: string): Promise<{ allSame: boolean; testingEnabled: boolean }> {
+export async function getTestingStatus(poolId: string): Promise<{ allSame: boolean; testingEnabled: boolean; poweredOn: boolean }> {
     try {
         const response = await dulusClient.get('/range/testing/status', {
             params: { poolId }
@@ -469,6 +469,31 @@ export async function stopTesting(poolId: string): Promise<{ results: Array<{ us
         return response.data;
     } catch (error) {
         console.error('Error stopping testing:', error);
+        throw error;
+    }
+}
+
+// Power management API functions
+export async function powerOnRanges(poolId: string): Promise<{ results: Array<{ userId: string; response: { status: string } }> }> {
+    try {
+        const response = await dulusClient.put('/range/poweron', '', {
+            params: { poolId }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error powering on ranges:', error);
+        throw error;
+    }
+}
+
+export async function powerOffRanges(poolId: string): Promise<{ results: Array<{ userId: string; response: { status: string } }> }> {
+    try {
+        const response = await dulusClient.put('/range/poweroff', '', {
+            params: { poolId }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error powering off ranges:', error);
         throw error;
     }
 }

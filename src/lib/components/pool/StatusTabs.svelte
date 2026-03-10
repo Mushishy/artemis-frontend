@@ -8,7 +8,7 @@
         poolType?: string;
         ctfdData?: boolean;
         sharingStatus?: { shared: boolean; isLoading: boolean };
-        testingStatus?: { allSame: boolean; testingEnabled: boolean; isLoading: boolean };
+        testingStatus?: { allSame: boolean; testingEnabled: boolean; poweredOn: boolean; isLoading: boolean };
         isRefreshing: boolean;
         onUsersClick: () => void;
         onTopologyClick: () => void;
@@ -16,6 +16,7 @@
         onSharingClick?: () => void;
         onAccessClick: () => void;
         onTestingClick: () => void;
+        onPowerClick: () => void;
         onRefresh: () => void;
     }
 
@@ -32,6 +33,7 @@
         onSharingClick, 
         onAccessClick, 
         onTestingClick,
+        onPowerClick,
         onRefresh 
     }: Props = $props();
 
@@ -41,10 +43,15 @@
         return status ? 'bg-green-500' : 'bg-red-500';
     }
 
-    function getTestingStatusColor(testingStatus?: { allSame: boolean; testingEnabled: boolean; isLoading: boolean }): string {
+    function getTestingStatusColor(testingStatus?: { allSame: boolean; testingEnabled: boolean; poweredOn: boolean; isLoading: boolean }): string {
         if (!testingStatus || testingStatus.isLoading) return 'bg-gray-400';
         if (!testingStatus.allSame) return 'bg-gray-400';
         return testingStatus.testingEnabled ? 'bg-green-500' : 'bg-red-500';
+    }
+
+    function getPowerStatusColor(testingStatus?: { allSame: boolean; testingEnabled: boolean; poweredOn: boolean; isLoading: boolean }): string {
+        if (!testingStatus || testingStatus.isLoading) return 'bg-gray-400';
+        return testingStatus.poweredOn ? 'bg-green-500' : 'bg-red-500';
     }
 </script>
 
@@ -80,6 +87,11 @@
         <Button variant="outline" onclick={onTestingClick} class="rounded-lg px-4 py-2 flex items-center gap-2 shadow-sm">
             <span class="text-base font-medium">testing</span>
             <div class="w-3 h-3 rounded-full {getTestingStatusColor(testingStatus)}"></div>
+        </Button>
+
+        <Button variant="outline" onclick={onPowerClick} class="rounded-lg px-4 py-2 flex items-center gap-2 shadow-sm">
+            <span class="text-base font-medium">power</span>
+            <div class="w-3 h-3 rounded-full {getPowerStatusColor(testingStatus)}"></div>
         </Button>
     </div>
     
