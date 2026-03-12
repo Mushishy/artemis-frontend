@@ -35,7 +35,7 @@
                 Manage Testing
             </Dialog.Title>
             <Dialog.Description>
-                Start or stop testing mode for all users in the pool. Testing mode prevents fetching CTFd data for pool. Takes some time and might have to be initiated multiple times.
+                Start or stop testing mode for users with deployed topology in the pool. Testing mode prevents fetching CTFd data for pool. Takes some time and might have to be initiated multiple times.
             </Dialog.Description>
         </Dialog.Header>
         
@@ -50,7 +50,7 @@
                 <div class="flex flex-col items-start">
                     <span>Start Testing</span>
                     <span class="text-xs text-muted-foreground">
-                        {canManageTesting ? "Enable testing mode for all users in the pool" : "Requires Users, Topology, and Status to be green"}
+                        {canManageTesting ? "Enable testing mode for users with deployed topology in the pool" : "Requires Users, Topology, and Status to be green"}
                     </span>
                 </div>
             </Button>
@@ -65,7 +65,7 @@
                 <div class="flex flex-col items-start">
                     <span>Stop Testing</span>
                     <span class="text-xs text-muted-foreground">
-                        {canManageTesting ? "Disable testing mode for all users in the pool" : "Requires Users, Topology, and Status to be green"}
+                        {canManageTesting ? "Disable testing mode for users with deployed topology in the pool" : "Requires Users, Topology, and Status to be green"}
                     </span>
                 </div>
             </Button>

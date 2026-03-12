@@ -35,7 +35,7 @@
                 Manage Range Power
             </Dialog.Title>
             <Dialog.Description>
-                Power on or off all virtual machines for all users in the pool. This will affect all VMs across all ranges. Takes some time to complete.
+                Power on or off all virtual machines for users with deployed topologies in the pool. Takes some time to complete.
             </Dialog.Description>
         </Dialog.Header>
         
@@ -50,7 +50,7 @@
                 <div class="flex flex-col items-start">
                     <span>Power On Ranges</span>
                     <span class="text-xs text-muted-foreground">
-                        {canManagePower ? "Power on all VMs for all users in the pool" : "Requires Users, Topology, and Status to be green"}
+                        {canManagePower ? "Power on all VMs for users with deployed topologies in the pool" : "Requires Users, Topology, and Status to be green"}
                     </span>
                 </div>
             </Button>
@@ -65,7 +65,7 @@
                 <div class="flex flex-col items-start">
                     <span>Power Off Ranges</span>
                     <span class="text-xs text-muted-foreground">
-                        {canManagePower ? "Power off all VMs for all users in the pool" : "Requires Users, Topology, and Status to be green"}
+                        {canManagePower ? "Power off all VMs for users with deployed topologies in the pool" : "Requires Users, Topology, and Status to be green"}
                     </span>
                 </div>
             </Button>
