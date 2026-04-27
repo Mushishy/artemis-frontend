@@ -1,11 +1,23 @@
-# Artemis Frontend Overview
+# Artemis Frontend
 
-The Artemis system consists of multiple interconnected components. The architecture is designed to provide a web-based interface for managing Ludus cybersecurity training ranges through an intuitive frontend application. Read more about its' components here - [Artemis Components Explained](./docs/components.md). 
+> **A SvelteKit-based web interface for managing Ludus cybersecurity training ranges**
 
+![Dashboard Screenshot](./docs/img/2_dashboard.png)
 
-![](./docs/img/2_dashboard.png)
+## Documentation
 
-## Developing
+- **[System Architecture & Components](./docs/components.md)** - Learn about the system architecture, component interactions, and authentication flow
+- **[Codebase Structure & Guide](./docs/structure.md)** - Comprehensive guide to the repository structure, file organization, and core directories
+- **[Admin Guide](https://gitlab.kypo.fiit.stuba.sk/stu-fiit-ludus/knowledge-base/-/tree/main/04-artemis-admin-guide?ref_type=heads)** - Learn how to interact with the web UI effectively.
+- **[CTFd Guide](https://gitlab.kypo.fiit.stuba.sk/stu-fiit-ludus/knowledge-base/-/tree/main/03-ctfd-guide/web-deploy?ref_type=heads)** - Instructions for creating a CTFd development instance or deploying an actual game.
+
+## Overview
+
+The Artemis system consists of multiple interconnected components. The architecture is designed to provide a web-based interface for managing Ludus cybersecurity training ranges through an intuitive frontend application.
+
+## Quick Start
+
+### Development
 
 ```bash
 cp .env.example .env

@@ -1,4 +1,4 @@
-## Components
+## Project Components
 
 ![](./img/architecture.png)
 
