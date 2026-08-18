@@ -8,7 +8,7 @@
 
 - **[System Architecture & Components](./docs/components.md)** - Learn about the system architecture, component interactions, and authentication flow
 - **[Codebase Structure & Guide](./docs/structure.md)** - Comprehensive guide to the repository structure, file organization, and core directories
-- **[Admin Guide](https://gitlab.kypo.fiit.stuba.sk/stu-fiit-ludus/knowledge-base/-/tree/main/04-artemis-admin-guide?ref_type=heads)** - Learn how to interact with the web UI effectively.
+- **[Admin Guide](./docs/artemis-admin-guide.md)** - Learn how to interact with the web UI effectively.
 - **[CTFd Guide](https://gitlab.kypo.fiit.stuba.sk/stu-fiit-ludus/knowledge-base/-/tree/main/03-ctfd-guide/web-deploy?ref_type=heads)** - Instructions for creating a CTFd development instance or deploying an actual game.
 
 ## Overview
